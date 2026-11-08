@@ -169,16 +169,16 @@ function stage(text){
     if(!artist&&!title)return;
     const rid=g(r,ir)||('row'+n);seen[rid]=(seen[rid]||0)+1;
     const fmt=g(r,ifm),s=parseInt(g(r,is)),p=parseInt(g(r,ip)),lo=g(r,il);
-    const ok=il>=0&&L(lo)&&s>=1;
+    const lc=locs.find(l=>l.id===lo||l.name.toLowerCase()===lo.toLowerCase()),ok=il>=0&&lc&&s>=1&&s<=nSlots(lc);
     out.push({id:rid+'#'+seen[rid],artist,title,year:g(r,iy).replace(/^0$/,''),fmt,cat:ifm>=0?catOf(fmt):'lp',
-      loc:ok?lo:null,section:ok?s:null,pos:ok&&p>0?p:null});
+      loc:ok?lc.id:null,section:ok?s:null,pos:ok&&p>0?p:null});
   });
   return out;
 }
 function finishImport(){
   const old=Object.fromEntries(recs.map(r=>[r.id,r]));
   const pick=staged.filter(r=>sel[r.cat]);
-  pick.forEach(r=>{const o=old[r.id];if(o&&placed(o)){r.loc=o.loc;r.section=o.section;r.pos=o.pos}});
+  pick.forEach(r=>{const o=old[r.id];if(!placed(r)&&o&&placed(o)){r.loc=o.loc;r.section=o.section;r.pos=o.pos}});
   const keep=new Set(pick.map(r=>r.id));
   const lost=recs.filter(r=>placed(r)&&!keep.has(r.id)).length;
   recs=pick;recs.forEach(prep);renumberAll();save();staged=null;
@@ -187,7 +187,7 @@ function finishImport(){
 function exportCSV(){
   const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
   const lines=['Artist,Title,Released,Format,release_id,location,section,position',
-    ...recs.map(r=>[r.artist,r.title,r.year,r.fmt,r.id.split('#')[0],placed(r)?r.loc:'',placed(r)?r.section:'',placed(r)?r.pos:''].map(q).join(','))];
+    ...recs.map(r=>[r.artist,r.title,r.year,r.fmt,r.id.split('#')[0],placed(r)?L(r.loc).name:'',placed(r)?r.section:'',placed(r)?r.pos:''].map(q).join(','))];
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob(['\uFEFF'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'}));
   a.download='vinyl-collection.csv';document.body.appendChild(a);a.click();a.remove();
