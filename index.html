@@ -24,7 +24,7 @@ h1{font-size:24px;margin:16px 0 8px;letter-spacing:-.01em}
 button,input,select{font:inherit;color:inherit}
 input[type=search],input[type=number],input[type=text],select{width:100%;min-height:50px;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--card)}
 nav{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:center;gap:0;background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom);z-index:5}
-nav button{flex:1;max-width:186px;min-height:58px;padding:14px 0;font-size:16px;background:none;border:0;color:var(--mute);font-weight:600}
+nav button{flex:1;max-width:186px;min-height:58px;padding:14px 0;font-size:15px;background:none;border:0;color:var(--mute);font-weight:600}
 nav button.on{color:var(--acc);box-shadow:inset 0 3px 0 var(--acc)}
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
 .chip{min-height:40px;padding:8px 16px;border:1px solid var(--line);border-radius:99px;background:none;color:var(--mute)}
@@ -53,6 +53,14 @@ nav button.on{color:var(--acc);box-shadow:inset 0 3px 0 var(--acc)}
 .btn{min-height:50px;padding:12px 16px;border-radius:10px;border:1px solid var(--line);background:var(--card);font-weight:600;width:100%;margin:6px 0}
 .btn.pri{background:var(--acc);color:var(--acc-ink);border-color:var(--acc)}
 .btn.dng{color:#c0392b}
+.star{flex:none;width:44px;height:44px;margin:-6px -10px -6px 0;padding:0;background:none;border:0;display:grid;place-items:center}
+.star svg{width:26px;height:26px;fill:none;stroke:var(--mute);stroke-width:1.7;stroke-linejoin:round}
+.star.on svg{fill:#f0b429;stroke:#d9a007}
+.rec{cursor:pointer;-webkit-user-select:none;user-select:none}
+.rec .note{font-style:italic}
+textarea{width:100%;min-height:96px;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--card);font:inherit;color:inherit;resize:vertical}
+.sel2{display:flex;gap:8px;margin:8px 0}.sel2 select{flex:1;min-width:0}
+.sh{display:flex;align-items:flex-start;gap:8px}.sh>div{flex:1;min-width:0}
 #sheet{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:flex-end;z-index:10}
 #sheet.open{display:flex}
 #sheet>div{background:var(--bg);width:100%;max-width:560px;margin:0 auto;border-radius:18px 18px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom));max-height:92vh;max-height:92dvh;overflow:auto;overscroll-behavior:contain}
@@ -67,7 +75,7 @@ label.ck input{width:20px;height:20px}
 <body>
 <h1 id="h"></h1>
 <main id="app"></main>
-<nav><button data-v="rec">Records</button><button data-v="shelf">Shelf</button><button data-v="data">Data</button></nav>
+<nav><button data-v="rec">Records</button><button data-v="shelf">Shelf</button><button data-v="fav">Favourites</button><button data-v="data">Data</button></nav>
 <div id="sheet"><div id="sheetbody"></div></div>
 
 <script>
@@ -75,10 +83,11 @@ const DEFAULT_LOCS=[
  {id:'kallax',name:'Kallax shelf',mode:'grid',cols:3,rows:4,cap:0,formats:['lp']},
  {id:'case7',name:'7" case',mode:'grid',cols:1,rows:1,cap:200,formats:['s7']},
  {id:'string',name:'String Pocket',mode:'units',cols:1,stack:8,rows:3,cap:0,formats:['cd']}];
-let locs=[],recs=[],view='rec',q='',onlyUnplaced=false,catF='all',selLoc=null,selSec=null,lim=100,staged=null,
+let locs=[],recs=[],view='rec',q='',onlyUnplaced=false,catF='all',genF='all',selLoc=null,selSec=null,lim=100,staged=null,
     sel={lp:1,s7:1,cd:1,shellac:0,cass:0,other:0};
 const CATS={lp:'LP, 12" and 10"',s7:'7"',shellac:'Shellac (78 rpm)',cd:'CD and MiniDisc',cass:'Cassette',other:'Other (boxes, etc.)'};
 const SHORT={lp:'LP / 12"',s7:'7"',shellac:'Shellac',cd:'CD',cass:'Cassette',other:'Other'};
+const GENRES=['Alternative','Ambient','Blues','Classical','Comedy','Country','Drum n Bass','EBM','Electronic','Folk','Funk / Soul','Gospel','Hip Hop','IDM','Industrial','Jazz','Metal','New Wave','Pop','R&B','Reggae','Rock','Soundtrack / Cast','Spoken Word','World'];
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const fold=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/ł/gi,'l').replace(/ø/gi,'o').replace(/æ/gi,'ae').replace(/ß/g,'ss').replace(/đ/gi,'d').toLowerCase();
@@ -87,10 +96,10 @@ function load(){
   try{recs=JSON.parse(localStorage.getItem('vinylRecs2')||'[]')}catch(e){recs=[]}
   try{locs=JSON.parse(localStorage.getItem('vinylLocs')||'null')}catch(e){locs=null}
   if(!Array.isArray(locs)||!locs.length)locs=JSON.parse(JSON.stringify(DEFAULT_LOCS));
-  recs.forEach(prep);
+  recs.forEach(r=>{r.fav=!!r.fav;prep(r)});
   locs.forEach(l=>{if(l.id=='string'&&l.mode=='units'&&((l.cols==8&&!l.stack)||(l.cols==4&&l.stack==2))){l.cols=1;l.stack=8}});
 }
-function prep(r){r.k=fold(r.artist+' '+r.title);r.sk=fold(r.artist).replace(/^the /,'')+'|'+fold(r.title)}
+function prep(r){r.k=fold(r.artist+' '+r.title+' '+(r.comment||''));r.sk=fold(r.artist).replace(/^the /,'')+'|'+fold(r.title)}
 
 /* locations */
 const L=id=>locs.find(l=>l.id===id);
@@ -159,7 +168,7 @@ function stage(text){
   const ix=(...res)=>{for(const re of res){const i=h.findIndex(x=>re.test(x));if(i>=0)return i}return -1};
   let ia=ix(/^artist$/,/artist|band|performer/),it=ix(/^(title|album|name)$/,/title|album|release name/),
       iy=ix(/^(released|year)$/,/year|released/),ifm=ix(/^format$/),ir=ix(/^release_id$/,/release.?id/),
-      is=ix(/^section$/),ip=ix(/^pos(ition)?$/),il=ix(/^location$/),body=rows.slice(1);
+      is=ix(/^section$/),ip=ix(/^pos(ition)?$/),il=ix(/^location$/),ig=ix(/^genre$/),ic=ix(/^comments?$/),ifv=ix(/^fav(ou?rites?)?$/),body=rows.slice(1);
   if(ia<0&&it<0){ia=0;it=1;body=rows}
   if(it<0)it=ia===0?1:0;
   const g=(r,i)=>i>=0?(r[i]||'').trim():'';
@@ -171,23 +180,28 @@ function stage(text){
     const fmt=g(r,ifm),s=parseInt(g(r,is)),p=parseInt(g(r,ip)),lo=g(r,il);
     const lc=locs.find(l=>l.id===lo||l.name.toLowerCase()===lo.toLowerCase()),ok=il>=0&&lc&&s>=1&&s<=nSlots(lc);
     out.push({id:rid+'#'+seen[rid],artist,title,year:g(r,iy).replace(/^0$/,''),fmt,cat:ifm>=0?catOf(fmt):'lp',
-      loc:ok?lc.id:null,section:ok?s:null,pos:ok&&p>0?p:null});
+      loc:ok?lc.id:null,section:ok?s:null,pos:ok&&p>0?p:null,
+      genre:g(r,ig),comment:g(r,ic),fav:/^(yes|y|1|true|x|★)$/i.test(g(r,ifv))});
   });
   return out;
 }
 function finishImport(){
   const old=Object.fromEntries(recs.map(r=>[r.id,r]));
   const pick=staged.filter(r=>sel[r.cat]);
-  pick.forEach(r=>{const o=old[r.id];if(!placed(r)&&o&&placed(o)){r.loc=o.loc;r.section=o.section;r.pos=o.pos}});
+  pick.forEach(r=>{const o=old[r.id];if(!o)return;
+    if(!placed(r)&&placed(o)){r.loc=o.loc;r.section=o.section;r.pos=o.pos}
+    if(!r.genre&&o.genre)r.genre=o.genre;
+    if(!r.comment&&o.comment)r.comment=o.comment;
+    if(!r.fav&&o.fav)r.fav=true});
   const keep=new Set(pick.map(r=>r.id));
   const lost=recs.filter(r=>placed(r)&&!keep.has(r.id)).length;
   recs=pick;recs.forEach(prep);renumberAll();save();staged=null;
-  return `Imported ${recs.length} records, ${recs.filter(placed).length} placed.`+(lost?` ${lost} placed records were not in the new import and have been dropped.`:'');
+  return `Imported ${recs.length} records, ${recs.filter(placed).length} placed, ${recs.filter(r=>r.genre).length} with a genre, ${recs.filter(r=>r.fav).length} favourites.`+(lost?` ${lost} placed records were not in the new import and have been dropped.`:'');
 }
 function exportCSV(){
   const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
-  const lines=['Artist,Title,Released,Format,release_id,location,section,position',
-    ...recs.map(r=>[r.artist,r.title,r.year,r.fmt,r.id.split('#')[0],placed(r)?L(r.loc).name:'',placed(r)?r.section:'',placed(r)?r.pos:''].map(q).join(','))];
+  const lines=['Artist,Title,Released,Format,release_id,location,section,position,Genre,Comment,Favourite',
+    ...recs.map(r=>[r.artist,r.title,r.year,r.fmt,r.id.split('#')[0],placed(r)?L(r.loc).name:'',placed(r)?r.section:'',placed(r)?r.pos:'',r.genre||'',r.comment||'',r.fav?'Yes':''].map(q).join(','))];
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob(['\uFEFF'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'}));
   a.download='vinyl-collection.csv';document.body.appendChild(a);a.click();a.remove();
@@ -202,18 +216,22 @@ function shelfHTML(l,hi=new Set(),mini=false,selN=null){
   }
   return h+'</div>';
 }
-function meta(r){const f=(r.fmt||'').split(',')[0].trim();return [r.year,f].filter(Boolean).join(' · ')}
+const STAR='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.2 1.2-6.5L2.5 9.5l6.6-.9z"/></svg>';
+const starBtn=r=>`<button class="star${r.fav?' on':''}" data-fav="${esc(r.id)}" aria-label="Favourite" aria-pressed="${!!r.fav}">${STAR}</button>`;
+const gkey=r=>r.genre||'__none';
+function meta(r){const f=(r.fmt||'').split(',')[0].trim();return [r.year,f,r.genre].filter(Boolean).join(' · ')}
 function tagHTML(r){
   if(!placed(r))return '<span class="tag no">Not placed</span>';
   const l=L(r.loc),sl=slotLabel(l,r.section);
   return `<span class="tag">${esc(l.name)}<br>${sl?esc(sl)+' · ':''}#${r.pos}</span>`;
 }
-function recHTML(r){
-  return `<button class="rec" data-id="${esc(r.id)}"><div class="t"><b>${esc(r.artist)}</b><span class="s">${esc(r.title)}</span><span class="s">${esc(meta(r))}</span></div>${tagHTML(r)}</button>`;
+const noteHTML=r=>r.comment?`<span class="s note">✎ ${esc(r.comment.replace(/\s+/g,' '))}</span>`:'';
+function recHTML(r,lead=''){
+  return `<div class="rec" role="button" tabindex="0" data-id="${esc(r.id)}">${lead}<div class="t"><b>${esc(r.artist)}</b><span class="s">${esc(r.title)}</span><span class="s">${esc(meta(r))}</span>${noteHTML(r)}</div>${lead?'':tagHTML(r)}${starBtn(r)}</div>`;
 }
 function matches(){
-  const w=fold(q).split(/\s+/).filter(Boolean);
-  return recs.filter(r=>(!onlyUnplaced||!placed(r))&&(catF=='all'||r.cat==catF)&&w.every(x=>r.k.includes(x))).sort((a,b)=>a.sk<b.sk?-1:a.sk>b.sk?1:0);
+  const w=fold(q).split(/\s+/).filter(Boolean),fo=view=='fav';
+  return recs.filter(r=>(fo?r.fav:(!onlyUnplaced||!placed(r)))&&(catF=='all'||r.cat==catF)&&(genF=='all'||gkey(r)==genF)&&w.every(x=>r.k.includes(x))).sort((a,b)=>a.sk<b.sk?-1:a.sk>b.sk?1:0);
 }
 function fillList(){
   const m=matches();let mini='';
@@ -223,24 +241,38 @@ function fillList(){
   });
   $('#mini').innerHTML=mini;
   $('#list').innerHTML=!recs.length?'<div class="empty">No records yet.<br>Open the Data tab to import your CSV.</div>':
+    (view=='fav'&&!recs.some(r=>r.fav))?'<div class="empty">No favourites yet.<br>Tap the star next to a record to add it here.</div>':
     !m.length?'<div class="empty">No matches.</div>':
-    `<p class="mute">${m.length} record${m.length==1?'':'s'}</p>`+m.slice(0,lim).map(recHTML).join('')+(m.length>lim?`<button class="btn" data-more="1">Show more</button>`:'');
+    `<p class="mute">${m.length} ${view=='fav'?'favourite':'record'}${m.length==1?'':'s'}</p>`+m.slice(0,lim).map(r=>recHTML(r)).join('')+(m.length>lim?`<button class="btn" data-more="1">Show more</button>`:'');
+}
+function toggleFav(id){
+  const r=recs.find(x=>x.id==id);if(!r)return;
+  r.fav=!r.fav;save();
+  document.querySelectorAll('[data-fav]').forEach(b=>{if(b.dataset.fav==id){b.classList.toggle('on',r.fav);b.setAttribute('aria-pressed',String(r.fav))}});
+  if(view=='fav'&&!r.fav&&$('#list'))fillList();
 }
 
 function render(){
   document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.v==view));
   const app=$('#app');
-  if(view=='rec'){
-    $('#h').textContent='Records';
-    const np=recs.filter(r=>!placed(r)).length;
-    const cats=Object.keys(SHORT).filter(k=>recs.some(r=>r.cat==k));
-    app.innerHTML=`<div class="stick"><input type="search" id="q" placeholder="Search artist or title" value="${esc(q)}" autocomplete="off" autocapitalize="off" enterkeyhint="search">
-    <div class="chips"><button class="chip${onlyUnplaced?'':' on'}" data-f="all">All ${recs.length}</button><button class="chip${onlyUnplaced?' on':''}" data-f="un">Not placed ${np}</button></div>
-    ${cats.length>1?`<div class="chips"><button class="chip${catF=='all'?' on':''}" data-c="all">Any format</button>${cats.map(k=>`<button class="chip${catF==k?' on':''}" data-c="${k}">${SHORT[k]}</button>`).join('')}</div>`:''}</div>
+  if(view=='rec'||view=='fav'){
+    const fo=view=='fav';
+    $('#h').textContent=fo?'Favourites':'Records';
+    const base=fo?recs.filter(r=>r.fav):recs,np=recs.filter(r=>!placed(r)).length,cc={},gc={};
+    base.forEach(r=>{cc[r.cat]=(cc[r.cat]||0)+1;gc[gkey(r)]=(gc[gkey(r)]||0)+1});
+    if(catF!='all'&&!cc[catF])catF='all';
+    if(genF!='all'&&!gc[genF])genF='all';
+    const fopt=Object.keys(SHORT).filter(k=>cc[k]).map(k=>`<option value="${k}"${catF==k?' selected':''}>${SHORT[k]} (${cc[k]})</option>`).join('');
+    const gopt=Object.keys(gc).sort((a,b)=>(a=='__none')-(b=='__none')||gc[b]-gc[a]||a.localeCompare(b)).map(k=>`<option value="${esc(k)}"${genF==k?' selected':''}>${k=='__none'?'No genre':esc(k)} (${gc[k]})</option>`).join('');
+    app.innerHTML=`<div class="stick"><input type="search" id="q" placeholder="Search artist, title or comment" value="${esc(q)}" autocomplete="off" autocapitalize="off" enterkeyhint="search">
+    ${fo?'':`<div class="chips"><button class="chip${onlyUnplaced?'':' on'}" data-f="all">All ${recs.length}</button><button class="chip${onlyUnplaced?' on':''}" data-f="un">Not placed ${np}</button></div>`}
+    <div class="sel2"><select id="fc" aria-label="Format"><option value="all">Any format</option>${fopt}</select><select id="fg" aria-label="Genre"><option value="all">Any genre</option>${gopt}</select></div></div>
     <div id="mini"></div><div id="list"></div>`;
     fillList();
     $('#q').oninput=e=>{q=e.target.value;lim=100;fillList()};
     $('#q').onkeydown=e=>{if(e.key=='Enter')e.target.blur()};
+    $('#fc').onchange=e=>{catF=e.target.value;lim=100;fillList()};
+    $('#fg').onchange=e=>{genF=e.target.value;lim=100;fillList()};
   }else if(view=='shelf'){
     $('#h').textContent='Shelf';
     if(!L(selLoc))selLoc=locs[0]?.id;
@@ -251,7 +283,7 @@ function render(){
       h+=shelfHTML(l,new Set(),false,selSec);
       if(selSec){const a=inSlot(l.id,selSec);
         h+=`<p class="mute">${esc(single(l)?l.name:slotLabel(l,selSec))}${single(l)?'':', left to right'}: ${a.length}${l.cap?' of '+l.cap:''} records</p>`+
-        (a.length?a.map(r=>`<button class="rec" data-id="${esc(r.id)}"><span class="tag">#${r.pos}</span><div class="t"><b>${esc(r.artist)}</b><span class="s">${esc(r.title)}</span><span class="s">${esc(meta(r))}</span></div></button>`).join(''):'<div class="empty">Nothing here yet.</div>');
+        (a.length?a.map(r=>recHTML(r,`<span class="tag">#${r.pos}</span>`)).join(''):'<div class="empty">Nothing here yet.</div>');
       }else h+=l.mode=='units'?`<p class="mute">Shelves are numbered from the top, ${l.rows} per unit. Tap a shelf to see its records.</p>`:
         '<p class="mute">Sections are numbered along each row, starting at the top left. Tap a section to see its records.</p>';
     }else h='<div class="empty">No storage locations. Add one in the Data tab.</div>';
@@ -260,19 +292,19 @@ function render(){
 }
 function dataView(msg=''){
   $('#h').textContent='Data';
-  let h=`<p class="mute">${recs.length} records · ${recs.filter(placed).length} placed</p>`;
+  let h=`<p class="mute">${recs.length} records · ${recs.filter(placed).length} placed · ${recs.filter(r=>r.genre).length} with a genre · ${recs.filter(r=>r.fav).length} favourites</p>`;
   if(staged){
     const c={};staged.forEach(r=>c[r.cat]=(c[r.cat]||0)+1);
     const n=staged.filter(r=>sel[r.cat]).length;
     h+=`<label>What should be imported?</label><p class="mute">Found ${staged.length} rows. Pick the formats you want to keep track of.</p>`+
       Object.keys(CATS).filter(k=>c[k]).map(k=>`<label class="ck"><input type="checkbox" data-cat="${k}" ${sel[k]?'checked':''}> ${CATS[k]} <span class="mute">(${c[k]})</span></label>`).join('')+
-      `<button class="btn pri" id="go">Import ${n} records</button><button class="btn" id="no">Cancel</button><p class="mute">Records that match an earlier import keep their location.</p>`;
+      `<button class="btn pri" id="go">Import ${n} records</button><button class="btn" id="no">Cancel</button><p class="mute">Records that match an earlier import keep their location, genre, comment and favourite star when the file leaves those empty.</p>`;
   }else h+=`<label>Storage locations</label>`+
     locs.map(l=>`<button class="rec" data-el="${esc(l.id)}"><div class="t"><b>${esc(l.name)}</b><span class="s">${single(l)?'One compartment':l.mode=='units'?`${l.cols*stk(l)} units, ${l.rows} shelves each`:`${l.cols} × ${l.rows} sections`}${l.cap?`, ${l.cap} per ${single(l)?'case':'slot'}`:''}</span></div><span class="tag no">Edit</span></button>`).join('')+
     `<button class="btn" id="addloc">Add storage location</button>
-    <label>Import collection (CSV)</label><p class="mute">Works with your Discogs export. Placed records keep their location when you import again.</p>
+    <label>Import collection (CSV)</label><p class="mute">Works with your Discogs export, or with a CSV exported from this app. Genre, Comment and Favourite columns are read if present. Records you have already set up keep their location, genre, comment and star when you import again.</p>
     <input type="file" id="file" accept=".csv,text/csv,text/plain" hidden><button class="btn pri" id="imp">Choose CSV file</button>
-    <label>Back up</label><p class="mute">Export a CSV that includes where every record sits. You can import it again later.</p>
+    <label>Back up</label><p class="mute">Export a CSV with every record's location, genre, comment and favourite star. You can import it again later.</p>
     <button class="btn" id="exp">Export CSV</button><button class="btn dng" id="clr">Clear all records</button>`;
   $('#app').innerHTML=h+`<p class="mute" id="msg">${esc(msg)}</p>`;
   if(staged){
@@ -292,11 +324,14 @@ function dataView(msg=''){
 }
 
 /* sheets */
+const genreList=()=>[...new Set([...GENRES,...recs.map(r=>r.genre).filter(Boolean)])].sort((a,b)=>a.localeCompare(b));
+function setNote(r,g,c){r.genre=(g||'').trim();r.comment=(c||'').trim();prep(r)}
 function openRecSheet(id){
   const r=recs.find(x=>x.id==id);if(!r)return;
-  let lid=placed(r)?r.loc:defaultLoc(r)?.id,sec=placed(r)?r.section:null;
-  const body=$('#sheetbody');
+  let lid=placed(r)?r.loc:defaultLoc(r)?.id,sec=placed(r)?r.section:null,cm=r.comment||'',gn=r.genre||'';
+  const body=$('#sheetbody');body.innerHTML='';
   const draw=()=>{
+    if($('#cm'))cm=$('#cm').value;if($('#gn'))gn=$('#gn').value;
     const l=L(lid);if(!l){body.innerHTML='<p>Add a storage location in the Data tab first.</p><button class="btn" id="cx">Close</button>';$('#cx').onclick=closeSheet;return}
     if(single(l))sec=1;
     const n=sec?inSlot(l.id,sec).filter(x=>x.id!=r.id).length:0;
@@ -306,18 +341,21 @@ function openRecSheet(id){
       for(let rr=0;rr<dRows(l);rr++)for(let c=0;c<l.cols;c++){const k=slotAt(l,rr,c);slots+=`<button data-s="${k}" class="cell${sec==k?' sel hi':''}${l.mode=='units'&&(rr+1)%l.rows==0&&rr<dRows(l)-1?' ub':''}"><span class="n">${slotShort(l,k)}</span></button>`}
       slots+='</div>';
     }
-    body.innerHTML=`<b style="font-size:19px">${esc(r.artist)}</b><div class="mute">${esc(r.title)}</div><div class="mute">${esc(meta(r))}</div>
+    body.innerHTML=`<div class="sh"><div><b style="font-size:19px">${esc(r.artist)}</b><div class="mute">${esc(r.title)}</div><div class="mute">${esc([r.year,(r.fmt||'').split(',')[0].trim()].filter(Boolean).join(' · '))}</div></div>${starBtn(r)}</div>
     ${locs.length>1?`<label>Location</label><div class="chips">${locs.map(x=>`<button class="chip${x.id==lid?' on':''}" data-pl="${esc(x.id)}">${esc(x.name)}</button>`).join('')}</div>`:''}
     ${slots}
     ${sec?`<label>Position${single(l)?'':' in '+esc(slotLabel(l,sec))}</label><input type="number" id="pos" min="1" max="${n+1}" inputmode="numeric" value="${placed(r)&&r.loc==lid&&r.section==sec?r.pos:n+1}">
     <p class="mute">Holds ${n} other record${n==1?'':'s'}${l.cap?` of ${l.cap}`:''}. Records at or after this position shift one place along.${l.cap&&n>=l.cap?' This one is already full.':''}</p>`:''}
-    <button class="btn pri" id="ok">${sec?'Save location':'Save as not placed'}</button>
+    <label for="gn">Genre</label><input type="text" id="gn" list="gl" value="${esc(gn)}" placeholder="e.g. Electronic" autocomplete="off">
+    <datalist id="gl">${genreList().map(g=>`<option value="${esc(g)}">`).join('')}</datalist>
+    <label for="cm">Comment</label><textarea id="cm" placeholder="Condition, notes, who has borrowed it...">${esc(cm)}</textarea>
+    <button class="btn pri" id="ok">${sec?'Save':placed(r)?'Save as not placed':'Save'}</button>
     ${placed(r)?'<button class="btn dng" id="rm">Remove from storage</button>':''}<button class="btn" id="cx">Cancel</button>`;
     body.querySelectorAll('[data-pl]').forEach(b=>b.onclick=()=>{lid=b.dataset.pl;sec=null;draw()});
     body.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{sec=sec==+b.dataset.s?null:+b.dataset.s;draw()});
     $('#cx').onclick=closeSheet;
-    $('#ok').onclick=()=>{place(r,sec?lid:null,sec,sec?parseInt($('#pos').value)||null:null);closeSheet();render()};
-    if($('#rm'))$('#rm').onclick=()=>{place(r,null,null);closeSheet();render()};
+    $('#ok').onclick=()=>{setNote(r,$('#gn').value,$('#cm').value);place(r,sec?lid:null,sec,sec?parseInt($('#pos').value)||null:null);closeSheet();render()};
+    if($('#rm'))$('#rm').onclick=()=>{setNote(r,$('#gn').value,$('#cm').value);place(r,null,null);closeSheet();render()};
   };
   draw();showSheet();
 }
@@ -361,11 +399,11 @@ window.addEventListener('popstate',()=>{if(sheetOpen){sheetOpen=false;$('#sheet'
 $('#sheet').onclick=e=>{if(e.target.id=='sheet')closeSheet()};
 
 document.addEventListener('click',e=>{
-  const t=e.target.closest('button');if(!t)return;
+  const fv=e.target.closest('[data-fav]');if(fv){toggleFav(fv.dataset.fav);return}
+  const t=e.target.closest('button,.rec[data-id]');if(!t)return;
   const d=t.dataset;
   if(d.v){view=d.v;render();window.scrollTo(0,0)}
   else if(d.f){onlyUnplaced=d.f=='un';lim=100;render()}
-  else if(d.c){catF=d.c;lim=100;render()}
   else if(d.l){selLoc=d.l;selSec=null;render()}
   else if(d.more){lim+=100;fillList()}
   else if(d.sec&&view=='shelf'){const n=+d.sec;selSec=selSec==n?null:n;render()}
