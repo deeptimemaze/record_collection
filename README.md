@@ -11,6 +11,7 @@ A small installable web app for keeping track of where your records and CDs are 
 - Search by artist, title or comment. Accents are ignored, so "sigur ros" finds Sigur Rós and "einsturzende" finds Einstürzende.
 - Filter by format and genre, or show only records that are not placed yet.
 - Back up and restore with a CSV export that includes every record's location, genre, comment and favourite star.
+- Dark look inspired by the Discogs app, with a light version that follows your phone's setting.
 - Works offline and can be installed on a phone's home screen.
 
 ## Storage locations
@@ -67,4 +68,4 @@ There is no build step and there are no dependencies. You can also open `index.h
 
 ## Updating
 
-If you change `index.html` on the host, change the cache name in `sw.js` (for example from `vinyl-shelf-v3` to `vinyl-shelf-v4`) so phones pick up the new version.
+If you change `index.html` on the host, change the cache name in `sw.js` (for example from `vinyl-shelf-v4` to `vinyl-shelf-v5`) so phones pick up the new version.
