@@ -115,6 +115,7 @@ label.ck input{width:20px;height:20px}
 <div id="sheet"><div id="sheetbody"></div></div>
 
 <script>
+const APP_VERSION=12,APP_DATE='14 Nov 2026';
 const DEFAULT_LOCS=[
  {id:'kallax',name:'Kallax shelf',mode:'grid',cols:3,rows:4,cap:0,formats:['lp']},
  {id:'case7',name:'7" case',mode:'grid',cols:1,rows:1,cap:200,formats:['s7']},
@@ -530,7 +531,7 @@ function dataView(msg=''){
     <div class="chips" style="margin-top:0"><button class="chip${covOn()?' on':''}" id="cvt">${covOn()?'Covers on':'Covers off'}</button><button class="chip" id="cvd">Test lookup</button><button class="chip" id="cvc">Refetch all</button></div>
     <label>Back up</label><p class="mute">Export a CSV with every record's location, genre, comment, favourite star and played date. You can import it again later.</p>
     <button class="btn" id="exp">Export CSV</button><button class="btn dng" id="clr">Clear all records</button>`;
-  $('#app').innerHTML=h+`<p class="mute" id="msg">${esc(msg)}</p>`;
+  $('#app').innerHTML=h+`<p class="mute" id="msg">${esc(msg)}</p><p class="mute" style="text-align:center;margin-top:28px">Vinyl shelf · version ${APP_VERSION} · ${APP_DATE}</p>`;
   if(staged){
     document.querySelectorAll('[data-cat]').forEach(i=>i.onchange=()=>{sel[i.dataset.cat]=i.checked?1:0;dataView()});
     $('#go').onclick=()=>{const m=finishImport();dataView(m)};
