@@ -23,6 +23,16 @@
 --ink:#111111;--mute:#666666;--line:#e0e0e0;--line2:#b5b5b5;
 --wood:#c9a574;--wood-d:#a98450;--cell:#f2f2f2;--acc:#111111;--acc-ink:#ffffff;--red:#c0392b;
 --ico-search:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23444444' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M20 20l-4-4'/%3E%3C/svg%3E");--ico-chev:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23444444' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")}}
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 8px;text-align:center}
+.tile b{display:block;font-size:24px;font-weight:700;line-height:1.1}.tile span{font-size:12px;color:var(--mute)}
+.bars{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:6px 0 14px}
+.br{display:grid;grid-template-columns:minmax(70px,32%) 1fr 78px;gap:10px;align-items:center;padding:5px 0;font-size:14px}
+.bl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bt{height:8px;border-radius:4px;background:var(--chip);overflow:hidden}.bt i{display:block;height:100%;background:var(--ink);border-radius:4px}
+.bv{color:var(--mute);font-variant-numeric:tabular-nums;text-align:right}
+.qact{display:flex;gap:8px;margin:-2px 0 12px}.qact .chip{min-height:36px;padding:6px 14px;font-size:14px}
+.played{color:var(--mute);font-size:13px}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 html{overscroll-behavior:none;-webkit-text-size-adjust:100%}
 button{-webkit-user-select:none;user-select:none;cursor:pointer}
@@ -102,7 +112,7 @@ label.ck input{width:20px;height:20px}
 <body>
 <h1 id="h"></h1>
 <main id="app"></main>
-<nav><button data-v="rec"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.6"/><path d="M12 3a9 9 0 0 1 9 9" opacity=".5"/></svg></span>Records</button><button data-v="shelf"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="1.5"/><path d="M9 4v16M15 4v16M3 12h18"/></svg></span>Shelf</button><button data-v="fav"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.2 1.2-6.5L2.5 9.5l6.6-.9z"/></svg></span>Favourites</button><button data-v="data"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg></span>Data</button></nav>
+<nav><button data-v="rec"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.6"/><path d="M12 3a9 9 0 0 1 9 9" opacity=".5"/></svg></span>Records</button><button data-v="shelf"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="1.5"/><path d="M9 4v16M15 4v16M3 12h18"/></svg></span>Shelf</button><button data-v="fav"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.2 1.2-6.5L2.5 9.5l6.6-.9z"/></svg></span>Favourites</button><button data-v="ex"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h4l10 10h4M3 17h4l2.5-2.5M13.5 9.5L17 7h4M18 4l3 3-3 3M18 14l3 3-3 3"/></svg></span>Explore</button><button data-v="data"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg></span>Data</button></nav>
 <div id="sheet"><div id="sheetbody"></div></div>
 
 <script>
@@ -123,7 +133,7 @@ function load(){
   try{recs=JSON.parse(localStorage.getItem('vinylRecs2')||'[]')}catch(e){recs=[]}
   try{locs=JSON.parse(localStorage.getItem('vinylLocs')||'null')}catch(e){locs=null}
   if(!Array.isArray(locs)||!locs.length)locs=JSON.parse(JSON.stringify(DEFAULT_LOCS));
-  recs.forEach(r=>{r.fav=!!r.fav;prep(r)});
+  recs.forEach(r=>{r.fav=!!r.fav;r.nx=+r.nx||0;r.played=r.played||'';r.da=r.da||'';prep(r)});
   locs.forEach(l=>{if(l.id=='string'&&l.mode=='units'&&((l.cols==8&&!l.stack)||(l.cols==4&&l.stack==2))){l.cols=1;l.stack=8}});
   locs.forEach(l=>{if(l.mode=='units'){l.w=+l.w||78;l.h=+l.h||20}});
 }
@@ -196,7 +206,7 @@ function stage(text){
   const ix=(...res)=>{for(const re of res){const i=h.findIndex(x=>re.test(x));if(i>=0)return i}return -1};
   let ia=ix(/^artist$/,/artist|band|performer/),it=ix(/^(title|album|name)$/,/title|album|release name/),
       iy=ix(/^(released|year)$/,/year|released/),ifm=ix(/^format$/),ir=ix(/^release_id$/,/release.?id/),
-      is=ix(/^section$/),ip=ix(/^pos(ition)?$/),il=ix(/^location$/),ig=ix(/^genre$/),ic=ix(/^comments?$/),ifv=ix(/^fav(ou?rites?)?$/),body=rows.slice(1);
+      is=ix(/^section$/),ip=ix(/^pos(ition)?$/),il=ix(/^location$/),ig=ix(/^genre$/),ic=ix(/^comments?$/),ifv=ix(/^fav(ou?rites?)?$/),ida=ix(/^date.?added$/,/^added$/),ipl=ix(/^(last.?)?played$/),iq=ix(/^play.?next$/),body=rows.slice(1);
   if(ia<0&&it<0){ia=0;it=1;body=rows}
   if(it<0)it=ia===0?1:0;
   const g=(r,i)=>i>=0?(r[i]||'').trim():'';
@@ -209,27 +219,43 @@ function stage(text){
     const lc=locs.find(l=>l.id===lo||l.name.toLowerCase()===lo.toLowerCase()),ok=il>=0&&lc&&s>=1&&s<=nSlots(lc);
     out.push({id:rid+'#'+seen[rid],artist,title,year:g(r,iy).replace(/^0$/,''),fmt,cat:ifm>=0?catOf(fmt):'lp',
       loc:ok?lc.id:null,section:ok?s:null,pos:ok&&p>0?p:null,
-      genre:g(r,ig),comment:g(r,ic),fav:/^(yes|y|1|true|x|★)$/i.test(g(r,ifv))});
+      genre:g(r,ig),comment:g(r,ic),fav:/^(yes|y|1|true|x|★)$/i.test(g(r,ifv)),
+      da:g(r,ida),played:(g(r,ipl).match(/^\d{4}-\d{2}-\d{2}/)||[''])[0],nx:/^(yes|y|1|true|x)$/i.test(g(r,iq))?Date.now()+n:0});
   });
   return out;
 }
+const ridOf=r=>String(r.id).split('#')[0];
+function matchOld(pick){
+  const by={},nNew={};
+  recs.forEach(o=>(by[ridOf(o)]??=[]).push(o));
+  pick.forEach(r=>{nNew[ridOf(r)]=(nNew[ridOf(r)]||0)+1});
+  const used=new Set(),pair=new Map();
+  // 1: same release and same date added (identifies one particular copy)
+  pick.forEach(r=>{if(!r.da)return;const o=(by[ridOf(r)]||[]).find(x=>!used.has(x)&&x.da&&x.da===r.da);if(o){used.add(o);pair.set(r,o)}});
+  // 2: leftovers of the same release, in order, unless both sides carry different dates
+  pick.forEach(r=>{if(pair.has(r))return;const c=by[ridOf(r)]||[];
+    const o=c.find(x=>!used.has(x)&&(!x.da||!r.da||(c.length==1&&nNew[ridOf(r)]==1)));
+    if(o){used.add(o);pair.set(r,o)}});
+  return pair;
+}
 function finishImport(){
-  const old=Object.fromEntries(recs.map(r=>[r.id,r]));
-  const pick=staged.filter(r=>sel[r.cat]);
-  pick.forEach(r=>{const o=old[r.id];if(!o)return;
+  const pick=staged.filter(r=>sel[r.cat]),pair=matchOld(pick);
+  pick.forEach(r=>{const o=pair.get(r);if(!o)return;
     if(!placed(r)&&placed(o)){r.loc=o.loc;r.section=o.section;r.pos=o.pos}
     if(!r.genre&&o.genre)r.genre=o.genre;
     if(!r.comment&&o.comment)r.comment=o.comment;
-    if(!r.fav&&o.fav)r.fav=true});
-  const keep=new Set(pick.map(r=>r.id));
-  const lost=recs.filter(r=>placed(r)&&!keep.has(r.id)).length;
+    if(!r.fav&&o.fav)r.fav=true;
+    if(!r.played&&o.played)r.played=o.played;
+    if(!r.nx&&o.nx)r.nx=o.nx});
+  const kept=new Set(pair.values());
+  const lost=recs.filter(r=>placed(r)&&!kept.has(r)).length;
   recs=pick;recs.forEach(prep);renumberAll();save();staged=null;
   return `Imported ${recs.length} records, ${recs.filter(placed).length} placed, ${recs.filter(r=>r.genre).length} with a genre, ${recs.filter(r=>r.fav).length} favourites.`+(lost?` ${lost} placed records were not in the new import and have been dropped.`:'');
 }
 function exportCSV(){
   const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
-  const lines=['Artist,Title,Released,Format,release_id,location,section,position,Genre,Comment,Favourite',
-    ...recs.map(r=>[r.artist,r.title,r.year,r.fmt,r.id.split('#')[0],placed(r)?L(r.loc).name:'',placed(r)?r.section:'',placed(r)?r.pos:'',r.genre||'',r.comment||'',r.fav?'Yes':''].map(q).join(','))];
+  const lines=['Artist,Title,Released,Format,release_id,location,section,position,Genre,Comment,Favourite,Date Added,Last played,Play next',
+    ...recs.map(r=>[r.artist,r.title,r.year,r.fmt,r.id.split('#')[0],placed(r)?L(r.loc).name:'',placed(r)?r.section:'',placed(r)?r.pos:'',r.genre||'',r.comment||'',r.fav?'Yes':'',r.da||'',r.played||'',r.nx?'Yes':''].map(q).join(','))];
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob(['\uFEFF'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'}));
   a.download='vinyl-collection.csv';document.body.appendChild(a);a.click();a.remove();
@@ -284,8 +310,17 @@ function tagHTML(r){
   return `<span class="loc">${esc(l.name)} · <span style="white-space:nowrap">${sl?esc(sl)+' · ':''}#${r.pos}</span></span>`;
 }
 const noteHTML=r=>r.comment?`<span class="s note">✎ ${esc(r.comment.replace(/\s+/g,' '))}</span>`:'';
-function recHTML(r,lead=''){
-  return `<div class="rec" role="button" tabindex="0" data-id="${esc(r.id)}">${lead||thumbHTML(r)}<div class="t"><b>${esc(r.title)}</b><span class="s">${esc(r.artist)}</span><span class="s">${esc(meta(r))}</span>${noteHTML(r)}${lead?'':`<div>${tagHTML(r)}</div>`}</div>${starBtn(r)}</div>`;
+const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+function ago(ds){
+  if(!ds)return 'Not played yet';
+  const [y,m,d]=ds.split('-').map(Number),n=Math.round((Date.parse(today()+'T00:00:00Z')-Date.UTC(y,m-1,d))/864e5);
+  const abs=`${d} ${MON[m-1]} ${y}`;
+  return n<=0?'Played today':n==1?'Played yesterday':n<60?`Played ${n} days ago`:`Played ${abs}`;
+}
+function markPlayed(r){r.played=today();r.nx=0;save()}
+function recHTML(r,lead='',extra=''){
+  return `<div class="rec" role="button" tabindex="0" data-id="${esc(r.id)}">${lead||thumbHTML(r)}<div class="t"><b>${esc(r.title)}</b><span class="s">${esc(r.artist)}</span><span class="s">${esc(meta(r))}</span>${noteHTML(r)}${extra}${lead?'':`<div>${tagHTML(r)}</div>`}</div>${starBtn(r)}</div>`;
 }
 function matches(){
   const w=fold(q).split(/\s+/).filter(Boolean),fo=view=='fav';
@@ -346,7 +381,65 @@ function render(){
         '<p class="mute">Sections are numbered along each row, starting at the top left. Tap a section to see its records.</p>';
     }else h='<div class="empty">No storage locations. Add one in the Data tab.</div>';
     app.innerHTML=h;
-  }else dataView();
+  }else if(view=='ex')exploreView();
+  else dataView();
+}
+
+/* explore: pick, play next, stats */
+let exTab='pick',pickId=null;const pf={cat:'all',gen:'all',fav:false,placed:false,fresh:true};
+const pool=()=>recs.filter(r=>(pf.cat=='all'||r.cat==pf.cat)&&(pf.gen=='all'||gkey(r)==pf.gen)&&(!pf.fav||r.fav)&&(!pf.placed||placed(r)));
+function doPick(){
+  let p=pool();if(!p.length){pickId=null;return}
+  if(pf.fresh){const n=p.filter(r=>!r.played);
+    if(n.length)p=n;else{p=p.slice().sort((a,b)=>a.played<b.played?-1:a.played>b.played?1:0);p=p.slice(0,Math.max(1,Math.ceil(p.length/4)))}}
+  if(p.length>1)p=p.filter(r=>r.id!=pickId);
+  pickId=p[Math.floor(Math.random()*p.length)].id;
+}
+const playedLine=r=>`<span class="s played">${ago(r.played)}</span>`;
+function pickHTML(){
+  const cats=[...new Set(recs.map(r=>r.cat))],gens=[...new Set(recs.map(gkey))].sort((a,b)=>(a=='__none')-(b=='__none')||a.localeCompare(b));
+  const chip=(k,t)=>`<button class="chip${pf[k]?' on':''}" data-pf="${k}">${t}</button>`;
+  let h=`<div class="sel2"><select id="pc" aria-label="Format"><option value="all">Any format</option>${Object.keys(SHORT).filter(k=>cats.includes(k)).map(k=>`<option value="${k}"${pf.cat==k?' selected':''}>${SHORT[k]}</option>`).join('')}</select>
+  <select id="pg" aria-label="Genre"><option value="all">Any genre</option>${gens.map(k=>`<option value="${esc(k)}"${pf.gen==k?' selected':''}>${k=='__none'?'No genre':esc(k)}</option>`).join('')}</select></div>
+  <div class="chips">${chip('fresh','Favour unplayed')}${chip('fav','Favourites only')}${chip('placed','Only placed')}</div>
+  <button class="btn pri" data-dopick="1">${pickId?'Pick another':'Pick a record'}</button>`;
+  const r=recs.find(x=>x.id==pickId);
+  if(r)h+=`<div style="margin-top:14px">${recHTML(r,'',playedLine(r))}</div><div class="qact"><button class="chip on" data-play="${esc(r.id)}">Play this</button><button class="chip" data-qt="${esc(r.id)}">${r.nx?'In play next':'Add to play next'}</button></div>`;
+  else if(!pool().length&&recs.length)h+='<div class="empty">Nothing matches these filters.</div>';
+  const qd=recs.filter(x=>x.nx).sort((a,b)=>a.nx-b.nx);
+  h+=`<label>Play next${qd.length?` (${qd.length})`:''}</label>`+(qd.length?qd.map(x=>`${recHTML(x,'',playedLine(x))}<div class="qact"><button class="chip" data-play="${esc(x.id)}">Mark played</button><button class="chip" data-qt="${esc(x.id)}">Remove</button></div>`).join(''):'<p class="mute">Nothing queued. Add records from a pick, or from a record\'s sheet.</p>');
+  const unp=recs.filter(x=>!x.played).length,old=recs.slice().sort((a,b)=>(a.played||'')<(b.played||'')?-1:(a.played||'')>(b.played||'')?1:a.sk<b.sk?-1:1).slice(0,8);
+  if(recs.length)h+=`<label>Not played for the longest</label><p class="mute">${unp} of ${recs.length} records have no played date yet.</p>`+old.map(x=>recHTML(x,'',playedLine(x))).join('');
+  return h;
+}
+function barsHTML(rows){return `<div class="bars">${rows.map(([k,v,p])=>`<div class="br"><span class="bl">${esc(k)}</span><span class="bt"><i style="width:${Math.max(0,Math.min(100,p*100)).toFixed(1)}%"></i></span><span class="bv">${esc(v)}</span></div>`).join('')}</div>`}
+function countBars(map,limit=0,order){
+  let e=Object.entries(map);e.sort(order||((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0])));
+  if(limit&&e.length>limit){const rest=e.slice(limit).reduce((t,x)=>t+x[1],0);e=e.slice(0,limit);e.push(['Other',rest])}
+  const m=Math.max(1,...e.map(x=>x[1]));return barsHTML(e.map(([k,v])=>[k,String(v),v/m]));
+}
+function statsHTML(){
+  if(!recs.length)return '<div class="empty">No records yet.<br>Open the Data tab to import your CSV.</div>';
+  const n=recs.length,pl=recs.filter(placed).length,pd=recs.filter(r=>r.played).length;
+  const tile=(b,t)=>`<div class="tile"><b>${b}</b><span>${t}</span></div>`;
+  const by=(f)=>{const m={};recs.forEach(r=>{const k=f(r);m[k]=(m[k]||0)+1});return m};
+  const cat=by(r=>SHORT[r.cat]),gen=by(r=>r.genre||'No genre'),dec=by(r=>{const y=parseInt(r.year);return y>=1900?Math.floor(y/10)*10+'s':'Unknown'}),
+    yr=by(r=>(r.da||'').slice(0,4)||''),
+    decOrd=(a,b)=>(a[0]=='Unknown')-(b[0]=='Unknown')||a[0].localeCompare(b[0]);
+  let h=`<div class="tiles">${tile(n,'Records')}${tile(pl,'Placed')}${tile(n-pl,'Not placed')}${tile(recs.filter(r=>r.fav).length,'Favourites')}${tile(pd,'Played')}${tile(recs.filter(r=>r.nx).length,'Play next')}</div>`;
+  h+='<label>Storage</label><p class="mute" style="margin:0 0 6px">Records, and sections or shelves in use.</p>'+barsHTML(locs.map(l=>{
+    const a=recs.filter(r=>r.loc===l.id&&r.section),k=a.length,used=new Set(a.map(r=>r.section)).size,tot=nSlots(l),cap=l.cap*tot;
+    return cap?[l.name,`${k} / ${cap}`,k/cap]:[l.name,`${k} · ${used}/${tot}`,used/tot];
+  }));
+  h+='<label>Format</label>'+countBars(cat)+'<label>Genre</label>'+countBars(gen,12)+'<label>Decade released</label>'+countBars(dec,0,decOrd);
+  delete yr[''];if(Object.keys(yr).length)h+='<label>Added per year</label>'+countBars(yr,0,decOrd);
+  return h;
+}
+function exploreView(){
+  $('#h').textContent='Explore';
+  $('#app').innerHTML=`<div class="chips"><button class="chip${exTab=='pick'?' on':''}" data-ex="pick">Pick</button><button class="chip${exTab=='stats'?' on':''}" data-ex="stats">Stats</button></div>`+(exTab=='stats'?statsHTML():pickHTML());
+  if($('#pc'))$('#pc').onchange=e=>{pf.cat=e.target.value;pickId=null;render()};
+  if($('#pg'))$('#pg').onchange=e=>{pf.gen=e.target.value;pickId=null;render()};
 }
 function dataView(msg=''){
   $('#h').textContent='Data';
@@ -360,9 +453,9 @@ function dataView(msg=''){
   }else h+=`<label>Storage locations</label>`+
     locs.map(l=>`<button class="rec" data-el="${esc(l.id)}"><div class="t"><b>${esc(l.name)}</b><span class="s">${single(l)?'One compartment':l.mode=='units'?`${l.cols*stk(l)} units × ${l.rows} shelves · ${l.w} × ${l.h} cm`:`${l.cols} × ${l.rows} sections`}${l.cap?`, ${l.cap} per ${single(l)?'case':l.mode=='units'?'shelf':'section'}`:''}</span></div><span class="tag no">Edit</span></button>`).join('')+
     `<button class="btn" id="addloc">Add storage location</button>
-    <label>Import collection (CSV)</label><p class="mute">Works with your Discogs export, or with a CSV exported from this app. Genre, Comment and Favourite columns are read if present. Records you have already set up keep their location, genre, comment and star when you import again.</p>
+    <label>Import collection (CSV)</label><p class="mute">Works with your Discogs export, or with a CSV exported from this app. Genre, Comment, Favourite, Last played and Play next columns are read if present. Two copies of the same release are told apart by their Date Added. Records you have already set up keep their location, genre, comment and star when you import again.</p>
     <input type="file" id="file" accept=".csv,text/csv,text/plain" hidden><button class="btn pri" id="imp">Choose CSV file</button>
-    <label>Back up</label><p class="mute">Export a CSV with every record's location, genre, comment and favourite star. You can import it again later.</p>
+    <label>Back up</label><p class="mute">Export a CSV with every record's location, genre, comment, favourite star and played date. You can import it again later.</p>
     <button class="btn" id="exp">Export CSV</button><button class="btn dng" id="clr">Clear all records</button>`;
   $('#app').innerHTML=h+`<p class="mute" id="msg">${esc(msg)}</p>`;
   if(staged){
@@ -402,6 +495,8 @@ function openRecSheet(id){
     ${slots}
     ${sec?`<label>Position${single(l)?'':' in '+esc(slotLabel(l,sec))}</label><input type="number" id="pos" min="1" max="${n+1}" inputmode="numeric" value="${placed(r)&&r.loc==lid&&r.section==sec?r.pos:n+1}">
     <p class="mute">Holds ${n} other record${n==1?'':'s'}${l.cap?` of ${l.cap}`:''}. Records at or after this position shift one place along.${l.cap&&n>=l.cap?' This one is already full.':''}</p>`:''}
+    <label>Listening</label><p class="mute" style="margin:0 0 8px">${ago(r.played)}${r.nx?' · In play next':''}</p>
+    <div class="qact" style="margin:0"><button class="chip" id="pl">Played today</button><button class="chip${r.nx?' on':''}" id="pq">${r.nx?'In play next':'Add to play next'}</button>${r.played?'<button class="chip" id="pc0">Clear date</button>':''}</div>
     <label for="gn">Genre</label><input type="text" id="gn" list="gl" value="${esc(gn)}" placeholder="e.g. Electronic" autocomplete="off">
     <datalist id="gl">${genreList().map(g=>`<option value="${esc(g)}">`).join('')}</datalist>
     <label for="cm">Comment</label><textarea id="cm" placeholder="Condition, notes, who has borrowed it...">${esc(cm)}</textarea>
@@ -409,6 +504,9 @@ function openRecSheet(id){
     ${placed(r)?'<button class="btn dng" id="rm">Remove from storage</button>':''}<button class="btn" id="cx">Cancel</button>`;
     body.querySelectorAll('[data-pl]').forEach(b=>b.onclick=()=>{lid=b.dataset.pl;sec=null;draw()});
     body.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{sec=sec==+b.dataset.s?null:+b.dataset.s;draw()});
+    $('#pl').onclick=()=>{markPlayed(r);draw()};
+    $('#pq').onclick=()=>{r.nx=r.nx?0:Date.now();save();draw()};
+    if($('#pc0'))$('#pc0').onclick=()=>{r.played='';save();draw()};
     $('#cx').onclick=closeSheet;
     $('#ok').onclick=()=>{setNote(r,$('#gn').value,$('#cm').value);place(r,sec?lid:null,sec,sec?parseInt($('#pos').value)||null:null);closeSheet();render()};
     if($('#rm'))$('#rm').onclick=()=>{setNote(r,$('#gn').value,$('#cm').value);place(r,null,null);closeSheet();render()};
@@ -478,6 +576,11 @@ document.addEventListener('click',e=>{
   else if(d.l){selLoc=d.l;selSec=null;render()}
   else if(d.more){lim+=100;fillList()}
   else if(d.sec&&view=='shelf'){const n=+d.sec;selSec=selSec==n?null:n;render()}
+  else if(d.ex){exTab=d.ex;render()}
+  else if(d.pf){pf[d.pf]=!pf[d.pf];pickId=null;render()}
+  else if(d.dopick){doPick();render()}
+  else if(d.play){const r=recs.find(x=>x.id==d.play);if(r){markPlayed(r);render()}}
+  else if(d.qt){const r=recs.find(x=>x.id==d.qt);if(r){r.nx=r.nx?0:Date.now();save();render()}}
   else if(d.el){locSheet(d.el)}
   else if(d.id){openRecSheet(d.id)}
 });

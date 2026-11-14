@@ -10,6 +10,8 @@ A small installable web app for keeping track of where your records and CDs are 
 - Give each record a genre, a free-text comment and a favourite star. Favourites have their own tab.
 - Search by artist, title or comment. Accents are ignored, so "sigur ros" finds Sigur Rós and "einsturzende" finds Einstürzende.
 - Filter by format and genre, or show only records that are not placed yet.
+- **Explore** tab: pick a random record (filter by format and genre, favourites only, only placed, favour unplayed), keep a play-next list, and see which records have gone longest without being played. Mark a record as played from the pick or from its sheet.
+- Stats: counts by format, genre and decade, records added per year, and how full each storage location is.
 - Back up and restore with a CSV export that includes every record's location, genre, comment and favourite star.
 - Dark look inspired by the Discogs app, with a light version that follows your phone's setting.
 - Works offline and can be installed on a phone's home screen.
@@ -36,7 +38,7 @@ When you place a record at a position that is already taken, the records from th
 4. In **Records**, tap a record and choose where it goes.
 5. Use the search box to find a record later. **Shelf** shows each location and what is in every section.
 
-The import also reads Genre, Comment and Favourite columns if the CSV has them (a Favourite cell of `Yes` marks a favourite). Importing again keeps the locations, genres, comments and stars of records that match by Discogs release ID, so you can add records on Discogs, export, and re-import without losing your work. A value in the CSV wins over the app's; an empty cell keeps what the app has.
+The import also reads Genre, Comment and Favourite columns if the CSV has them (a Favourite cell of `Yes` marks a favourite). Importing again keeps the locations, genres, comments and stars of records that match by Discogs release ID, so you can add records on Discogs, export, and re-import without losing your work. A value in the CSV wins over the app's; an empty cell keeps what the app has. If you own several copies of the same release, they are told apart by the Date Added column, so reordered rows in a Discogs export don't swap their placements. The export also carries Date Added, Last played and Play next.
 
 ## Your data
 
@@ -68,4 +70,4 @@ There is no build step and there are no dependencies. You can also open `index.h
 
 ## Updating
 
-If you change `index.html` on the host, change the cache name in `sw.js` (for example from `vinyl-shelf-v6` to `vinyl-shelf-v7`) so phones pick up the new version.
+If you change `index.html` on the host, change the cache name in `sw.js` (for example from `vinyl-shelf-v7` to `vinyl-shelf-v8`) so phones pick up the new version.
