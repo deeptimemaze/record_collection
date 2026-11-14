@@ -88,7 +88,6 @@ nav button.on{color:var(--ink)}nav button.on .ic{background:var(--chip)}
 .store.pick.units{margin-top:6px}.store.pick.units .cell{min-height:0}.store.pick{padding:8px;gap:5px}.store.pick .cell{min-height:40px;border-radius:6px}.store.pick .n{font-size:15px}
 .store.one{padding:12px}.store.one .cell{aspect-ratio:4/1}.store.one .n{display:none}.store.one .c{display:block;font-size:17px;font-weight:600;color:inherit}
 .store.one.mini .cell{aspect-ratio:6/1}.store.one.mini .c{font-size:13px}
-.store.case{border:2px solid #d6a21c}.store.case .fill{background:#d6a21c;opacity:1}
 .locname{font-weight:600;margin-top:12px}
 #lprev .cell{pointer-events:none}
 .mute{color:var(--mute);font-size:14px}.empty{text-align:center;color:var(--mute);padding:34px 10px}
@@ -541,7 +540,7 @@ function locSheet(id){
     $('#lr').textContent=u?'Shelves per unit':'Rows of sections';
     $('#lcl').textContent=u?'Capacity per shelf (0 for no limit)':'Capacity per section (0 for no limit)';
     $('#lsw').style.display=u?'':'none';$('#ldim').style.display=u?'':'none';
-    const f=form();$('#lprev').innerHTML=diagramHTML(f,{size:'mini'});};
+    const f=form();$('#lprev').innerHTML=diagramHTML(f,{size:'full'});};
   lab();
   body.querySelectorAll('input,select').forEach(e=>{e.oninput=lab;e.onchange=lab});
   $('#cx').onclick=closeSheet;
