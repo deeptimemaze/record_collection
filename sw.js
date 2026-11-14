@@ -1,5 +1,5 @@
-// Caches the app so it opens offline. Bump CACHE when you replace index.html.
-const CACHE='vinyl-shelf-v10',COVERS='vinyl-covers';
+// Opens the newest version when online and falls back to the saved copy offline.
+const CACHE='vinyl-shelf-v11',COVERS='vinyl-covers';
 const FILES=['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 const COVER_HOST=/(^|\.)(coverartarchive|archive)\.org$/;
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES)).then(()=>self.skipWaiting()))});
@@ -13,8 +13,15 @@ self.addEventListener('fetch',e=>{
     return;
   }
   if(u.origin!==location.origin)return;
-  e.respondWith(caches.match(e.request,{ignoreSearch:true}).then(hit=>{
-    const net=fetch(e.request).then(r=>{if(r.ok)caches.open(CACHE).then(c=>c.put(e.request,r.clone()));return r}).catch(()=>hit);
-    return hit||net;
-  }));
+  // network first: new versions show up as soon as the app is opened; the cache is the offline fallback
+  e.respondWith((async()=>{
+    const c=await caches.open(CACHE);
+    try{
+      const r=await Promise.race([fetch(e.request,{cache:'no-cache'}),new Promise((_,no)=>setTimeout(no,4000))]);
+      if(r.ok)c.put(e.request,r.clone());
+      return r;
+    }catch(err){
+      return (await c.match(e.request,{ignoreSearch:true}))||(await c.match('./index.html'))||Response.error();
+    }
+  })());
 });

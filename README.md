@@ -71,4 +71,4 @@ There is no build step and there are no dependencies. You can also open `index.h
 
 ## Updating
 
-If you change `index.html` on the host, change the cache name in `sw.js` (for example from `vinyl-shelf-v10` to `vinyl-shelf-v11`) so phones pick up the new version.
+The app checks for a newer version every time it is opened, and uses its saved copy only when there is no connection. After you upload new files to the repository, open the app on the phone and the new version appears, with no restart or cache change needed. If `sw.js` itself changed, the app reloads once by itself.
