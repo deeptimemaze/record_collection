@@ -68,4 +68,4 @@ There is no build step and there are no dependencies. You can also open `index.h
 
 ## Updating
 
-If you change `index.html` on the host, change the cache name in `sw.js` (for example from `vinyl-shelf-v5` to `vinyl-shelf-v6`) so phones pick up the new version.
+If you change `index.html` on the host, change the cache name in `sw.js` (for example from `vinyl-shelf-v6` to `vinyl-shelf-v7`) so phones pick up the new version.
