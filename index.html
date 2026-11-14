@@ -63,21 +63,24 @@ nav button.on{color:var(--ink)}nav button.on .ic{background:var(--chip)}
 .star{flex:none;width:44px;height:44px;margin:0 -6px 0 0;padding:0;background:none;border:0;display:grid;place-items:center}
 .star svg{width:26px;height:26px;fill:none;stroke:var(--mute);stroke-width:1.7;stroke-linejoin:round}
 .star.on svg{fill:#f0b429;stroke:#d9a007}
-.shelf{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;padding:9px;background:var(--wood);border-radius:6px;border:2px solid var(--wood-d);margin:10px 0}
-.cell{aspect-ratio:1;background:var(--cell);border:0;border-radius:2px;box-shadow:inset 0 3px 8px rgba(0,0,0,.35);position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
-.shelf.mini .cell{aspect-ratio:1.5}
-.cell .n{font:700 22px var(--font)}.cell .c{font:12px var(--font);color:var(--mute)}
-.shelf.mini .n{font-size:16px}.shelf.mini .c{display:none}
-.cell.hi{background:var(--hi);color:#1b1b1b}.cell.hi .c{color:#1b1b1b}
-.cell.sel{outline:3px solid var(--ink);outline-offset:-3px}
-.locname{font-weight:600;margin-top:12px}.shelf.one .cell{aspect-ratio:4/1}.shelf.one .n{display:none}.shelf.one .c{font-size:15px;color:var(--ink)}
-.shelf.units{gap:4px;padding:6px}.shelf.units .n{font-size:13px}.shelf.units .c{font-size:10px}.shelf.mini.units .cell,.shelf.pick .cell{aspect-ratio:1}.shelf.pick .cell{min-height:36px}
-.shelf.case{background:#d6a21c;border:5px solid #1c1c1c;border-radius:12px;padding:12px}.shelf.case .cell{background:#1c1c1c;color:#f3efe8;border-radius:4px}.shelf.case .c{color:#f3efe8}
-.shelf .cell.ub{margin-bottom:9px}
-.shelf.units.col1 .cell{aspect-ratio:auto;height:48px;flex-direction:row;gap:14px}.shelf.units.col1 .n{font-size:18px}.shelf.units.col1 .c{font-size:12px}
-.shelf.units.col1.mini .cell{height:26px}.shelf.units.col1.mini .n{font-size:14px}.shelf.units.col1.pick .cell{height:40px}
-.shelf .cell{min-height:44px}.shelf.mini .cell{min-height:34px}
-.shelf.units.col1.mini{grid-template-columns:repeat(3,1fr)!important}.shelf.units.col1.mini .cell{height:32px;min-height:32px;margin-bottom:0}
+.store{display:grid;grid-template-columns:repeat(var(--cols,3),minmax(0,1fr));gap:6px;padding:10px;background:var(--card);border:1px solid var(--line);border-radius:14px;margin:10px 0}
+.store.units.full{margin-left:auto;margin-right:auto}
+.cell{position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;aspect-ratio:var(--ar,1);min-width:0;padding:0 6px;border:0;border-radius:8px;background:var(--chip);color:var(--ink)}
+.cell .n{font:600 20px/1 var(--font)}
+.cell .c{font:500 12px/1 var(--font);color:var(--mute)}
+.cell.wide{flex-direction:row;justify-content:space-between;padding:0 16px}
+.cell.wide .n{font-size:18px}
+.cell.ub{margin-bottom:10px}
+.cell.hi{background:var(--ink);color:var(--bg)}.cell.hi .c{color:var(--bg);opacity:.7}
+.cell.sel{outline:2px solid var(--ink);outline-offset:2px}
+.fill{position:absolute;left:0;bottom:0;height:4px;background:var(--ink);opacity:.85}
+.store.mini{padding:8px;gap:5px}.store.mini .cell{border-radius:6px}.store.mini .n{font-size:14px}.store.mini .c{display:none}
+.store.pick{padding:8px;gap:5px}.store.pick .cell{min-height:40px;border-radius:6px}.store.pick .n{font-size:15px}
+.store.one{padding:12px}.store.one .cell{aspect-ratio:4/1}.store.one .n{display:none}.store.one .c{display:block;font-size:17px;font-weight:600;color:inherit}
+.store.one.mini .cell{aspect-ratio:6/1}.store.one.mini .c{font-size:13px}
+.store.case{border:2px solid #d6a21c}.store.case .fill{background:#d6a21c;opacity:1}
+.locname{font-weight:600;margin-top:12px}
+#lprev .cell{pointer-events:none}
 .mute{color:var(--mute);font-size:14px}.empty{text-align:center;color:var(--mute);padding:34px 10px}
 .btn{min-height:50px;padding:12px 18px;border-radius:999px;border:0;background:var(--chip);font-weight:600;width:100%;margin:6px 0}
 .btn.pri{background:var(--acc);color:var(--acc-ink)}
@@ -106,7 +109,7 @@ label.ck input{width:20px;height:20px}
 const DEFAULT_LOCS=[
  {id:'kallax',name:'Kallax shelf',mode:'grid',cols:3,rows:4,cap:0,formats:['lp']},
  {id:'case7',name:'7" case',mode:'grid',cols:1,rows:1,cap:200,formats:['s7']},
- {id:'string',name:'String Pocket',mode:'units',cols:1,stack:8,rows:3,cap:0,formats:['cd']}];
+ {id:'string',name:'String Pocket',mode:'units',cols:1,stack:8,rows:3,w:78,h:20,cap:0,formats:['cd']}];
 let locs=[],recs=[],view='rec',q='',onlyUnplaced=false,catF='all',genF='all',selLoc=null,selSec=null,lim=100,staged=null,
     sel={lp:1,s7:1,cd:1,shellac:0,cass:0,other:0};
 const CATS={lp:'LP, 12" and 10"',s7:'7"',shellac:'Shellac (78 rpm)',cd:'CD and MiniDisc',cass:'Cassette',other:'Other (boxes, etc.)'};
@@ -122,6 +125,7 @@ function load(){
   if(!Array.isArray(locs)||!locs.length)locs=JSON.parse(JSON.stringify(DEFAULT_LOCS));
   recs.forEach(r=>{r.fav=!!r.fav;prep(r)});
   locs.forEach(l=>{if(l.id=='string'&&l.mode=='units'&&((l.cols==8&&!l.stack)||(l.cols==4&&l.stack==2))){l.cols=1;l.stack=8}});
+  locs.forEach(l=>{if(l.mode=='units'){l.w=+l.w||78;l.h=+l.h||20}});
 }
 function prep(r){r.k=fold(r.artist+' '+r.title+' '+(r.comment||''));r.sk=fold(r.artist).replace(/^the /,'')+'|'+fold(r.title)}
 
@@ -232,14 +236,33 @@ function exportCSV(){
 }
 
 /* UI pieces */
-function shelfHTML(l,hi=new Set(),mini=false,selN=null){
-  let h=`<div class="shelf${mini?' mini':''}${l.mode=='units'?' units':''}${l.mode=='units'&&l.cols==1?' col1':''}${single(l)?' one':''}${l.id=='case7'?' case':''}" style="grid-template-columns:repeat(${l.cols},1fr)">`;
-  for(let r=0;r<dRows(l);r++)for(let c=0;c<l.cols;c++){
-    const n=slotAt(l,r,c),k=inSlot(l.id,n).length;
-    h+=`<button class="cell${hi.has(n)?' hi':''}${selN===n?' sel':''}${l.mode=='units'&&(r+1)%l.rows==0&&r<dRows(l)-1?' ub':''}" data-loc="${esc(l.id)}" data-sec="${n}"><span class="n">${slotShort(l,n)}</span><span class="c">${k}${l.cap?' / '+l.cap:''}</span></button>`;
+function diagramHTML(l,o={}){
+  const size=o.size||'full',hi=o.hi||new Set(),selN=o.sel||null,attr=o.attr||'data-sec';
+  const units=l.mode=='units',one=single(l),rows=l.rows,w=+l.w||78,h=+l.h||20,ratio=w/h;
+  let cols=l.cols,ar=1,cells=[],style='';
+  if(one){cols=1}
+  else if(units&&size=='full'){
+    ar=ratio;
+    for(let r=0;r<dRows(l);r++)for(let c=0;c<l.cols;c++)cells.push({n:slotAt(l,r,c),ub:(r+1)%rows==0&&r<dRows(l)-1});
+    const cw=46*Math.max(ratio,1);
+    style=`max-width:${Math.min(560,Math.round(cols*cw+(cols-1)*6+22))}px;`;
+  }else if(units){
+    ar=ratio;cols=rows>=3?Math.min(rows,6):4;
+    for(let u=0;u<l.cols*stk(l);u++)for(let k=1;k<=rows;k++)cells.push({n:u*rows+k});
+  }else{
+    ar=size=='mini'?1.5:1;
+    for(let r=0;r<l.rows;r++)for(let c=0;c<l.cols;c++)cells.push({n:slotAt(l,r,c)});
   }
-  return h+'</div>';
+  if(one)cells=[{n:1}];
+  const wide=size=='full'&&units&&ratio>=2.2&&l.cols<=2;
+  let t=`<div class="store ${units?'units':'grid'} ${size}${one?' one':''}${l.id=='case7'?' case':''}" style="--cols:${cols};--ar:${ar.toFixed(3)};${style}">`;
+  cells.forEach(({n,ub})=>{
+    const k=inSlot(l.id,n).length;
+    t+=`<button class="cell${wide?' wide':''}${hi.has(n)?' hi':''}${selN===n&&!one?' sel':''}${ub?' ub':''}" data-loc="${esc(l.id)}" ${attr}="${n}"><span class="n">${slotShort(l,n)}</span>${size=='pick'?'':`<span class="c">${k}${l.cap?' / '+l.cap:''}</span>`}${size=='full'&&l.cap?`<i class="fill" style="width:${Math.min(100,k/l.cap*100)}%"></i>`:''}</button>`;
+  });
+  return t+'</div>';
 }
+const shelfHTML=(l,hi,mini,selN)=>diagramHTML(l,{hi,size:mini?'mini':'full',sel:selN});
 const STAR='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.2 1.2-6.5L2.5 9.5l6.6-.9z"/></svg>';
 const starBtn=r=>`<button class="star${r.fav?' on':''}" data-fav="${esc(r.id)}" aria-label="Favourite" aria-pressed="${!!r.fav}">${STAR}</button>`;
 const gkey=r=>r.genre||'__none';
@@ -319,7 +342,7 @@ function render(){
       if(selSec){const a=inSlot(l.id,selSec);
         h+=`<p class="mute">${esc(single(l)?l.name:slotLabel(l,selSec))}${single(l)?'':', left to right'}: ${a.length}${l.cap?' of '+l.cap:''} records</p>`+
         (a.length?a.map(r=>recHTML(r,`<span class="thumb pos">${r.pos}</span>`)).join(''):'<div class="empty">Nothing here yet.</div>');
-      }else h+=l.mode=='units'?`<p class="mute">Shelves are numbered from the top, ${l.rows} per unit. Tap a shelf to see its records.</p>`:
+      }else h+=l.mode=='units'?`<p class="mute">Shelves are numbered from the top, ${l.rows} per unit, drawn to scale at ${l.w} × ${l.h} cm each. Tap a shelf to see its records.</p>`:
         '<p class="mute">Sections are numbered along each row, starting at the top left. Tap a section to see its records.</p>';
     }else h='<div class="empty">No storage locations. Add one in the Data tab.</div>';
     app.innerHTML=h;
@@ -335,7 +358,7 @@ function dataView(msg=''){
       Object.keys(CATS).filter(k=>c[k]).map(k=>`<label class="ck"><input type="checkbox" data-cat="${k}" ${sel[k]?'checked':''}> ${CATS[k]} <span class="mute">(${c[k]})</span></label>`).join('')+
       `<button class="btn pri" id="go">Import ${n} records</button><button class="btn" id="no">Cancel</button><p class="mute">Records that match an earlier import keep their location, genre, comment and favourite star when the file leaves those empty.</p>`;
   }else h+=`<label>Storage locations</label>`+
-    locs.map(l=>`<button class="rec" data-el="${esc(l.id)}"><div class="t"><b>${esc(l.name)}</b><span class="s">${single(l)?'One compartment':l.mode=='units'?`${l.cols*stk(l)} units, ${l.rows} shelves each`:`${l.cols} × ${l.rows} sections`}${l.cap?`, ${l.cap} per ${single(l)?'case':'slot'}`:''}</span></div><span class="tag no">Edit</span></button>`).join('')+
+    locs.map(l=>`<button class="rec" data-el="${esc(l.id)}"><div class="t"><b>${esc(l.name)}</b><span class="s">${single(l)?'One compartment':l.mode=='units'?`${l.cols*stk(l)} units × ${l.rows} shelves · ${l.w} × ${l.h} cm`:`${l.cols} × ${l.rows} sections`}${l.cap?`, ${l.cap} per ${single(l)?'case':l.mode=='units'?'shelf':'section'}`:''}</span></div><span class="tag no">Edit</span></button>`).join('')+
     `<button class="btn" id="addloc">Add storage location</button>
     <label>Import collection (CSV)</label><p class="mute">Works with your Discogs export, or with a CSV exported from this app. Genre, Comment and Favourite columns are read if present. Records you have already set up keep their location, genre, comment and star when you import again.</p>
     <input type="file" id="file" accept=".csv,text/csv,text/plain" hidden><button class="btn pri" id="imp">Choose CSV file</button>
@@ -372,9 +395,7 @@ function openRecSheet(id){
     const n=sec?inSlot(l.id,sec).filter(x=>x.id!=r.id).length:0;
     let slots='';
     if(!single(l)){
-      slots=`<label>${l.mode=='units'?'Shelf':'Section'}</label><div class="shelf pick${l.mode=='units'?' units':''}${l.mode=='units'&&l.cols==1?' col1':''}" style="grid-template-columns:repeat(${l.cols},1fr)">`;
-      for(let rr=0;rr<dRows(l);rr++)for(let c=0;c<l.cols;c++){const k=slotAt(l,rr,c);slots+=`<button data-s="${k}" class="cell${sec==k?' sel hi':''}${l.mode=='units'&&(rr+1)%l.rows==0&&rr<dRows(l)-1?' ub':''}"><span class="n">${slotShort(l,k)}</span></button>`}
-      slots+='</div>';
+      slots=`<label>${l.mode=='units'?'Shelf':'Section'}</label>`+diagramHTML(l,{size:'pick',attr:'data-s',hi:new Set(sec?[sec]:[]),sel:sec});
     }
     body.innerHTML=`<div class="sh"><div><b class="sht">${esc(r.title)}</b><div class="mute">${esc(r.artist)}</div><div class="mute">${esc([r.year,(r.fmt||'').split(',')[0].trim()].filter(Boolean).join(' · '))}</div></div>${starBtn(r)}</div>
     ${locs.length>1?`<label>Location</label><div class="chips">${locs.map(x=>`<button class="chip${x.id==lid?' on':''}" data-pl="${esc(x.id)}">${esc(x.name)}</button>`).join('')}</div>`:''}
@@ -396,27 +417,42 @@ function openRecSheet(id){
 }
 function locSheet(id){
   const o=id?L(id):null;
-  const l=o?{...o,formats:[...(o.formats||[])]}:{id:'l'+Date.now().toString(36),name:'',mode:'grid',cols:3,rows:4,cap:0,formats:[]};
-  const body=$('#sheetbody');
+  const l=o?{...o,formats:[...(o.formats||[])]}:{id:'l'+Date.now().toString(36),name:'',mode:'grid',cols:3,rows:4,stack:1,w:78,h:20,cap:0,formats:[]};
+  const body=$('#sheetbody'),nPlaced=o?recs.filter(r=>r.loc===o.id&&r.section).length:0;
   body.innerHTML=`<b class="sht">${o?'Edit storage location':'New storage location'}</b>
   <label>Name</label><input type="text" id="ln" value="${esc(l.name)}" placeholder="e.g. Hallway shelf">
-  <label>Layout</label><select id="lm"><option value="grid" ${l.mode=='grid'?'selected':''}>Grid of sections (like a Kallax)</option><option value="units" ${l.mode=='units'?'selected':''}>Units with shelves (like String Pocket)</option></select>
+  <label>Layout</label><select id="lm"><option value="grid" ${l.mode=='grid'?'selected':''}>Grid section</option><option value="units" ${l.mode=='units'?'selected':''}>Shelves</option></select>
   <label id="lc">Columns</label><input type="number" id="lcols" min="1" max="12" value="${l.cols}" inputmode="numeric">
-  <div id="lsw"><label>Units stacked above each other</label><input type="number" id="lstack" min="1" max="6" value="${l.stack||1}" inputmode="numeric"></div>
-  <label id="lr">Rows</label><input type="number" id="lrows" min="1" max="12" value="${l.rows}" inputmode="numeric">
-  <label>Capacity per section (0 for no limit)</label><input type="number" id="lcap" min="0" value="${l.cap||0}" inputmode="numeric">
+  <div id="lsw"><label>Units stacked above each other</label><input type="number" id="lstack" min="1" max="30" value="${l.stack||1}" inputmode="numeric"></div>
+  <label id="lr">Rows</label><input type="number" id="lrows" min="1" max="30" value="${l.rows}" inputmode="numeric">
+  <div id="ldim"><label>Width of each shelf (cm)</label><input type="number" id="lw" min="5" max="400" step="0.5" value="${l.w||78}" inputmode="decimal">
+  <label>Height of each shelf (cm)</label><input type="number" id="lh" min="5" max="400" step="0.5" value="${l.h||20}" inputmode="decimal"></div>
+  <label id="lcl">Capacity per section (0 for no limit)</label><input type="number" id="lcap" min="0" value="${l.cap||0}" inputmode="numeric">
   <label>Usually holds</label>${Object.keys(CATS).map(k=>`<label class="ck"><input type="checkbox" data-lf="${k}" ${l.formats.includes(k)?'checked':''}> ${CATS[k]}</label>`).join('')}
+  <label>Preview</label><div id="lprev"></div>
+  ${nPlaced?`<p class="mute">${nPlaced} placed record${nPlaced==1?'':'s'} keep their shelf numbers when you change the layout. A change that would remove a numbered shelf or section that holds records is not allowed.</p>`:''}
+  <p class="mute" id="lmsg" style="color:var(--red)"></p>
   <button class="btn pri" id="ok">Save</button>${o?'<button class="btn dng" id="del">Delete location</button>':''}<button class="btn" id="cx">Cancel</button>`;
-  const lab=()=>{const u=$('#lm').value=='units';$('#lc').textContent=u?'Columns of units':'Columns of sections';$('#lr').textContent=u?'Shelves per unit':'Rows of sections';$('#lsw').style.display=u?'':'none'};
-  lab();$('#lm').onchange=lab;$('#cx').onclick=closeSheet;
+  const num=(id,lo,hi,def)=>{const v=parseFloat($(id).value);return Math.max(lo,Math.min(hi,isFinite(v)?v:def))};
+  const form=()=>{const u=$('#lm').value=='units';return {id:l.id,name:$('#ln').value.trim()||'Storage',mode:$('#lm').value,
+    cols:Math.round(num('#lcols',1,12,1)),rows:Math.round(num('#lrows',1,30,1)),stack:u?Math.round(num('#lstack',1,30,1)):1,
+    w:u?num('#lw',5,400,78):undefined,h:u?num('#lh',5,400,20):undefined,cap:Math.round(num('#lcap',0,100000,0)),
+    formats:[...body.querySelectorAll('[data-lf]:checked')].map(i=>i.dataset.lf)}};
+  const lab=()=>{const u=$('#lm').value=='units';
+    $('#lc').textContent=u?'Units side by side':'Columns of sections';
+    $('#lr').textContent=u?'Shelves per unit':'Rows of sections';
+    $('#lcl').textContent=u?'Capacity per shelf (0 for no limit)':'Capacity per section (0 for no limit)';
+    $('#lsw').style.display=u?'':'none';$('#ldim').style.display=u?'':'none';
+    const f=form();$('#lprev').innerHTML=diagramHTML(f,{size:'mini'});};
+  lab();
+  body.querySelectorAll('input,select').forEach(e=>{e.oninput=lab;e.onchange=lab});
+  $('#cx').onclick=closeSheet;
   $('#ok').onclick=()=>{
-    const n={id:l.id,name:$('#ln').value.trim()||'Storage',mode:$('#lm').value,cols:Math.max(1,Math.min(12,parseInt($('#lcols').value)||1)),
-      rows:Math.max(1,Math.min(12,parseInt($('#lrows').value)||1)),stack:$('#lm').value=='units'?Math.max(1,Math.min(6,parseInt($('#lstack').value)||1)):1,cap:Math.max(0,parseInt($('#lcap').value)||0),
-      formats:[...body.querySelectorAll('[data-lf]:checked')].map(i=>i.dataset.lf)};
-    const total=nSlots(n),out=recs.filter(r=>r.loc===n.id&&r.section>total);
-    if(out.length&&!confirm(`${out.length} placed records sit in sections that no longer exist. They will become not placed. Continue?`))return;
+    const n=form(),total=nSlots(n);
+    const top=Math.max(0,...recs.filter(r=>r.loc===n.id&&r.section).map(r=>r.section));
+    if(top>total){$('#lmsg').textContent=`Records are placed up to ${n.mode=='units'?'shelf':'section'} ${top}, but this layout only has ${total}. Make it at least ${top}, or move those records first.`;return}
+    if(n.mode!='units'){delete n.w;delete n.h}
     if(o)locs[locs.indexOf(o)]=n;else locs.push(n);
-    out.forEach(r=>{r.loc=null;r.section=null;r.pos=null});
     save();closeSheet();render();
   };
   if($('#del'))$('#del').onclick=()=>{

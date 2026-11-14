@@ -22,9 +22,9 @@ Three locations are set up by default and can be edited in the **Data** tab:
 | --- | --- | --- |
 | Kallax shelf | 3 × 4 sections, numbered along each row from the top left | LP, 12", 10" |
 | 7" case | One compartment, capacity 200 | 7" singles |
-| String Pocket | 8 wall units with 3 shelves each, shelves numbered 1–24 from the top | CDs |
+| String Pocket | Shelves layout: 8 units with 3 shelves each, 78 × 20 cm per shelf, numbered 1–24 from the top | CDs |
 
-You can add more locations, either as a grid of sections or as stacked units with shelves, and set a capacity for each section.
+You can add more locations with either the **Grid section** or the **Shelves** layout. For Shelves you enter the width and height of each shelf in centimetres, and the diagram is drawn to those proportions. A location can't be made smaller than the highest section or shelf that holds records, so your placements are never lost by an edit.
 
 When you place a record at a position that is already taken, the records from that position onwards shift one place along, as if you slid it in on the shelf.
 
@@ -68,4 +68,4 @@ There is no build step and there are no dependencies. You can also open `index.h
 
 ## Updating
 
-If you change `index.html` on the host, change the cache name in `sw.js` (for example from `vinyl-shelf-v4` to `vinyl-shelf-v5`) so phones pick up the new version.
+If you change `index.html` on the host, change the cache name in `sw.js` (for example from `vinyl-shelf-v5` to `vinyl-shelf-v6`) so phones pick up the new version.
