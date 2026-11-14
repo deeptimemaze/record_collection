@@ -65,7 +65,7 @@ nav button.on{color:var(--ink)}nav button.on .ic{background:var(--chip)}
 .rec span.s{color:var(--mute);font-size:15px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rec .note{font-style:italic}
 .thumb{flex:none;width:68px;height:68px;border-radius:6px;background:var(--thumb);display:grid;place-items:center;overflow:hidden}
-.thumb svg{width:52px;height:52px}
+.thumb{position:relative}.thumb svg{width:52px;height:52px}.thumb .cv{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:inherit;background:var(--thumb)}
 .thumb.pos{background:var(--chip);font-size:22px;font-weight:700}
 .loc{display:inline-block;max-width:100%;margin-top:7px;padding:4px 12px;border-radius:14px;background:var(--chip);font-size:13px;line-height:1.3;font-weight:600;vertical-align:top}
 .loc.no{background:#f0b429;color:#000;font-weight:600}
@@ -301,7 +301,9 @@ function thumbHTML(r){
     :c=='cass'?'<svg viewBox="0 0 48 48" aria-hidden="true"><rect x="5" y="11" width="38" height="26" rx="3" fill="#cfd4d8"/><circle cx="16" cy="23" r="4.5" style="fill:var(--thumb)"/><circle cx="32" cy="23" r="4.5" style="fill:var(--thumb)"/><rect x="14" y="30" width="20" height="4" rx="1" fill="#9aa0a5"/></svg>'
     :c=='other'?'<svg viewBox="0 0 48 48" aria-hidden="true"><rect x="9" y="9" width="30" height="30" rx="4" fill="#6a6a6a"/></svg>'
     :disc(21,7.5,'#f0b429');
-  return `<span class="thumb">${svg}</span>`;
+  const rid=ridOf(r),cv=cov[rid];
+  if(!covOn())return `<span class="thumb">${svg}</span>`;
+  return `<span class="thumb" data-cv="${esc(rid)}">${svg}${cv&&cv.u?`<img class="cv" src="${esc(cv.u)}" alt="" loading="lazy" onerror="this.remove()">`:''}</span>`;
 }
 function tagHTML(r){
   if(!placed(r))return '<span class="loc no">Not placed</span>';
@@ -384,6 +386,76 @@ function render(){
   else dataView();
 }
 
+/* album covers: MusicBrainz id lookup + Cover Art Archive image */
+let cov={};try{cov=JSON.parse(localStorage.getItem('vinylCov')||'{}')}catch(e){cov={}}
+const saveCov=()=>{try{localStorage.setItem('vinylCov',JSON.stringify(cov))}catch(e){}};
+const covOn=()=>{try{return localStorage.getItem('vinylCoverOff')!='1'}catch(e){return true}};
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const MB='https://musicbrainz.org/ws/2/',relURL=m=>`https://coverartarchive.org/release/${m}/front-250`,rgURL=g=>`https://coverartarchive.org/release-group/${g}/front-250`;
+let lastMB=0;
+async function mb(path){
+  const w=lastMB+1100-Date.now();if(w>0)await sleep(w);lastMB=Date.now();
+  let r;try{r=await fetch(MB+path+(path.includes('?')?'&':'?')+'fmt=json',{headers:{Accept:'application/json'}})}catch(e){throw 'net'}
+  if(r.status==404)return {};
+  if(!r.ok)throw 'busy';
+  return r.json();
+}
+const imgOK=u=>new Promise(res=>{const i=new Image(),t=setTimeout(()=>{i.src='';res(false)},12000);i.onload=()=>{clearTimeout(t);res(true)};i.onerror=()=>{clearTimeout(t);res(false)};i.src=u});
+async function findCover(r){
+  const rid=ridOf(r);let m=null,m2=null,g=null;
+  if(/^\d+$/.test(rid)){
+    const j=await mb(`url?resource=${encodeURIComponent('https://www.discogs.com/release/'+rid)}&inc=release-rels`);
+    m=(j.relations||[]).map(x=>x.release&&x.release.id).find(Boolean)||null;
+    if(m&&await imgOK(relURL(m)))return {u:relURL(m)};
+  }
+  const q=`artist:"${r.artist.replace(/"/g,' ')}" AND release:"${r.title.replace(/"/g,' ')}"`;
+  const j=await mb(`release/?query=${encodeURIComponent(q)}&limit=5`);
+  const x=(j.releases||[]).find(y=>(y.score||0)>=90);
+  if(x){m2=x.id;g=x['release-group']&&x['release-group'].id}
+  if(m2&&m2!==m&&await imgOK(relURL(m2)))return {u:relURL(m2)};
+  if(g&&await imgOK(rgURL(g)))return {u:rgURL(g)};
+  return null;
+}
+const covQueue=[],covQueued=new Set();let covBusy=false;
+function haveCov(rid){const c=cov[rid];return !!c&&(!!c.u||Date.now()-c.n<30*864e5)}
+function paintCover(rid){
+  const c=cov[rid];if(!c||!c.u)return;
+  document.querySelectorAll('.thumb[data-cv]').forEach(el=>{if(el.dataset.cv!==rid||el.querySelector('.cv'))return;
+    const i=document.createElement('img');i.className='cv';i.alt='';i.src=c.u;i.onerror=()=>i.remove();el.appendChild(i)});
+}
+async function covPump(){
+  if(covBusy)return;covBusy=true;
+  while(covQueue.length&&covOn()){
+    const rid=covQueue.pop();covQueued.delete(rid);
+    if(haveCov(rid))continue;
+    const r=recs.find(x=>ridOf(x)==rid);if(!r)continue;
+    try{const res=await findCover(r);cov[rid]=res||{n:Date.now()};saveCov();paintCover(rid)}
+    catch(e){
+      covQueue.length=0;covQueued.clear();
+      setTimeout(()=>{document.querySelectorAll('.thumb[data-cv]').forEach(el=>delete el.dataset.seen);covScan()},e=='net'?30000:8000);
+      break;
+    }
+  }
+  covBusy=false;
+}
+const covIO='IntersectionObserver' in window?new IntersectionObserver(es=>es.forEach(en=>{
+  if(!en.isIntersecting)return;covIO.unobserve(en.target);
+  const rid=en.target.dataset.cv;if(!rid||haveCov(rid)||covQueued.has(rid))return;
+  covQueued.add(rid);covQueue.push(rid);covPump()}),{rootMargin:'200px'}):null;
+function covScan(){if(!covIO||!covOn())return;document.querySelectorAll('.thumb[data-cv]:not([data-seen])').forEach(el=>{el.dataset.seen='1';covIO.observe(el)})}
+async function covDiag(){
+  const r=recs.find(x=>/^\d+$/.test(ridOf(x)));if(!r)return 'Import some records first.';
+  const out=[];
+  try{const j=await mb(`url?resource=${encodeURIComponent('https://www.discogs.com/release/'+ridOf(r))}&inc=release-rels`);
+    const m=(j.relations||[]).map(x=>x.release&&x.release.id).find(Boolean);
+    out.push('MusicBrainz reachable'+(m?', release found':', release not linked to Discogs (will search by name)'));
+    if(m)out.push('image '+(await imgOK(relURL(m))?'loaded':'not available for this release'));
+  }catch(e){out.push(e=='net'?'MusicBrainz not reachable (offline or blocked)':'MusicBrainz is busy, try again in a minute')}
+  const n=Object.values(cov).filter(c=>c.u).length;
+  return `Test on "${r.title}": ${out.join('; ')}. Covers saved so far: ${n}.`;
+}
+new MutationObserver(()=>covScan()).observe(document.getElementById('app'),{childList:true,subtree:true});
+
 /* explore: pick, play next, stats */
 let exTab='pick',pickId=null;const pf={cat:'all',gen:'all',fav:false,placed:false,fresh:true};
 const pool=()=>recs.filter(r=>(pf.cat=='all'||r.cat==pf.cat)&&(pf.gen=='all'||gkey(r)==pf.gen)&&(!pf.fav||r.fav)&&(!pf.placed||placed(r)));
@@ -454,6 +526,8 @@ function dataView(msg=''){
     `<button class="btn" id="addloc">Add storage location</button>
     <label>Import collection (CSV)</label><p class="mute">Works with your Discogs export, or with a CSV exported from this app. Genre, Comment, Favourite, Last played and Play next columns are read if present. Two copies of the same release are told apart by their Date Added. Records you have already set up keep their location, genre, comment and star when you import again.</p>
     <input type="file" id="file" accept=".csv,text/csv,text/plain" hidden><button class="btn pri" id="imp">Choose CSV file</button>
+    <label>Album covers</label><p class="mute">Covers are looked up on MusicBrainz and the Cover Art Archive as records scroll into view, and saved on this phone. This sends a record's Discogs number, and sometimes its artist and title, to those sites.</p>
+    <div class="chips" style="margin-top:0"><button class="chip${covOn()?' on':''}" id="cvt">${covOn()?'Covers on':'Covers off'}</button><button class="chip" id="cvd">Test lookup</button><button class="chip" id="cvc">Refetch all</button></div>
     <label>Back up</label><p class="mute">Export a CSV with every record's location, genre, comment, favourite star and played date. You can import it again later.</p>
     <button class="btn" id="exp">Export CSV</button><button class="btn dng" id="clr">Clear all records</button>`;
   $('#app').innerHTML=h+`<p class="mute" id="msg">${esc(msg)}</p>`;
@@ -468,6 +542,9 @@ function dataView(msg=''){
       if(!r||!r.length)return dataView('No records found. Check that the file has artist and title columns.');
       staged=r;dataView()};
     $('#exp').onclick=exportCSV;
+    $('#cvt').onclick=()=>{try{localStorage.setItem('vinylCoverOff',covOn()?'1':'0')}catch(e){}dataView()};
+    $('#cvd').onclick=async()=>{$('#msg').textContent='Testing...';$('#msg').textContent=await covDiag()};
+    $('#cvc').onclick=()=>{cov={};saveCov();dataView('Saved covers cleared. They will be fetched again as you browse.')};
     $('#addloc').onclick=()=>locSheet(null);
     $('#clr').onclick=()=>{if(confirm('Delete all records and placements?')){recs=[];save();render()}};
   }

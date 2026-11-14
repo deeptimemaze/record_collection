@@ -12,6 +12,7 @@ A small installable web app for keeping track of where your records and CDs are 
 - Filter by format and genre, or show only records that are not placed yet.
 - **Explore** tab: pick a random record (filter by format and genre, favourites only, only placed, favour unplayed), keep a play-next list, and see which records have gone longest without being played. Mark a record as played from the pick or from its sheet.
 - Stats: counts by format, genre and decade, records added per year, and how full each storage location is.
+- Album covers from MusicBrainz and the Cover Art Archive replace the disc icon on the cards when one is found. They are fetched as you scroll, saved on the phone, and can be switched off in the Data tab.
 - Back up and restore with a CSV export that includes every record's location, genre, comment and favourite star.
 - Dark look inspired by the Discogs app, with a light version that follows your phone's setting.
 - Works offline and can be installed on a phone's home screen.
@@ -42,7 +43,7 @@ The import also reads Genre, Comment and Favourite columns if the CSV has them (
 
 ## Your data
 
-Everything is stored in your browser's local storage on your own device. Nothing is uploaded, and this repository contains only the app, not your collection. Browser storage can be cleared, so use **Data → Export CSV** now and then to keep a backup. Don't commit your Discogs CSV to a public repository.
+Everything is stored in your browser's local storage on your own device. Nothing of your collection is uploaded, apart from the lookups for album covers (a record's Discogs number, and sometimes its artist and title, are sent to MusicBrainz; this can be switched off), and this repository contains only the app, not your collection. Browser storage can be cleared, so use **Data → Export CSV** now and then to keep a backup. Don't commit your Discogs CSV to a public repository.
 
 Storage is separate for each web address. If you move from a local file to the hosted version, export a CSV first and import it in the new place.
 
@@ -70,4 +71,4 @@ There is no build step and there are no dependencies. You can also open `index.h
 
 ## Updating
 
-If you change `index.html` on the host, change the cache name in `sw.js` (for example from `vinyl-shelf-v9` to `vinyl-shelf-v10`) so phones pick up the new version.
+If you change `index.html` on the host, change the cache name in `sw.js` (for example from `vinyl-shelf-v10` to `vinyl-shelf-v11`) so phones pick up the new version.
