@@ -7,13 +7,13 @@ A small installable web app for keeping track of where your records and CDs are 
 - Import a Discogs CSV export. Choose which formats to keep: LP/12"/10", 7", shellac, CD, cassette.
 - Place each record in a storage location by section and position, counting from 1.
 - See each location as a diagram, with the number of records in every section.
-- Give each record a genre, a free-text comment and a favourite star. Favourites have their own tab.
+- Give each record a genre, a free-text comment and a star. Starred records have their own tab.
 - Search by artist, title or comment. Accents are ignored, so "sigur ros" finds Sigur Rós and "einsturzende" finds Einstürzende.
 - Filter by format and genre, or show only records that are not placed yet.
-- **Explore** tab: pick a random record (filter by format and genre, favourites only, only placed, favour unplayed), keep a play-next list, and see which records have gone longest without being played. Mark a record as played from the pick or from its sheet.
+- **Explore** tab: pick a random record (filter by format and genre, starred only, only placed, favour unplayed), keep a play-next list, and see which records have gone longest without being played. Mark a record as played from the pick or from its sheet.
 - Stats: counts by format, genre and decade, records added per year, and how full each storage location is.
 - Album covers from MusicBrainz and the Cover Art Archive replace the disc icon on the cards when one is found. They are fetched as you scroll, saved on the phone, and can be switched off in the Data tab.
-- Back up and restore with a CSV export that includes every record's location, genre, comment and favourite star.
+- Back up and restore with a CSV export that includes every record's location, genre, comment and star.
 - Dark look inspired by the Discogs app, with a light version that follows your phone's setting.
 - Works offline and can be installed on a phone's home screen.
 
@@ -37,9 +37,9 @@ When you place a record at a position that is already taken, the records from th
 2. Open the app, go to **Data**, and choose the CSV file.
 3. Tick the formats you want to track and import.
 4. In **Records**, tap a record and choose where it goes.
-5. Use the search box to find a record later. **Shelf** shows each location and what is in every section.
+5. Use the search box to find a record later. **Storage** shows each location and what is in every section.
 
-The import also reads Genre, Comment and Favourite columns if the CSV has them (a Favourite cell of `Yes` marks a favourite). Importing again keeps the locations, genres, comments and stars of records that match by Discogs release ID, so you can add records on Discogs, export, and re-import without losing your work. A value in the CSV wins over the app's; an empty cell keeps what the app has. If you own several copies of the same release, they are told apart by the Date Added column, so reordered rows in a Discogs export don't swap their placements. The export also carries Date Added, Last played and Play next.
+The import also reads Genre, Comment and Starred columns if the CSV has them (a Starred cell of `Yes` marks a starred record; a column named Favourite from an older export is read too). Importing again keeps the locations, genres, comments and stars of records that match by Discogs release ID, so you can add records on Discogs, export, and re-import without losing your work. A value in the CSV wins over the app's; an empty cell keeps what the app has. If you own several copies of the same release, they are told apart by the Date Added column, so reordered rows in a Discogs export don't swap their placements. The export also carries Date Added, Last played and Play next.
 
 ## Your data
 
@@ -71,4 +71,6 @@ There is no build step and there are no dependencies. You can also open `index.h
 
 ## Updating
 
-The app checks for a newer version every time it is opened, and uses its saved copy only when there is no connection. After you upload new files to the repository, open the app on the phone and the new version appears, with no restart or cache change needed. If `sw.js` itself changed, the app reloads once by itself. The version number at the bottom of the **Data** tab shows which version the phone is running. When you make a new release, raise `APP_VERSION` (and the date) near the top of the script in `index.html`.
+The app checks for a newer version when it opens, a few seconds after it starts, and whenever you switch back to it. If the version on GitHub is newer, it clears its saved app files and reloads by itself. Your records, locations and album covers are not touched. The **Data** tab shows the running version at the bottom, with a **Check for updates** button.
+
+When you make a new release, raise `APP_VERSION` (and the date) near the top of the script in `index.html`, and change the cache name in `sw.js` to match.

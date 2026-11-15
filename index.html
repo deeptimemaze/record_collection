@@ -115,7 +115,7 @@ label.ck input{width:20px;height:20px}
 <div id="sheet"><div id="sheetbody"></div></div>
 
 <script>
-const APP_VERSION=15,APP_DATE='14 Nov 2026';
+const APP_VERSION=16,APP_DATE='14 Nov 2026';
 const DEFAULT_LOCS=[
  {id:'kallax',name:'Kallax shelf',mode:'grid',cols:3,rows:4,cap:0,formats:['lp']},
  {id:'case7',name:'7" case',mode:'grid',cols:1,rows:1,cap:200,formats:['s7']},
@@ -535,7 +535,7 @@ function dataView(msg=''){
     <div class="chips" style="margin-top:0"><button class="chip${covOn()?' on':''}" id="cvt">${covOn()?'Covers on':'Covers off'}</button><button class="chip" id="cvd">Test lookup</button><button class="chip" id="cvc">Refetch all</button></div>
     <label>Back up</label><p class="mute">Export a CSV with every record's location, genre, comment, star and played date. You can import it again later.</p>
     <button class="btn" id="exp">Export CSV</button><button class="btn dng" id="clr">Clear all records</button>`;
-  $('#app').innerHTML=h+`<p class="mute" id="msg">${esc(msg)}</p><p class="mute" style="text-align:center;margin-top:28px">Vinyl shelf · version ${APP_VERSION} · ${APP_DATE}</p>`;
+  $('#app').innerHTML=h+`<p class="mute" id="msg">${esc(msg)}</p><p class="mute" style="text-align:center;margin-top:28px;margin-bottom:6px">Vinyl shelf · version ${APP_VERSION} · ${APP_DATE}</p><div class="chips" style="justify-content:center;margin:0"><button class="chip" id="upd">Check for updates</button></div><p class="mute" id="updmsg" style="text-align:center;min-height:1.4em"></p>`;
   if(staged){
     document.querySelectorAll('[data-cat]').forEach(i=>i.onchange=()=>{sel[i.dataset.cat]=i.checked?1:0;dataView()});
     $('#go').onclick=()=>{const m=finishImport();dataView(m)};
@@ -547,6 +547,7 @@ function dataView(msg=''){
       if(!r||!r.length)return dataView('No records found. Check that the file has artist and title columns.');
       staged=r;dataView()};
     $('#exp').onclick=exportCSV;
+    $('#upd').onclick=async()=>{$('#updmsg').textContent='Checking...';const m=await checkUpdate(true);if($('#updmsg'))$('#updmsg').textContent=m};
     $('#cvt').onclick=()=>{try{localStorage.setItem('vinylCoverOff',covOn()?'1':'0')}catch(e){}dataView()};
     $('#cvd').onclick=async()=>{$('#msg').textContent='Testing...';$('#msg').textContent=await covDiag()};
     $('#cvc').onclick=()=>{cov={};saveCov();dataView('Saved covers cleared. They will be fetched again as you browse.')};
@@ -666,6 +667,33 @@ document.addEventListener('click',e=>{
   else if(d.id){openRecSheet(d.id)}
 });
 load();render();
+/* self-update: compare with the version on the server, then clear the app cache (never your data or covers) and reload */
+async function remoteVersion(){
+  const r=await fetch('index.html?cb='+Date.now(),{cache:'no-store'});
+  if(!r.ok)throw 0;
+  const m=(await r.text()).match(/APP_VERSION=(\d+)/);return m?+m[1]:0;
+}
+async function applyUpdate(v){
+  const t=document.createElement('div');t.textContent='Updating to version '+v+'...';
+  t.style.cssText='position:fixed;left:16px;right:16px;bottom:84px;z-index:99;padding:12px 16px;border-radius:12px;background:var(--ink);color:var(--bg);font-weight:600;text-align:center';
+  document.body.appendChild(t);
+  try{(await navigator.serviceWorker.getRegistrations()).forEach(r=>r.unregister())}catch(e){}
+  try{(await caches.keys()).filter(k=>k!=='vinyl-covers').forEach(k=>caches.delete(k))}catch(e){}
+  setTimeout(()=>location.reload(),600);
+}
+async function checkUpdate(manual){
+  if(!/^https?:/.test(location.protocol))return manual?'Updates only apply to the hosted app.':'';
+  let v;try{v=await remoteVersion()}catch(e){return manual?'Could not reach the server. Try again when you are online.':''}
+  if(v>APP_VERSION){
+    let tried='';try{tried=sessionStorage.getItem('vinylUpd')||''}catch(e){}
+    if(!manual&&(tried==String(v)||sheetOpen))return '';
+    try{sessionStorage.setItem('vinylUpd',String(v))}catch(e){}
+    applyUpdate(v);return 'Updating to version '+v+'...';
+  }
+  return manual?`You have the latest version (${APP_VERSION}).`:'';
+}
+setTimeout(()=>checkUpdate(false),3000);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')checkUpdate(false)});
 try{if('serviceWorker' in navigator&&/^https?:/.test(location.protocol)){
   const had=!!navigator.serviceWorker.controller;let reloading=false;
   navigator.serviceWorker.addEventListener('controllerchange',()=>{
