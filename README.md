@@ -14,7 +14,7 @@ A small installable web app for keeping track of where your records and CDs are 
 - Stats: counts by format, genre and decade, records added per year, and how full each storage location is.
 - Album covers from MusicBrainz and the Cover Art Archive replace the disc icon on the cards when one is found. They are fetched as you scroll, saved on the phone, and can be switched off in the Data tab.
 - Back up and restore with a CSV export that includes every record's location, genre, comment and star.
-- Dark look inspired by the Discogs app, with a light version that follows your phone's setting.
+- Neo-brutalist look: thick black outlines, hard shadows, flat yellow and pink accents and no rounded corners. It follows your phone's light or dark setting.
 - Works offline and can be installed on a phone's home screen.
 
 ## Storage locations

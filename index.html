@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Vinyl shelf</title>
-<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#222222" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#ffd23f" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#ffd23f" media="(prefers-color-scheme: dark)">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Vinyl">
@@ -106,6 +106,60 @@ textarea{min-height:96px;resize:vertical}
 label{display:block;font-weight:600;font-size:14px;color:var(--mute);margin:14px 0 6px}
 label.ck{font-weight:400;font-size:16px;color:var(--ink);display:flex;gap:10px;align-items:center;padding:8px 0;margin:0}
 label.ck input{width:20px;height:20px}
+
+/* neo-brutalist skin: hard borders, hard shadows, flat colour, no rounded corners */
+:root{--y:#ffd23f;--p:#ff7ab6;--bg:#151515;--card:#202020;--chip:#2c2c2c;--field:#151515;--thumb:#3a3a3a;--ink:#f6f6f6;--mute:#bdbdbd;--bd:#f6f6f6;--red:#ff8a7a}
+@media(prefers-color-scheme:light){:root{--bg:#fff4d6;--card:#ffffff;--chip:#ffffff;--field:#ffffff;--thumb:#e9dfc1;--ink:#000000;--mute:#4a4a4a;--bd:#000000;--red:#c0261a}}
+*,*::before,*::after{border-radius:0!important}
+:focus-visible{outline:3px solid var(--bd);outline-offset:2px}
+input:focus-visible,textarea:focus-visible{outline:3px solid var(--bd);outline-offset:0}
+h1{background:var(--y);color:#000;border-bottom:3px solid var(--bd);font-size:30px;font-weight:800;text-transform:uppercase;letter-spacing:0}
+.stick{background:var(--y);border-bottom:3px solid var(--bd);margin-bottom:10px}
+.rec,.tile,.bars,.store,.btn,.chip,.cell,.grid12 button{border:2px solid var(--bd)}
+.rec,.tile,.bars,.store,.btn,.chip{box-shadow:3px 3px 0 var(--bd)}
+.rec:active,.btn:active,.chip:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--bd)}
+.rec{gap:12px;min-height:76px;padding:10px;margin:0 3px 14px 0}
+.rec b{font-size:15px;font-weight:700;line-height:1.25}
+.rec span.s{font-size:13px}
+.thumb{width:60px;height:60px;border:2px solid var(--bd)}.thumb svg{width:44px;height:44px}
+.loc{font-size:12px;font-weight:700;margin-top:6px;padding:3px 10px;border:2px solid var(--bd)}
+.loc.no{background:var(--y);color:#000}
+.tag{font-size:12px;font-weight:700;border:2px solid var(--bd)}
+.played{font-size:12px}
+.star svg{stroke:var(--ink);stroke-width:2}.star.on svg{fill:var(--y);stroke:var(--ink)}
+.chips{gap:10px;margin:12px 3px 14px 0}
+.chip{font-weight:700;font-size:14px;min-height:40px}
+.chip.on{background:var(--ink);color:var(--bg)}
+.btn{font-weight:800;text-transform:uppercase;letter-spacing:.03em;margin:10px 0;width:calc(100% - 3px)}
+.btn.pri{background:var(--y);color:#000}
+input[type=number],input[type=text],textarea,input[type=search],select{border:2px solid var(--bd);background-color:var(--field);box-shadow:3px 3px 0 var(--bd)}
+select{background-color:var(--chip);font-weight:700}
+input[type=search]{border-width:2px}
+.sel2,.stick .chips{margin-right:3px}
+nav{background:var(--card);border-top:3px solid var(--bd)}
+nav button{color:var(--ink);font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.02em}
+nav .ic{border:2px solid transparent}
+nav button.on .ic{background:var(--y);color:#000;border-color:var(--bd)}
+.count{font-size:15px;font-weight:800;text-transform:uppercase}
+.count::before,.count::after{height:3px;background:var(--bd)}
+.store{gap:8px;padding:10px;margin:12px 3px 16px 0}
+.cell{background:var(--chip)}
+.cell .n{font-weight:800}.cell .c{font-weight:700;color:var(--ink)}
+.cell.hi{background:var(--y);color:#000}.cell.hi .c{color:#000;opacity:1}
+.cell.sel{outline:3px solid var(--bd);outline-offset:2px}
+.fill{height:6px;background:var(--bd);opacity:1}
+.store.mini .cell,.store.pick .cell{border-width:2px}
+.tiles{gap:10px;margin:12px 3px 16px 0}
+.tile{padding:12px 6px}.tile b{font-weight:800}.tile span{color:var(--ink);font-weight:700;text-transform:uppercase;font-size:11px}
+.bars{margin:6px 3px 16px 0}
+.bt{height:14px;border:2px solid var(--bd);background:var(--card)}.bt i{background:var(--p);border-right:2px solid var(--bd)}.bt i[style*="width:0.0%"]{border:0}
+.bv{color:var(--ink);font-weight:700}
+label{color:var(--ink);font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em}
+label.ck{text-transform:none;font-size:15px;letter-spacing:0;font-weight:600}
+.mute{color:var(--mute)}.empty{color:var(--ink);font-weight:600}
+#sheet>div{background:var(--bg);border:3px solid var(--bd);border-bottom:0}
+.sht{font-weight:800;text-transform:uppercase}
+.grid12 button{font-weight:800;box-shadow:2px 2px 0 var(--bd)}.grid12 button.on{background:var(--y);color:#000}
 </style>
 </head>
 <body>
@@ -115,7 +169,7 @@ label.ck input{width:20px;height:20px}
 <div id="sheet"><div id="sheetbody"></div></div>
 
 <script>
-const APP_VERSION=16,APP_DATE='14 Nov 2026';
+const APP_VERSION=17,APP_DATE='17 Nov 2026';
 const DEFAULT_LOCS=[
  {id:'kallax',name:'Kallax shelf',mode:'grid',cols:3,rows:4,cap:0,formats:['lp']},
  {id:'case7',name:'7" case',mode:'grid',cols:1,rows:1,cap:200,formats:['s7']},
