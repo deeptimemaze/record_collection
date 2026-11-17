@@ -171,6 +171,8 @@ label.ck{text-transform:none;font-size:15px;letter-spacing:0;font-weight:600}
 .tl .rec{position:relative}
 .tg{margin:0 0 14px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--mute)}
 .tl .mute{margin:0 0 14px}
+
+.rec .oy{font-weight:800;color:var(--ink)}
 </style>
 </head>
 <body>
@@ -180,7 +182,7 @@ label.ck{text-transform:none;font-size:15px;letter-spacing:0;font-weight:600}
 <div id="sheet"><div id="sheetbody"></div></div>
 
 <script>
-const APP_VERSION=21,APP_DATE='17 Nov 2026';
+const APP_VERSION=22,APP_DATE='17 Nov 2026';
 const DEFAULT_LOCS=[
  {id:'kallax',name:'Kallax shelf',mode:'grid',cols:3,rows:4,cap:0,formats:['lp']},
  {id:'case7',name:'7" case',mode:'grid',cols:1,rows:1,cap:200,formats:['s7']},
@@ -198,7 +200,7 @@ function load(){
   try{recs=JSON.parse(localStorage.getItem('vinylRecs2')||'[]')}catch(e){recs=[]}
   try{locs=JSON.parse(localStorage.getItem('vinylLocs')||'null')}catch(e){locs=null}
   if(!Array.isArray(locs)||!locs.length)locs=JSON.parse(JSON.stringify(DEFAULT_LOCS));
-  recs.forEach(r=>{r.fav=!!r.fav;r.nx=+r.nx||0;r.played=r.played||'';r.da=r.da||'';prep(r)});
+  recs.forEach(r=>{r.fav=!!r.fav;r.nx=+r.nx||0;r.played=r.played||'';r.da=r.da||'';r.oy=oyOK(r.oy)?r.oy:'';prep(r)});
   locs.forEach(l=>{if(l.id=='string'&&l.mode=='units'&&((l.cols==8&&!l.stack)||(l.cols==4&&l.stack==2))){l.cols=1;l.stack=8}});
   locs.forEach(l=>{if(l.mode=='units'){l.w=+l.w||78;l.h=+l.h||20}});
 }
@@ -271,7 +273,7 @@ function stage(text){
   const ix=(...res)=>{for(const re of res){const i=h.findIndex(x=>re.test(x));if(i>=0)return i}return -1};
   let ia=ix(/^artist$/,/artist|band|performer/),it=ix(/^(title|album|name)$/,/title|album|release name/),
       iy=ix(/^(released|year)$/,/year|released/),ifm=ix(/^format$/),ir=ix(/^release_id$/,/release.?id/),
-      is=ix(/^section$/),ip=ix(/^pos(ition)?$/),il=ix(/^location$/),ig=ix(/^genre$/),ic=ix(/^comments?$/),ifv=ix(/^(fav(ou?rites?)?|starred?)$/),ida=ix(/^date.?added$/,/^added$/),ipl=ix(/^(last.?)?played$/),iq=ix(/^play.?next$/),body=rows.slice(1);
+      is=ix(/^section$/),ip=ix(/^pos(ition)?$/),il=ix(/^location$/),ig=ix(/^genre$/),ic=ix(/^comments?$/),ifv=ix(/^(fav(ou?rites?)?|starred?)$/),ida=ix(/^date.?added$/,/^added$/),ipl=ix(/^(last.?)?played$/),iq=ix(/^play.?next$/),ioy=ix(/^original.?(release|released|year|date)$/),body=rows.slice(1);
   if(ia<0&&it<0){ia=0;it=1;body=rows}
   if(it<0)it=ia===0?1:0;
   const g=(r,i)=>i>=0?(r[i]||'').trim():'';
@@ -285,7 +287,7 @@ function stage(text){
     out.push({id:rid+'#'+seen[rid],artist,title,year:g(r,iy).replace(/^0$/,''),fmt,cat:ifm>=0?catOf(fmt):'lp',
       loc:ok?lc.id:null,section:ok?s:null,pos:ok&&p>0?p:null,
       genre:g(r,ig),comment:g(r,ic),fav:/^(yes|y|1|true|x|★)$/i.test(g(r,ifv)),
-      da:g(r,ida),played:(g(r,ipl).match(/^\d{4}-\d{2}-\d{2}/)||[''])[0],nx:/^(yes|y|1|true|x)$/i.test(g(r,iq))?Date.now()+n:0});
+      da:g(r,ida),played:(g(r,ipl).match(/^\d{4}-\d{2}-\d{2}/)||[''])[0],nx:/^(yes|y|1|true|x)$/i.test(g(r,iq))?Date.now()+n:0,oy:(g(r,ioy).match(/^\d{4}(-\d{2}(-\d{2})?)?/)||[''])[0]});
   });
   return out;
 }
@@ -311,6 +313,7 @@ function finishImport(){
     if(!r.comment&&o.comment)r.comment=o.comment;
     if(!r.fav&&o.fav)r.fav=true;
     if(!r.played&&o.played)r.played=o.played;
+    if(!oyOK(r.oy)&&oyOK(o.oy))r.oy=o.oy;
     if(!r.nx&&o.nx)r.nx=o.nx});
   const kept=new Set(pair.values());
   const lost=recs.filter(r=>placed(r)&&!kept.has(r)).length;
@@ -319,8 +322,8 @@ function finishImport(){
 }
 function exportCSV(){
   const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
-  const lines=['Artist,Title,Released,Format,release_id,location,section,position,Genre,Comment,Starred,Date Added,Last played,Play next',
-    ...recs.map(r=>[r.artist,r.title,r.year,r.fmt,r.id.split('#')[0],placed(r)?L(r.loc).name:'',placed(r)?r.section:'',placed(r)?r.pos:'',r.genre||'',r.comment||'',r.fav?'Yes':'',r.da||'',r.played||'',r.nx?'Yes':''].map(q).join(','))];
+  const lines=['Artist,Title,Released,Format,release_id,location,section,position,Genre,Comment,Starred,Date Added,Last played,Play next,Original release',
+    ...recs.map(r=>[r.artist,r.title,r.year,r.fmt,r.id.split('#')[0],placed(r)?L(r.loc).name:'',placed(r)?r.section:'',placed(r)?r.pos:'',r.genre||'',r.comment||'',r.fav?'Yes':'',r.da||'',r.played||'',r.nx?'Yes':'',oyOK(r.oy)?r.oy:''].map(q).join(','))];
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob(['\uFEFF'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'}));
   a.download='vinyl-collection.csv';document.body.appendChild(a);a.click();a.remove();
@@ -357,7 +360,12 @@ const shelfHTML=(l,hi,mini,selN)=>diagramHTML(l,{hi,size:mini?'mini':'full',sel:
 const STAR='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.2 1.2-6.5L2.5 9.5l6.6-.9z"/></svg>';
 const starBtn=r=>`<button class="star${r.fav?' on':''}" data-fav="${esc(r.id)}" aria-label="Starred" aria-pressed="${!!r.fav}">${STAR}</button>`;
 const gkey=r=>r.genre||'__none';
-function meta(r){const f=(r.fmt||'').split(',')[0].trim();return [r.year,f,r.genre].filter(Boolean).join(' · ')}
+const oyOK=v=>/^\d{4}(-\d{2}(-\d{2})?)?$/.test(v||'');
+const origY=r=>oyOK(r.oy)?r.oy.slice(0,4):'';
+const effY=r=>parseInt(origY(r)||r.year);
+const effD=r=>oyOK(r.oy)?r.oy:String(r.year||'');
+function metaHTML(r){const f=(r.fmt||'').split(',')[0].trim(),o=origY(r);
+  return [o?`<strong class="oy" title="Original release year">${o}</strong>`:esc(r.year||''),esc(f),esc(r.genre||'')].filter(Boolean).join(' · ')}
 function thumbHTML(r){
   const disc=(rad,lab,col)=>`<svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="${rad}" fill="#0e0e0e" stroke="#3f3f3f"/><circle cx="24" cy="24" r="${(rad*.64).toFixed(1)}" fill="none" stroke="#262626"/><circle cx="24" cy="24" r="${lab}" fill="${col}"/><circle cx="24" cy="24" r="1.3" fill="#0e0e0e"/></svg>`;
   const c=r.cat;
@@ -387,7 +395,7 @@ function ago(ds){
 }
 function markPlayed(r){r.played=today();r.nx=0;save()}
 function recHTML(r,lead='',extra=''){
-  return `<div class="rec" role="button" tabindex="0" data-id="${esc(r.id)}">${lead||thumbHTML(r)}<div class="t"><b>${esc(r.title)}</b><span class="s">${esc(r.artist)}</span><span class="s">${esc(meta(r))}</span>${noteHTML(r)}${extra}${lead?'':`<div>${tagHTML(r)}</div>`}</div>${starBtn(r)}</div>`;
+  return `<div class="rec" role="button" tabindex="0" data-id="${esc(r.id)}">${lead||thumbHTML(r)}<div class="t"><b>${esc(r.title)}</b><span class="s">${esc(r.artist)}</span><span class="s">${metaHTML(r)}</span>${noteHTML(r)}${extra}${lead?'':`<div>${tagHTML(r)}</div>`}</div>${starBtn(r)}</div>`;
 }
 function matches(){
   const w=fold(q).split(/\s+/).filter(Boolean),fo=view=='fav';
@@ -526,6 +534,55 @@ async function covDiag(){
 }
 new MutationObserver(()=>covScan()).observe(document.getElementById('app'),{childList:true,subtree:true});
 
+/* original release year: MusicBrainz release group, first release date */
+let oyNone={};try{oyNone=JSON.parse(localStorage.getItem('vinylOyNone')||'{}')}catch(e){oyNone={}}
+const saveOyNone=()=>{try{localStorage.setItem('vinylOyNone',JSON.stringify(oyNone))}catch(e){}};
+const oyState={run:false,stop:false,done:0,total:0,found:0,msg:''};
+function oyTodo(){const seen=new Set(),out=[];
+  recs.forEach(r=>{const rid=ridOf(r);if(seen.has(rid))return;seen.add(rid);
+    if(oyOK(r.oy)||recs.some(x=>ridOf(x)==rid&&oyOK(x.oy)))return;
+    if(oyNone[rid]&&Date.now()-oyNone[rid]<30*864e5)return;out.push(r)});return out}
+async function findOrig(r){
+  const rid=ridOf(r),yr=parseInt(r.year);let d='';
+  const ok=v=>oyOK(v)&&!(yr>=1000&&+v.slice(0,4)>yr+1);
+  if(/^\d+$/.test(rid)){
+    const j=await mb(`url?resource=${encodeURIComponent('https://www.discogs.com/release/'+rid)}&inc=release-rels`);
+    const m=(j.relations||[]).map(x=>x.release&&x.release.id).find(Boolean);
+    if(m){const k=await mb(`release/${m}?inc=release-groups`);d=(k['release-group']||{})['first-release-date']||'';if(ok(d))return d}
+  }
+  const q=`artist:"${r.artist.replace(/"/g,' ')}" AND releasegroup:"${r.title.replace(/"/g,' ')}"`;
+  const j=await mb(`release-group/?query=${encodeURIComponent(q)}&limit=5`);
+  const x=(j['release-groups']||[]).find(y=>(y.score||0)>=90&&ok(y['first-release-date']));
+  return x?x['first-release-date']:'';
+}
+function oyUpdateUI(){const e=document.getElementById('oyprog');if(e)e.textContent=oyText();const b=document.getElementById('oyb');if(b)b.textContent=oyState.run?'Pause':'Fetch original years'}
+const oyText=()=>{const have=recs.filter(r=>oyOK(r.oy)).length;
+  return `${have} of ${recs.length} records have an original year.`+(oyState.run?` Working: ${oyState.done} of ${oyState.total} looked up this run, ${oyState.found} found.`:'')+(oyState.msg?' '+oyState.msg:'')};
+async function oyRun(){
+  if(oyState.run){oyState.stop=true;oyState.msg='Pausing...';oyUpdateUI();return}
+  const todo=oyTodo();Object.assign(oyState,{run:true,stop:false,done:0,total:todo.length,found:0,msg:todo.length?'Keep the app open.':'Nothing left to look up.'});
+  let lock=null;try{lock=await navigator.wakeLock.request('screen')}catch(e){}
+  oyUpdateUI();let sinceSave=0;
+  for(const r of todo){
+    if(oyState.stop)break;
+    const rid=ridOf(r);let d,tries=0;
+    while(true){
+      try{d=await findOrig(r);break}
+      catch(e){
+        if(e=='busy'&&++tries<3){await sleep(15000);continue}
+        oyState.msg=e=='net'?'Could not reach MusicBrainz. Resume when you are online.':'MusicBrainz is busy. Resume in a few minutes.';oyState.stop=true;d=null;break}
+    }
+    if(d===null)break;
+    if(d){recs.forEach(x=>{if(ridOf(x)==rid)x.oy=d});oyState.found++;delete oyNone[rid]}else oyNone[rid]=Date.now();
+    oyState.done++;if(++sinceSave>=20){save();saveOyNone();sinceSave=0}
+    oyUpdateUI();
+  }
+  save();saveOyNone();
+  if(!oyState.msg||oyState.msg=='Keep the app open.'||oyState.msg=='Pausing...')oyState.msg=oyState.stop?'Paused. Press the button to resume.':'Done.';
+  oyState.run=false;oyState.stop=false;try{lock&&lock.release()}catch(e){}
+  oyUpdateUI();if(view=='rec'||view=='fav'||view=='ex')render();
+}
+
 /* explore: pick, play next, stats */
 let exTab='pick',pickId=null;const tf={cat:'all',gen:'all'};const pf={cat:'all',gen:'all',fav:false,placed:false,fresh:true};
 const pool=()=>recs.filter(r=>(pf.cat=='all'||r.cat==pf.cat)&&(pf.gen=='all'||gkey(r)==pf.gen)&&(!pf.fav||r.fav)&&(!pf.placed||placed(r)));
@@ -564,7 +621,7 @@ function statsHTML(){
   const n=recs.length,pl=recs.filter(placed).length,pd=recs.filter(r=>r.played).length;
   const tile=(b,t)=>`<div class="tile"><b>${b}</b><span>${t}</span></div>`;
   const by=(f)=>{const m={};recs.forEach(r=>{const k=f(r);m[k]=(m[k]||0)+1});return m};
-  const cat=by(r=>SHORT[r.cat]),gen=by(r=>r.genre||'No genre'),dec=by(r=>{const y=parseInt(r.year);return y>=1900?Math.floor(y/10)*10+'s':'Unknown'}),
+  const cat=by(r=>SHORT[r.cat]),gen=by(r=>r.genre||'No genre'),dec=by(r=>{const y=effY(r);return y>=1900?Math.floor(y/10)*10+'s':'Unknown'}),
     yr=by(r=>(r.da||'').slice(0,4)||''),
     decOrd=(a,b)=>(a[0]=='Unknown')-(b[0]=='Unknown')||a[0].localeCompare(b[0]);
   let h=`<div class="tiles">${tile(n,'Records')}${tile(pl,'Placed')}${tile(n-pl,'Not placed')}${tile(recs.filter(r=>r.fav).length,'Starred')}${tile(pd,'Played')}${tile(recs.filter(r=>r.nx).length,'Play next')}</div>`;
@@ -582,9 +639,9 @@ function timelineHTML(){
   <select id="tg" aria-label="Genre"><option value="all">Any genre</option>${gens.map(k=>`<option value="${esc(k)}"${tf.gen==k?' selected':''}>${k=='__none'?'No genre':esc(k)}</option>`).join('')}</select></div>`;
   const list=recs.filter(r=>(tf.cat=='all'||r.cat==tf.cat)&&(tf.gen=='all'||gkey(r)==tf.gen));
   const by=new Map(),unk=[];
-  list.forEach(r=>{const y=parseInt(r.year);if(y>=1000&&y<=cur){(by.get(y)||by.set(y,[]).get(y)).push(r)}else unk.push(r)});
+  list.forEach(r=>{const y=effY(r);if(y>=1000&&y<=cur){(by.get(y)||by.set(y,[]).get(y)).push(r)}else unk.push(r)});
   const ys=[...by.keys()];if(!by.has(cur))ys.push(cur);ys.sort((a,b)=>b-a);
-  const cmp=(a,b)=>a.sk<b.sk?-1:a.sk>b.sk?1:0;
+  const cmp=(a,b)=>{const x=effD(a),y=effD(b);return x<y?-1:x>y?1:a.sk<b.sk?-1:a.sk>b.sk?1:0};
   let budget=lim,prev=null,body='';
   const block=(label,arr,empty)=>{
     const shown=arr.slice(0,Math.max(0,budget));budget-=shown.length;
@@ -624,6 +681,8 @@ function dataView(msg=''){
     <input type="file" id="file" accept=".csv,text/csv,text/plain" hidden><button class="btn pri" id="imp">Choose CSV file</button>
     <label>Album covers</label><p class="mute">Covers are looked up on MusicBrainz and the Cover Art Archive as records scroll into view, and saved on this phone. This sends a record's Discogs number, and sometimes its artist and title, to those sites.</p>
     <div class="chips" style="margin-top:0"><button class="chip${covOn()?' on':''}" id="cvt">${covOn()?'Covers on':'Covers off'}</button><button class="chip" id="cvd">Test lookup</button><button class="chip" id="cvc">Refetch all</button></div>
+    <label>Original release year</label><p class="mute">The Released year from Discogs is the year of your pressing. This looks up the year each album first came out on MusicBrainz and shows it in bold on the cards. It takes a while (about one record every two seconds), keeps going where it left off, and sends a record's Discogs number, and sometimes its artist and title, to MusicBrainz.</p>
+    <p class="mute" id="oyprog">${oyText()}</p><button class="btn" id="oyb">${oyState.run?'Pause':'Fetch original years'}</button>
     <label>Back up</label><p class="mute">Export a CSV with every record's location, genre, comment, star and played date. You can import it again later.</p>
     <button class="btn" id="exp">Export CSV</button><button class="btn dng" id="clr">Clear all records</button>`;
   $('#app').innerHTML=h+`<p class="mute" id="msg">${esc(msg)}</p><p class="mute" style="text-align:center;margin-top:28px;margin-bottom:6px">Crate · version ${APP_VERSION} · ${APP_DATE}</p><div class="chips" style="justify-content:center;margin:0"><button class="chip" id="upd">Check for updates</button></div><p class="mute" id="updmsg" style="text-align:center;min-height:1.4em"></p>`;
@@ -638,6 +697,7 @@ function dataView(msg=''){
       if(!r||!r.length)return dataView('No records found. Check that the file has artist and title columns.');
       staged=r;dataView()};
     $('#exp').onclick=exportCSV;
+    $('#oyb').onclick=oyRun;
     $('#upd').onclick=async()=>{$('#updmsg').textContent='Checking...';const m=await checkUpdate(true);if($('#updmsg'))$('#updmsg').textContent=m};
     $('#cvt').onclick=()=>{try{localStorage.setItem('vinylCoverOff',covOn()?'1':'0')}catch(e){}dataView()};
     $('#cvd').onclick=async()=>{$('#msg').textContent='Testing...';$('#msg').textContent=await covDiag()};
@@ -663,7 +723,7 @@ function openRecSheet(id){
     if(!single(l)){
       slots=`<label>${l.mode=='units'?'Shelf':'Section'}</label>`+diagramHTML(l,{size:'pick',attr:'data-s',hi:new Set(sec?[sec]:[]),sel:sec});
     }
-    body.innerHTML=`<div class="sh"><div><b class="sht">${esc(r.title)}</b><div class="mute">${esc(r.artist)}</div><div class="mute">${esc([r.year,(r.fmt||'').split(',')[0].trim()].filter(Boolean).join(' · '))}</div></div>${starBtn(r)}</div>
+    body.innerHTML=`<div class="sh"><div><b class="sht">${esc(r.title)}</b><div class="mute">${esc(r.artist)}</div><div class="mute">${[origY(r)?`<strong>${origY(r)}</strong>`+(r.year&&r.year!=origY(r)?` <span>(this edition ${esc(r.year)})</span>`:''):esc(r.year||''),esc((r.fmt||'').split(',')[0].trim())].filter(Boolean).join(' · ')}</div></div>${starBtn(r)}</div>
     ${locs.length>1?`<label>Location</label><div class="chips">${locs.map(x=>`<button class="chip${x.id==lid?' on':''}" data-pl="${esc(x.id)}">${esc(x.name)}</button>`).join('')}</div>`:''}
     ${slots}
     ${sec?`<label>Position${single(l)?'':' in '+esc(slotLabel(l,sec))}</label><input type="number" id="pos" min="1" max="${n+1}" inputmode="numeric" value="${placed(r)&&r.loc==lid&&r.section==sec?r.pos:n+1}">

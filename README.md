@@ -11,6 +11,7 @@ A small installable web app for keeping track of where your records and CDs are 
 - Search by artist, title or comment. Accents are ignored, so "sigur ros" finds Sigur Rós and "einsturzende" finds Einstürzende.
 - Filter by format and genre, or show only records that are not placed yet.
 - **Explore** tab: pick a random record (filter by format and genre, starred only, only placed, favour unplayed), keep a play-next list, and see which records have gone longest without being played. Mark a record as played from the pick or from its sheet.
+- Original release year: the Released year from Discogs is the year of your pressing. **Data → Fetch original years** looks up when each album first came out on MusicBrainz (the release group's first release date). Where it is known, the card shows that year in **bold**, instead of the pressing year, and the Timeline and the decade stats use it. It is saved with each record and included in the CSV export as the `Original release` column.
 - Timeline: a vertical timeline by release year with this year on top. Each record hangs off its year, and you can filter by format and genre.
 - Stats: counts by format, genre and decade, records added per year, and how full each storage location is.
 - Album covers from MusicBrainz and the Cover Art Archive replace the disc icon on the cards when one is found. They are fetched as you scroll, saved on the phone, and can be switched off in the Data tab.
@@ -40,7 +41,7 @@ When you place a record at a position that is already taken, the records from th
 4. In **Records**, tap a record and choose where it goes.
 5. Use the search box to find a record later. **Storage** shows each location and what is in every section.
 
-The import also reads Genre, Comment and Starred columns if the CSV has them (a Starred cell of `Yes` marks a starred record; a column named Favourite from an older export is read too). Importing again keeps the locations, genres, comments and stars of records that match by Discogs release ID, so you can add records on Discogs, export, and re-import without losing your work. A value in the CSV wins over the app's; an empty cell keeps what the app has. If you own several copies of the same release, they are told apart by the Date Added column, so reordered rows in a Discogs export don't swap their placements. The export also carries Date Added, Last played and Play next.
+The import also reads Genre, Comment and Starred columns if the CSV has them (a Starred cell of `Yes` marks a starred record; a column named Favourite from an older export is read too). Importing again keeps the locations, genres, comments and stars of records that match by Discogs release ID, so you can add records on Discogs, export, and re-import without losing your work. A value in the CSV wins over the app's; an empty cell keeps what the app has. If you own several copies of the same release, they are told apart by the Date Added column, so reordered rows in a Discogs export don't swap their placements. The export also carries Date Added, Last played, Play next and Original release.
 
 ## Your data
 

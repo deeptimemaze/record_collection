@@ -1,5 +1,5 @@
 // Opens the newest version when online and falls back to the saved copy offline.
-const CACHE='vinyl-shelf-v21',COVERS='vinyl-covers';
+const CACHE='vinyl-shelf-v22',COVERS='vinyl-covers';
 const FILES=['./','./index.html','./manifest.webmanifest','./icon-crate-192.png','./icon-crate-512.png'];
 const COVER_HOST=/(^|\.)(coverartarchive|archive)\.org$/;
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES.map(f=>new Request(f,{cache:'reload'})))).then(()=>self.skipWaiting()))});
