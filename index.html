@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Vinyl shelf</title>
+<title>Crate</title>
 <meta name="theme-color" content="#ffd23f" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#ffd23f" media="(prefers-color-scheme: dark)">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Vinyl">
+<meta name="apple-mobile-web-app-title" content="Crate">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -180,7 +180,7 @@ label.ck{text-transform:none;font-size:15px;letter-spacing:0;font-weight:600}
 <div id="sheet"><div id="sheetbody"></div></div>
 
 <script>
-const APP_VERSION=18,APP_DATE='17 Nov 2026';
+const APP_VERSION=20,APP_DATE='17 Nov 2026';
 const DEFAULT_LOCS=[
  {id:'kallax',name:'Kallax shelf',mode:'grid',cols:3,rows:4,cap:0,formats:['lp']},
  {id:'case7',name:'7" case',mode:'grid',cols:1,rows:1,cap:200,formats:['s7']},
@@ -626,7 +626,7 @@ function dataView(msg=''){
     <div class="chips" style="margin-top:0"><button class="chip${covOn()?' on':''}" id="cvt">${covOn()?'Covers on':'Covers off'}</button><button class="chip" id="cvd">Test lookup</button><button class="chip" id="cvc">Refetch all</button></div>
     <label>Back up</label><p class="mute">Export a CSV with every record's location, genre, comment, star and played date. You can import it again later.</p>
     <button class="btn" id="exp">Export CSV</button><button class="btn dng" id="clr">Clear all records</button>`;
-  $('#app').innerHTML=h+`<p class="mute" id="msg">${esc(msg)}</p><p class="mute" style="text-align:center;margin-top:28px;margin-bottom:6px">Vinyl shelf · version ${APP_VERSION} · ${APP_DATE}</p><div class="chips" style="justify-content:center;margin:0"><button class="chip" id="upd">Check for updates</button></div><p class="mute" id="updmsg" style="text-align:center;min-height:1.4em"></p>`;
+  $('#app').innerHTML=h+`<p class="mute" id="msg">${esc(msg)}</p><p class="mute" style="text-align:center;margin-top:28px;margin-bottom:6px">Crate · version ${APP_VERSION} · ${APP_DATE}</p><div class="chips" style="justify-content:center;margin:0"><button class="chip" id="upd">Check for updates</button></div><p class="mute" id="updmsg" style="text-align:center;min-height:1.4em"></p>`;
   if(staged){
     document.querySelectorAll('[data-cat]').forEach(i=>i.onchange=()=>{sel[i.dataset.cat]=i.checked?1:0;dataView()});
     $('#go').onclick=()=>{const m=finishImport();dataView(m)};
