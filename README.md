@@ -1,4 +1,4 @@
-# Record collection
+# Crate
 
 A small installable web app for keeping track of where your records and CDs are stored. Import your collection from Discogs, place each record in a storage location, and search by artist or title to find out where it sits.
 

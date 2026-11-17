@@ -1,13 +1,13 @@
 {
-  "name": "Vinyl shelf",
-  "short_name": "Vinyl",
-  "description": "Find your records on the shelf.",
+  "name": "Crate",
+  "short_name": "Crate",
+  "description": "Find your records and CDs.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#121212",
-  "theme_color": "#222222",
+  "background_color": "#ffd23f",
+  "theme_color": "#ffd23f",
   "icons": [
     {
       "src": "icon-192.png",
