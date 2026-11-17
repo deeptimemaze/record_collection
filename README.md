@@ -11,6 +11,7 @@ A small installable web app for keeping track of where your records and CDs are 
 - Search by artist, title or comment. Accents are ignored, so "sigur ros" finds Sigur Rós and "einsturzende" finds Einstürzende.
 - Filter by format and genre, or show only records that are not placed yet.
 - **Explore** tab: pick a random record (filter by format and genre, starred only, only placed, favour unplayed), keep a play-next list, and see which records have gone longest without being played. Mark a record as played from the pick or from its sheet.
+- Timeline: a vertical timeline by release year with this year on top. Each record hangs off its year, and you can filter by format and genre.
 - Stats: counts by format, genre and decade, records added per year, and how full each storage location is.
 - Album covers from MusicBrainz and the Cover Art Archive replace the disc icon on the cards when one is found. They are fetched as you scroll, saved on the phone, and can be switched off in the Data tab.
 - Back up and restore with a CSV export that includes every record's location, genre, comment and star.

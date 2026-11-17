@@ -160,6 +160,17 @@ label.ck{text-transform:none;font-size:15px;letter-spacing:0;font-weight:600}
 #sheet>div{background:var(--bg);border:3px solid var(--bd);border-bottom:0}
 .sht{font-weight:800;text-transform:uppercase}
 .grid12 button{font-weight:800;box-shadow:2px 2px 0 var(--bd)}.grid12 button.on{background:var(--y);color:#000}
+
+.tl{position:relative;padding-left:26px;margin:14px 0 0}
+.tl::before{content:"";position:absolute;left:8px;top:0;bottom:0;width:4px;background:var(--bd)}
+.ty{margin:0 0 6px}
+.yl{position:relative;display:inline-block;margin:0 0 12px;padding:3px 12px;background:var(--y);color:#000;border:2px solid var(--bd);box-shadow:3px 3px 0 var(--bd);font-size:20px;font-weight:800;line-height:1.2}
+.yl small{font-size:12px;font-weight:700;margin-left:6px}
+.yl::before,.tl .rec::before{content:"";position:absolute;left:-18px;top:calc(50% - 2px);width:18px;height:4px;background:var(--bd)}
+.tl .rec::before{left:-16px;width:16px}
+.tl .rec{position:relative}
+.tg{margin:0 0 14px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--mute)}
+.tl .mute{margin:0 0 14px}
 </style>
 </head>
 <body>
@@ -169,7 +180,7 @@ label.ck{text-transform:none;font-size:15px;letter-spacing:0;font-weight:600}
 <div id="sheet"><div id="sheetbody"></div></div>
 
 <script>
-const APP_VERSION=17,APP_DATE='17 Nov 2026';
+const APP_VERSION=18,APP_DATE='17 Nov 2026';
 const DEFAULT_LOCS=[
  {id:'kallax',name:'Kallax shelf',mode:'grid',cols:3,rows:4,cap:0,formats:['lp']},
  {id:'case7',name:'7" case',mode:'grid',cols:1,rows:1,cap:200,formats:['s7']},
@@ -516,7 +527,7 @@ async function covDiag(){
 new MutationObserver(()=>covScan()).observe(document.getElementById('app'),{childList:true,subtree:true});
 
 /* explore: pick, play next, stats */
-let exTab='pick',pickId=null;const pf={cat:'all',gen:'all',fav:false,placed:false,fresh:true};
+let exTab='pick',pickId=null;const tf={cat:'all',gen:'all'};const pf={cat:'all',gen:'all',fav:false,placed:false,fresh:true};
 const pool=()=>recs.filter(r=>(pf.cat=='all'||r.cat==pf.cat)&&(pf.gen=='all'||gkey(r)==pf.gen)&&(!pf.fav||r.fav)&&(!pf.placed||placed(r)));
 function doPick(){
   let p=pool();if(!p.length){pickId=null;return}
@@ -565,11 +576,37 @@ function statsHTML(){
   delete yr[''];if(Object.keys(yr).length)h+='<label>Added per year</label>'+countBars(yr,0,decOrd);
   return h;
 }
+function timelineHTML(){
+  const cur=new Date().getFullYear(),cats=[...new Set(recs.map(r=>r.cat))],gens=[...new Set(recs.map(gkey))].sort((a,b)=>(a=='__none')-(b=='__none')||a.localeCompare(b));
+  let h=`<div class="sel2"><select id="tc" aria-label="Format"><option value="all">Any format</option>${Object.keys(SHORT).filter(k=>cats.includes(k)).map(k=>`<option value="${k}"${tf.cat==k?' selected':''}>${SHORT[k]}</option>`).join('')}</select>
+  <select id="tg" aria-label="Genre"><option value="all">Any genre</option>${gens.map(k=>`<option value="${esc(k)}"${tf.gen==k?' selected':''}>${k=='__none'?'No genre':esc(k)}</option>`).join('')}</select></div>`;
+  const list=recs.filter(r=>(tf.cat=='all'||r.cat==tf.cat)&&(tf.gen=='all'||gkey(r)==tf.gen));
+  const by=new Map(),unk=[];
+  list.forEach(r=>{const y=parseInt(r.year);if(y>=1000&&y<=cur){(by.get(y)||by.set(y,[]).get(y)).push(r)}else unk.push(r)});
+  const ys=[...by.keys()];if(!by.has(cur))ys.push(cur);ys.sort((a,b)=>b-a);
+  const cmp=(a,b)=>a.sk<b.sk?-1:a.sk>b.sk?1:0;
+  let budget=lim,prev=null,body='';
+  const block=(label,arr,empty)=>{
+    const shown=arr.slice(0,Math.max(0,budget));budget-=shown.length;
+    return `<div class="ty"><div class="yl">${label}<small>${arr.length}</small></div>`+(arr.length?shown.map(r=>recHTML(r)).join(''):`<p class="mute">${empty}</p>`)+'</div>';
+  };
+  for(const y of ys){
+    if(budget<=0&&by.has(y))break;
+    if(prev!==null&&prev-y>1)body+=`<div class="tg">${prev-y-1} year${prev-y-1==1?'':'s'} with no records</div>`;
+    body+=block(y,(by.get(y)||[]).sort(cmp),'No records from this year.');prev=y;
+  }
+  if(unk.length&&budget>0)body+=block('Unknown year',unk.sort(cmp),'');
+  const shownN=lim-Math.max(0,budget),more=shownN<list.length;
+  h+=`<div class="count">${list.length} record${list.length==1?'':'s'}</div><div class="tl">${body}</div>`+(more?'<button class="btn" data-more="1">Show more</button>':'');
+  return h;
+}
 function exploreView(){
   $('#h').textContent='Explore';
-  $('#app').innerHTML=`<div class="chips"><button class="chip${exTab=='pick'?' on':''}" data-ex="pick">Pick</button><button class="chip${exTab=='stats'?' on':''}" data-ex="stats">Stats</button></div>`+(exTab=='stats'?statsHTML():pickHTML());
+  $('#app').innerHTML=`<div class="chips"><button class="chip${exTab=='pick'?' on':''}" data-ex="pick">Pick</button><button class="chip${exTab=='stats'?' on':''}" data-ex="stats">Stats</button><button class="chip${exTab=='timeline'?' on':''}" data-ex="timeline">Timeline</button></div>`+(exTab=='stats'?statsHTML():exTab=='timeline'?timelineHTML():pickHTML());
   if($('#pc'))$('#pc').onchange=e=>{pf.cat=e.target.value;pickId=null;render()};
   if($('#pg'))$('#pg').onchange=e=>{pf.gen=e.target.value;pickId=null;render()};
+  if($('#tc'))$('#tc').onchange=e=>{tf.cat=e.target.value;lim=100;render()};
+  if($('#tg'))$('#tg').onchange=e=>{tf.gen=e.target.value;lim=100;render()};
 }
 function dataView(msg=''){
   $('#h').textContent='Data';
@@ -710,9 +747,9 @@ document.addEventListener('click',e=>{
   if(d.v){view=d.v;render();window.scrollTo(0,0)}
   else if(d.f){onlyUnplaced=d.f=='un';lim=100;render()}
   else if(d.l){selLoc=d.l;selSec=null;lim=100;render()}
-  else if(d.more){lim+=100;view=='shelf'?render():fillList()}
+  else if(d.more){lim+=100;view=='rec'||view=='fav'?fillList():render()}
   else if(d.sec&&view=='shelf'){const n=+d.sec;selSec=selSec==n?null:n;lim=100;render()}
-  else if(d.ex){exTab=d.ex;render()}
+  else if(d.ex){exTab=d.ex;lim=100;render()}
   else if(d.pf){pf[d.pf]=!pf[d.pf];pickId=null;render()}
   else if(d.dopick){doPick();render()}
   else if(d.play){const r=recs.find(x=>x.id==d.play);if(r){markPlayed(r);render()}}
