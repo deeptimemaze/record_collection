@@ -175,6 +175,12 @@ label.ck{text-transform:none;font-size:15px;letter-spacing:0;font-weight:600}
 .tl .mute{margin:0 0 14px}
 
 .rec .oy{font-weight:800;color:var(--ink)}
+
+.box{margin:12px 3px 16px 0;padding:12px 14px;background:var(--card);border:2px solid var(--bd);box-shadow:3px 3px 0 var(--bd);font-size:14px}
+.box p{margin:8px 0 0}
+.box.warn{background:var(--p);color:#000;--bd:#000}
+.gone{margin:8px 0 0;padding:0 0 0 18px;max-height:260px;overflow:auto}
+.gone li{margin:0 0 6px}.gone span{display:block;font-size:12px}
 </style>
 </head>
 <body>
@@ -184,7 +190,7 @@ label.ck{text-transform:none;font-size:15px;letter-spacing:0;font-weight:600}
 <div id="sheet"><div id="sheetbody"></div></div>
 
 <script>
-const APP_VERSION=23,APP_DATE='21 Nov 2026';
+const APP_VERSION=24,APP_DATE='21 Nov 2026';
 const COVER_CACHE='vinyl-covers-2'; // must match COVERS in sw.js
 const DEFAULT_LOCS=[
  {id:'kallax',name:'Kallax shelf',mode:'grid',cols:3,rows:4,cap:0,formats:['lp']},
@@ -203,10 +209,11 @@ function load(){
   try{recs=JSON.parse(localStorage.getItem('vinylRecs2')||'[]')}catch(e){recs=[]}
   try{locs=JSON.parse(localStorage.getItem('vinylLocs')||'null')}catch(e){locs=null}
   if(!Array.isArray(locs)||!locs.length)locs=JSON.parse(JSON.stringify(DEFAULT_LOCS));
-  recs.forEach(r=>{r.fav=!!r.fav;r.nx=+r.nx||0;r.played=r.played||'';r.da=r.da||'';r.oy=oyOK(r.oy)?r.oy:'';prep(r)});
+  recs.forEach(norm);
   locs.forEach(l=>{if(l.id=='string'&&l.mode=='units'&&((l.cols==8&&!l.stack)||(l.cols==4&&l.stack==2))){l.cols=1;l.stack=8}});
   locs.forEach(l=>{if(l.mode=='units'){l.w=+l.w||78;l.h=+l.h||20}});
 }
+function norm(r){r.fav=!!r.fav;r.nx=+r.nx||0;r.played=r.played||'';r.da=r.da||'';r.oy=oyOK(r.oy)?r.oy:'';prep(r)}
 function prep(r){r.k=fold(r.artist+' '+r.title+' '+(r.comment||''));r.sk=fold(r.artist).replace(/^the /,'')+'|'+fold(r.title)}
 
 /* locations */
@@ -308,8 +315,36 @@ function matchOld(pick){
     if(o){used.add(o);pair.set(r,o)}});
   return pair;
 }
+// what an import with the ticked formats would do, without changing anything
+const hasWork=r=>placed(r)||r.fav||!!r.genre||!!r.comment||!!r.played||!!r.nx;
+function planImport(){
+  const pick=staged.filter(r=>sel[r.cat]),pair=matchOld(pick),kept=new Set(pair.values());
+  const gone=recs.filter(r=>!kept.has(r)),inFile=new Set(matchOld(staged).values());
+  return {pick,pair,gone,added:pick.filter(r=>!pair.has(r)),unticked:gone.filter(r=>inFile.has(r))};
+}
+
+/* undo: a copy of the collection from just before the last import or clear */
+let undoMem=null;
+function getUndo(){if(undoMem)return undoMem;try{return JSON.parse(localStorage.getItem('vinylUndo')||'null')}catch(e){return null}}
+function setUndo(what,note=''){
+  undoMem={what,note,at:Date.now(),n:recs.length,recs:recs.map(({k,sk,...r})=>r)};
+  // kept in memory as well, in case the copy doesn't fit in storage
+  try{localStorage.setItem('vinylUndo',JSON.stringify(undoMem))}catch(e){try{localStorage.removeItem('vinylUndo')}catch(e2){}}
+}
+function noteUndo(note){const s=getUndo();if(!s)return;s.note=note;undoMem=s;try{localStorage.setItem('vinylUndo',JSON.stringify(s))}catch(e){}}
+function dropUndo(){undoMem=null;try{localStorage.removeItem('vinylUndo')}catch(e){}}
+function restoreUndo(){
+  const s=getUndo();if(!s)return '';
+  recs=s.recs.map(r=>({...r}));recs.forEach(norm);
+  // a location may have been deleted or made smaller since then
+  recs.forEach(r=>{const l=L(r.loc);if(r.section&&(!l||r.section>nSlots(l))){r.loc=null;r.section=null;r.pos=null}});
+  renumberAll();save();dropUndo();
+  return `Undone. Your ${recs.length} records are back as they were before the ${s.what=='clear'?'clear':'import'}.`;
+}
+const when=t=>{const d=new Date(t);return `${d.getDate()} ${MON[d.getMonth()]} at ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`};
+
 function finishImport(){
-  const pick=staged.filter(r=>sel[r.cat]),pair=matchOld(pick);
+  const {pick,pair}=planImport();
   pick.forEach(r=>{const o=pair.get(r);if(!o)return;
     if(!placed(r)&&placed(o)){r.loc=o.loc;r.section=o.section;r.pos=o.pos}
     if(!r.genre&&o.genre)r.genre=o.genre;
@@ -320,8 +355,12 @@ function finishImport(){
     if(!r.nx&&o.nx)r.nx=o.nx});
   const kept=new Set(pair.values());
   const lost=recs.filter(r=>placed(r)&&!kept.has(r)).length;
+  const gone=recs.length-kept.size,old=recs.length;
+  if(old)setUndo('import','');
   recs=pick;recs.forEach(prep);renumberAll();save();staged=null;
-  return `Imported ${recs.length} records, ${recs.filter(placed).length} placed, ${recs.filter(r=>r.genre).length} with a genre, ${recs.filter(r=>r.fav).length} starred.`+(lost?` ${lost} placed records were not in the new import and have been dropped.`:'');
+  const msg=`Imported ${recs.length} records, ${recs.filter(placed).length} placed, ${recs.filter(r=>r.genre).length} with a genre, ${recs.filter(r=>r.fav).length} starred.`+(gone?` ${gone} records that were not in the import were removed${lost?`, ${lost} of them placed`:''}.`:'');
+  if(old)noteUndo(msg);
+  return msg;
 }
 function exportCSV(){
   const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
@@ -673,13 +712,26 @@ function exploreView(){
 }
 function dataView(msg=''){
   $('#h').textContent='Data';
-  let h=`<p class="mute">${recs.length} records · ${recs.filter(placed).length} placed · ${recs.filter(r=>r.genre).length} with a genre · ${recs.filter(r=>r.fav).length} favourites</p>`;
+  let h=`<p class="mute">${recs.length} records · ${recs.filter(placed).length} placed · ${recs.filter(r=>r.genre).length} with a genre · ${recs.filter(r=>r.fav).length} starred</p>`;
+  const u=!staged&&getUndo();
+  if(u)h+=`<div class="box"><b>${u.what=='clear'?'Records cleared':'Collection imported'} on ${when(u.at)}</b>${u.note?`<p>${esc(u.note)}</p>`:''}<p>Undo puts back the ${u.n} record${u.n==1?'':'s'} you had before${u.what=='clear'?'':' the import'}, with their locations, stars and notes.</p>
+    <div class="chips" style="margin-bottom:0"><button class="chip on" id="und">Undo ${u.what=='clear'?'clear':'import'}</button><button class="chip" id="undx">Keep it</button></div></div>`;
   if(staged){
     const c={};staged.forEach(r=>c[r.cat]=(c[r.cat]||0)+1);
-    const n=staged.filter(r=>sel[r.cat]).length;
+    const p=planImport(),n=p.pick.length,g=p.gone,gw=g.filter(hasWork);
+    const pl=s=>s==1?'':'s',cnt=(f,t)=>{const k=g.filter(f).length;return k?`${k} ${t}`:''};
+    const what=[cnt(placed,'placed'),cnt(r=>r.fav,'starred'),cnt(r=>r.genre||r.comment,'with a genre or comment'),cnt(r=>r.played||r.nx,'with play history')].filter(Boolean);
+    const line=r=>{const l=L(r.loc),bits=[placed(r)?[l.name,slotLabel(l,r.section),'#'+r.pos].filter(Boolean).join(' · '):'',r.fav?'★':'',r.comment?'✎ '+r.comment.replace(/\s+/g,' '):''].filter(Boolean);
+      return `<li><b>${esc(r.title)}</b> · ${esc(r.artist)}${bits.length?`<span>${esc(bits.join(' · '))}</span>`:''}</li>`};
     h+=`<label>What should be imported?</label><p class="mute">Found ${staged.length} rows. Pick the formats you want to keep track of.</p>`+
       Object.keys(CATS).filter(k=>c[k]).map(k=>`<label class="ck"><input type="checkbox" data-cat="${k}" ${sel[k]?'checked':''}> ${CATS[k]} <span class="mute">(${c[k]})</span></label>`).join('')+
-      `<button class="btn pri" id="go">Import ${n} records</button><button class="btn" id="no">Cancel</button><p class="mute">Records that match an earlier import keep their location, genre, comment and star when the file leaves those empty.</p>`;
+      `<label>Preview</label><div class="tiles">${[[n,'After import'],[p.added.length,'New'],[g.length,'Removed']].map(([b,t])=>`<div class="tile"><b>${b}</b><span>${t}</span></div>`).join('')}</div>`+
+      (p.pair.size?`<p class="mute">${p.pair.size} record${pl(p.pair.size)} already in the app keep their location, genre, comment, star and play history where the file leaves those empty.</p>`:'')+
+      (g.length?`<div class="box warn"><b>${g.length} record${pl(g.length)} in the app ${g.length==1?'is':'are'} not in this import and will be removed${what.length?`: ${what.join(', ')}`:''}.</b>`+
+        (p.unticked.length?`<p>${p.unticked.length} of them ${p.unticked.length==1?'is':'are'} in the file, in a format you have unticked.</p>`:'')+
+        (gw.length?`<p>Records you have set up that will be removed:</p><ul class="gone">${gw.slice(0,25).map(line).join('')}</ul>${gw.length>25?`<p>And ${gw.length-25} more.</p>`:''}`:'')+
+        `<p>You can undo the import afterwards in this tab.</p></div>`:'')+
+      `<button class="btn pri" id="go">${g.length?`Import ${n} and remove ${g.length}`:`Import ${n} records`}</button><button class="btn" id="no">Cancel</button>`;
   }else h+=`<label>Storage locations</label>`+
     locs.map(l=>`<button class="rec" data-el="${esc(l.id)}"><div class="t"><b>${esc(l.name)}</b><span class="s">${single(l)?'One compartment':l.mode=='units'?`${l.cols*stk(l)} units × ${l.rows} shelves · ${l.w} × ${l.h} cm`:`${l.cols} × ${l.rows} sections`}${l.cap?`, ${l.cap} per ${single(l)?'case':l.mode=='units'?'shelf':'section'}`:''}</span></div><span class="tag no">Edit</span></button>`).join('')+
     `<button class="btn" id="addloc">Add storage location</button>
@@ -694,7 +746,8 @@ function dataView(msg=''){
   $('#app').innerHTML=h+`<p class="mute" id="msg">${esc(msg)}</p><p class="mute" style="text-align:center;margin-top:28px;margin-bottom:6px">Crate · version ${APP_VERSION} · ${APP_DATE}</p><div class="chips" style="justify-content:center;margin:0"><button class="chip" id="upd">Check for updates</button></div><p class="mute" id="updmsg" style="text-align:center;min-height:1.4em"></p>`;
   if(staged){
     document.querySelectorAll('[data-cat]').forEach(i=>i.onchange=()=>{sel[i.dataset.cat]=i.checked?1:0;dataView()});
-    $('#go').onclick=()=>{const m=finishImport();dataView(m)};
+    // replacing a collection: the undo box at the top carries the summary; a first import shows it below
+    $('#go').onclick=()=>{const had=recs.length,m=finishImport();if(had){dataView();window.scrollTo(0,0)}else dataView(m)};
     $('#no').onclick=()=>{staged=null;dataView()};
   }else{
     $('#imp').onclick=()=>$('#file').click();
@@ -709,8 +762,13 @@ function dataView(msg=''){
     $('#cvd').onclick=async()=>{$('#msg').textContent='Testing...';$('#msg').textContent=await covDiag()};
     $('#cvc').onclick=async()=>{cov={};saveCov();try{await caches.delete(COVER_CACHE)}catch(e){}dataView('Saved covers cleared. They will be fetched again as you browse.')};
     $('#addloc').onclick=()=>locSheet(null);
-    $('#clr').onclick=()=>{if(confirm('Delete all records and placements?')){recs=[];save();render()}};
+    $('#clr').onclick=()=>{if(!recs.length||!confirm('Delete all records and placements? You can undo this in the Data tab.'))return;
+      setUndo('clear',`Cleared ${recs.length} records.`);recs=[];save();render();window.scrollTo(0,0)};
   }
+  if($('#und'))$('#und').onclick=()=>{const u=getUndo();
+    if(!confirm(`Go back to the ${u.n} records you had before the ${u.what=='clear'?'clear':'import'} on ${when(u.at)}? Changes you made since then are lost.`))return;
+    dataView(restoreUndo());window.scrollTo(0,0)};
+  if($('#undx'))$('#undx').onclick=()=>{dropUndo();dataView()};
 }
 
 /* sheets */
