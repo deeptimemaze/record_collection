@@ -117,7 +117,8 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none;bor
 h1{display:flex;align-items:center;gap:12px;background:var(--head);color:var(--ink);border-bottom:1px solid var(--line2);
   padding:calc(18px + env(safe-area-inset-top)) 16px 14px;font:700 21px/1.1 var(--mono);text-transform:uppercase;letter-spacing:.14em}
 h1::before{content:"";flex:none;width:11px;height:11px;background:var(--y);box-shadow:var(--glow)}
-h1::after{content:"// CRATE";margin-left:auto;font-size:10px;font-weight:500;letter-spacing:.24em;color:var(--mute)}
+h1 .ja{font:700 22px/1.1 "Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic","Noto Sans JP",var(--mono);letter-spacing:.12em}
+h1 .en{margin-left:auto;font-size:10px;font-weight:500;letter-spacing:.24em;color:var(--hl-t);opacity:.85}
 .stick{background:var(--head);border-bottom:2px solid var(--bd);margin-bottom:12px;padding-top:12px}
 
 /* fields */
@@ -286,7 +287,7 @@ label.ck::before{content:none}
 <div id="sheet"><div id="sheetbody"></div></div>
 
 <script>
-const APP_VERSION=38,APP_DATE='21 Nov 2026';
+const APP_VERSION=39,APP_DATE='21 Nov 2026';
 const COVER_CACHE='vinyl-covers-2'; // must match COVERS in sw.js
 const DEFAULT_LOCS=[
  {id:'kallax',name:'Kallax shelf',mode:'grid',cols:3,rows:4,cap:0,formats:['lp']},
@@ -691,12 +692,15 @@ function toggleFav(id){
   if(view=='fav'&&!r.fav&&$('#list'))fillList();
 }
 
+// page headings in Japanese, with the English name as a small tag on the right; the bottom tabs stay in English
+const JA={Records:'レコード',Storage:'収納',Selected:'選択',Explore:'探索',Data:'データ'};
+const setH=en=>{$('#h').innerHTML=`<span class="ja" lang="ja">${JA[en]||esc(en)}</span><span class="en">// ${esc(en.toUpperCase())}</span>`};
 function render(){
   document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.v==view));
   const app=$('#app');
   if(view=='rec'||view=='fav'){
     const fo=view=='fav';
-    $('#h').textContent=fo?'Selected':'Records';
+    setH(fo?'Selected':'Records');
     const base=fo?recs.filter(r=>r.fav):recs,np=recs.filter(r=>!placed(r)).length,cc={},gc={};
     base.forEach(r=>{fmtCount(cc,r);gc[gkey(r)]=(gc[gkey(r)]||0)+1});
     if(catF!='all'&&!cc[catF])catF='all';
@@ -713,7 +717,7 @@ function render(){
     $('#fc').onchange=e=>{catF=e.target.value;lim=100;fillList()};
     $('#fg').onchange=e=>{genF=e.target.value;lim=100;fillList()};
   }else if(view=='shelf'){
-    $('#h').textContent='Storage';
+    setH('Storage');
     if(!L(selLoc))selLoc=locs[0]?.id;
     const l=L(selLoc);let h='';
     if(locs.length>1)h+=`<div class="chips">${locs.map(x=>`<button class="chip${x.id==selLoc?' on':''}" data-l="${esc(x.id)}">${esc(x.name)}</button>`).join('')}</div>`;
@@ -1204,7 +1208,7 @@ function heardHTML(){
 // days in a row with at least one play, ending today (or yesterday, so the streak survives until you play today)
 function streak(byDay,T){let n=0,t=+T;if(!byDay.has(dStr(new Date(t))))t-=864e5;while(byDay.has(dStr(new Date(t)))){n++;t-=864e5}return n}
 function exploreView(){
-  $('#h').textContent='Explore';
+  setH('Explore');
   $('#app').innerHTML=`<div class="chips"><button class="chip${exTab=='pick'?' on':''}" data-ex="pick">Pick</button><button class="chip${exTab=='stats'?' on':''}" data-ex="stats">Stats</button><button class="chip${exTab=='timeline'?' on':''}" data-ex="timeline">Timeline</button><button class="chip${exTab=='live'?' on':''}" data-ex="live">Live</button><button class="chip${exTab=='heard'?' on':''}" data-ex="heard">Listened</button></div>`+(exTab=='heard'?heardHTML():exTab=='stats'?statsHTML():exTab=='timeline'?timelineHTML():exTab=='live'?liveHTML():pickHTML());
   if($('#pc'))$('#pc').onchange=e=>{pf.cat=e.target.value;pickId=null;render()};
   if($('#pg'))$('#pg').onchange=e=>{pf.gen=e.target.value;pickId=null;render()};
@@ -1212,7 +1216,7 @@ function exploreView(){
   if($('#tg'))$('#tg').onchange=e=>{tf.gen=e.target.value;lim=100;render()};
 }
 function dataView(msg=''){
-  $('#h').textContent='Data';
+  setH('Data');
   let h=`<p class="mute">${recs.length} records · ${recs.filter(placed).length} placed · ${recs.filter(r=>r.genre).length} with a genre · ${recs.filter(r=>r.fav).length} selected</p>`;
   const u=!staged&&getUndo();
   if(u)h+=`<div class="box"><b>${u.what=='clear'?'Records cleared':'Collection imported'} on ${when(u.at)}</b>${u.note?`<p>${esc(u.note)}</p>`:''}<p>Undo puts back the ${u.n} record${u.n==1?'':'s'} you had before${u.what=='clear'?'':' the import'}, with their locations, selections and notes.</p>
