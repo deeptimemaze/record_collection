@@ -235,6 +235,23 @@ label.ck::before{content:none}
 .dl{border:2px solid var(--line2);background:var(--card);font-size:13px}
 .dl div{display:grid;grid-template-columns:104px 1fr;gap:10px;padding:8px 12px;border-top:1px solid var(--line)}.dl div:first-child{border-top:0}
 .dl span{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.16em;color:var(--mute);padding-top:3px}
+.loc.live{margin-left:4px;color:var(--hl-t);border-color:var(--hl)}
+.hit{color:var(--hl-t);font-size:12px}
+.dlink.sm{margin:0 0 0 6px;font-size:9px}
+.gig{display:flex;flex-direction:column;gap:3px;width:100%;margin:0 0 10px;padding:10px 12px;text-align:left;background:var(--card);border:2px solid var(--line2);color:var(--ink);font:inherit}
+.gig b{font-size:14px}.gig span{font-size:12px;color:var(--mute)}.gig .gm i{font-style:normal;color:var(--hl-t)}
+.gig:active{transform:translate(1px,1px);border-color:var(--hl)}
+.yl.gy{margin:8px 0 12px}.yl.gy::before{content:none}
+.gv{margin:0}
+.tempo{display:flex;gap:10px;align-items:stretch}
+.tv{flex:1;min-width:0;padding:10px 12px;background:var(--card);border:2px solid var(--line2)}
+.tv b{display:block;font:700 34px/1.05 var(--mono);color:var(--hl-t);font-variant-numeric:tabular-nums}
+.tv span{display:block;margin-top:4px;font-size:10px;color:var(--mute);text-transform:uppercase;letter-spacing:.1em}
+.tap{flex:none;width:118px;background:var(--y);color:#000;border:2px solid var(--on-bd);box-shadow:4px 4px 0 var(--p);font:800 18px/1 var(--mono);letter-spacing:.2em;touch-action:none;-webkit-user-select:none;user-select:none}
+.tap:active{transform:translate(2px,2px);box-shadow:2px 2px 0 var(--p)}
+.tks{margin-top:10px}.tks div{grid-template-columns:34px 1fr}.tks em{display:block;font-style:normal;font-size:11px;color:var(--mute)}
+.chip.sm{min-height:26px;margin-top:6px;padding:4px 9px;font-size:10px}
+.rec .bpm{color:var(--hl-t);font-weight:700}.rec .bpm.sug{font-weight:500}
 .dlink{display:inline-block;margin:12px 0 4px;color:var(--hl-t);font:700 11px/1 var(--mono);text-transform:uppercase;letter-spacing:.14em;text-underline-offset:4px}
 </style>
 </head>
@@ -245,7 +262,7 @@ label.ck::before{content:none}
 <div id="sheet"><div id="sheetbody"></div></div>
 
 <script>
-const APP_VERSION=27,APP_DATE='21 Nov 2026';
+const APP_VERSION=29,APP_DATE='21 Nov 2026';
 const COVER_CACHE='vinyl-covers-2'; // must match COVERS in sw.js
 const DEFAULT_LOCS=[
  {id:'kallax',name:'Kallax shelf',mode:'grid',cols:3,rows:4,cap:0,formats:['lp']},
@@ -269,6 +286,13 @@ function rpmGuess(f){const t=fmtToks(f),first=(t[0]||'').replace(/^\d+x/i,'');
   if(first=='Shellac')return '78';if(first=='LP')return '33';if(first=='7"')return '45';
   if((first=='12"'||first=='10"')&&t.includes('LP'))return '33';return ''}
 const rpmOf=r=>r.rpmX||rpmGuess(r.fmt);
+// tempo: r.bpm is confirmed (tapped, or a suggestion you accepted); r.bpmSug is the looked-up suggestion; r.bpmT the per-track lookups
+const is12=r=>{const t=fmtToks(r.fmt);return /^(\d+x)?(12"|10")$/.test(t[0]||'')&&!t.includes('LP')};
+const bpmOf=r=>r.bpm?{v:r.bpm,sure:true}:r.bpmSug?{v:r.bpmSug,sure:false}:null;
+const bpmTxt=b=>b?(b.sure?'':'~')+Math.round(b.v)+' BPM':'';
+const BPMBINS=[[0,90],[90,100],[100,110],[110,120],[120,125],[125,130],[130,140],[140,160],[160,999]];
+const binName=([a,z])=>a==0?'Under 90':z==999?'160 and up':`${a}–${z}`;
+const binOf=r=>{const b=bpmOf(r);return b?BPMBINS.findIndex(([a,z])=>b.v>=a&&b.v<z):-1};
 const RPMS=['33','45','78','16'],rpmTxt=v=>v.split('/').map(x=>x=='33'?'33⅓':x).join(' / ')+' rpm';
 const isVinyl=r=>r.cat=='lp'||r.cat=='s7'||r.cat=='shellac';
 const FTAGS={RE:'Reissue',RP:'Repress',RM:'Remastered',Ltd:'Limited',Promo:'Promo',Mono:'Mono','180':'180 g',Gat:'Gatefold',Num:'Numbered',RSD:'Record Store Day',
@@ -294,7 +318,8 @@ function load(){
 }
 function norm(r){r.fav=!!r.fav;r.nx=+r.nx||0;r.played=r.played||'';r.da=r.da||'';r.oy=oyOK(r.oy)?r.oy:'';
   XF.forEach(([k])=>r[k]=r[k]||'');r.rating=+r.rating||0;r.price=r.price===''||r.price==null?'':+r.price;r.cur=r.cur||'';r.rpmX=r.rpmX||'';
-  r.dg=Array.isArray(r.dg)?r.dg:[];r.ds=Array.isArray(r.ds)?r.ds:[];prep(r)}
+  r.dg=Array.isArray(r.dg)?r.dg:[];r.ds=Array.isArray(r.ds)?r.ds:[];
+  r.bpm=+r.bpm||0;r.bpmSug=+r.bpmSug||0;r.bpmT=Array.isArray(r.bpmT)?r.bpmT:[];prep(r)}
 // search covers artist, title, comment, Discogs notes, label, catalogue number, folder and Discogs styles
 function prep(r){r.k=fold([r.artist,r.title,r.comment,r.dnote,r.label,r.catno,r.folder,...(r.ds||[])].filter(Boolean).join(' '));r.sk=fold(r.artist).replace(/^the /,'')+'|'+fold(r.title)}
 
@@ -366,7 +391,7 @@ function stage(text){
   let ia=ix(/^artist$/,/artist|band|performer/),it=ix(/^(title|album|name)$/,/title|album|release name/),
       iy=ix(/^(released|year)$/,/year|released/),ifm=ix(/^format$/),ir=ix(/^release_id$/,/release.?id/),
       is=ix(/^section$/),ip=ix(/^pos(ition)?$/),il=ix(/^location$/),ig=ix(/^genre$/),ic=ix(/^comments?$/),ifv=ix(/^(fav(ou?rites?)?|starred?)$/),ida=ix(/^date.?added$/,/^added$/),ipl=ix(/^(last.?)?played$/),iq=ix(/^play.?next$/),ioy=ix(/^original.?(release|released|year|date)$/),body=rows.slice(1);
-  const xi=XF.map(([,re])=>ix(re)),irt=ix(/^rating$/),ipr=ix(/^(collection )?price\b/),irpm=ix(/^rpm$/),idg=ix(/^discogs genres$/),ids=ix(/^discogs styles$/);
+  const xi=XF.map(([,re])=>ix(re)),irt=ix(/^rating$/),ipr=ix(/^(collection )?price\b/),irpm=ix(/^rpm$/),idg=ix(/^discogs genres$/),ids=ix(/^discogs styles$/),ibp=ix(/^bpm$/),ibs=ix(/^bpm \(suggested\)$/);
   const cur=ipr>=0?((rows[0][ipr].match(/\(([A-Za-z]{3})\)/)||[])[1]||'').toUpperCase():'';
   if(ia<0&&it<0){ia=0;it=1;body=rows}
   if(it<0)it=ia===0?1:0;
@@ -390,6 +415,7 @@ function stage(text){
     o.cur=pm?(pm[3]||{'€':'EUR','£':'GBP','$':'USD'}[pm[1]]||cur):'';
     o.rpmX=/^\d+(\/\d+)*$/.test(g(r,irpm))?g(r,irpm):'';
     o.dg=g(r,idg)?g(r,idg).split(/\s*;\s*/):[];o.ds=g(r,ids)?g(r,ids).split(/\s*;\s*/):[];
+    const bp=parseFloat(g(r,ibp)),bs=parseFloat(g(r,ibs));o.bpm=bp>20&&bp<400?bp:0;o.bpmSug=bs>20&&bs<400?bs:0;o.bpmT=[];if(o.bpmSug)o.bpmD=1;
     if(o.dg.length||o.rpmX)o.dd=1;
   });
   return out;
@@ -447,8 +473,8 @@ function finishImport(){
     if(!oyOK(r.oy)&&oyOK(o.oy))r.oy=o.oy;
     if(!r.nx&&o.nx)r.nx=o.nx;
     // Discogs columns: a value in the file wins, an empty cell keeps the app's
-    [...XF.map(x=>x[0]),'rating','price','cur','rpmX','dd'].forEach(k=>{if((r[k]===''||r[k]==null||r[k]===0)&&o[k])r[k]=o[k]});
-    ['dg','ds'].forEach(k=>{if(!(r[k]||[]).length&&(o[k]||[]).length)r[k]=o[k]})});
+    [...XF.map(x=>x[0]),'rating','price','cur','rpmX','dd','bpm','bpmSug','bpmD','tl'].forEach(k=>{if((r[k]===''||r[k]==null||r[k]===0)&&o[k])r[k]=o[k]});
+    ['dg','ds','bpmT'].forEach(k=>{if(!(r[k]||[]).length&&(o[k]||[]).length)r[k]=o[k]})});
   // no genre yet: use the Discogs collection folder when it names a genre ("Electronic (Vinyl)" → Electronic)
   pick.forEach(r=>{if(!r.genre)r.genre=folderGenre(r.folder)||((r.dg||[])[0]||'')});
   const kept=new Set(pair.values());
@@ -464,9 +490,9 @@ function exportCSV(){
   const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
   // the Discogs columns keep Discogs' own names, so a Discogs export and this one read the same way
   const cur=(Object.entries(recs.reduce((m,r)=>{if(r.cur)m[r.cur]=(m[r.cur]||0)+1;return m},{})).sort((a,b)=>b[1]-a[1])[0]||['SEK'])[0];
-  const lines=['Artist,Title,Released,Format,release_id,location,section,position,Genre,Comment,Starred,Date Added,Last played,Play next,Original release,'+XF.map(x=>x[2]).join(',')+`,Rating,Collection Price (${cur}),RPM,Discogs genres,Discogs styles`,
+  const lines=['Artist,Title,Released,Format,release_id,location,section,position,Genre,Comment,Starred,Date Added,Last played,Play next,Original release,'+XF.map(x=>x[2]).join(',')+`,Rating,Collection Price (${cur}),RPM,Discogs genres,Discogs styles,BPM,BPM (suggested)`,
     ...recs.map(r=>[r.artist,r.title,r.year,r.fmt,r.id.split('#')[0],placed(r)?L(r.loc).name:'',placed(r)?r.section:'',placed(r)?r.pos:'',r.genre||'',r.comment||'',r.fav?'Yes':'',r.da||'',r.played||'',r.nx?'Yes':'',oyOK(r.oy)?r.oy:'',
-      ...XF.map(x=>r[x[0]]||''),r.rating||'',r.price!==''&&r.cur&&r.cur!==cur?`${r.price} ${r.cur}`:r.price,r.rpmX||'',(r.dg||[]).join('; '),(r.ds||[]).join('; ')].map(q).join(','))];
+      ...XF.map(x=>r[x[0]]||''),r.rating||'',r.price!==''&&r.cur&&r.cur!==cur?`${r.price} ${r.cur}`:r.price,r.rpmX||'',(r.dg||[]).join('; '),(r.ds||[]).join('; '),r.bpm?Math.round(r.bpm*10)/10:'',r.bpmSug?Math.round(r.bpmSug*10)/10:''].map(q).join(','))];
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob(['\uFEFF'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'}));
   a.download='vinyl-collection.csv';document.body.appendChild(a);a.click();a.remove();
@@ -504,19 +530,20 @@ const STAR='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.9 6 6
 const starBtn=r=>`<button class="star${r.fav?' on':''}" data-fav="${esc(r.id)}" aria-label="Starred" aria-pressed="${!!r.fav}">${STAR}</button>`;
 const gkey=r=>r.genre||'__none';
 // format filter: a format category, or a speed (rpm33, rpm45, rpm78)
-const fmtOK=(r,v)=>v=='all'||(v.startsWith('rpm')?rpmOf(r).split('/').includes(v.slice(3)):r.cat==v);
-function fmtCount(cc,...rs){rs.forEach(r=>{cc[r.cat]=(cc[r.cat]||0)+1;const v=rpmOf(r);if(v)v.split('/').forEach(x=>cc['rpm'+x]=(cc['rpm'+x]||0)+1)});return cc}
+const fmtOK=(r,v)=>v=='all'||(v.startsWith('rpm')?rpmOf(r).split('/').includes(v.slice(3)):v.startsWith('bpm')?binOf(r)==+v.slice(3):r.cat==v);
+function fmtCount(cc,...rs){rs.forEach(r=>{cc[r.cat]=(cc[r.cat]||0)+1;const v=rpmOf(r);if(v)v.split('/').forEach(x=>cc['rpm'+x]=(cc['rpm'+x]||0)+1);const b=binOf(r);if(b>=0)cc['bpm'+b]=(cc['bpm'+b]||0)+1});return cc}
 function fmtOpts(cc,cur,showN){
-  const o=k=>`<option value="${k}"${cur==k?' selected':''}>${k.startsWith('rpm')?rpmTxt(k.slice(3)):SHORT[k]}${showN?` (${cc[k]})`:''}</option>`;
+  const o=k=>`<option value="${k}"${cur==k?' selected':''}>${k.startsWith('rpm')?rpmTxt(k.slice(3)):k.startsWith('bpm')?binName(BPMBINS[+k.slice(3)])+' BPM':SHORT[k]}${showN?` (${cc[k]})`:''}</option>`;
   const a=Object.keys(SHORT).filter(k=>cc[k]).map(o).join(''),b=RPMS.map(x=>'rpm'+x).filter(k=>cc[k]).map(o).join('');
-  return b?`<optgroup label="Format">${a}</optgroup><optgroup label="Speed">${b}</optgroup>`:a;
+  const t=BPMBINS.map((x,i)=>'bpm'+i).filter(k=>cc[k]).map(o).join('');
+  return b||t?`<optgroup label="Format">${a}</optgroup>${b?`<optgroup label="Speed">${b}</optgroup>`:''}${t?`<optgroup label="Tempo">${t}</optgroup>`:''}`:a;
 }
 const oyOK=v=>/^\d{4}(-\d{2}(-\d{2})?)?$/.test(v||'');
 const origY=r=>oyOK(r.oy)?r.oy.slice(0,4):'';
 const effY=r=>parseInt(origY(r)||r.year);
 const effD=r=>oyOK(r.oy)?r.oy:String(r.year||'');
 function metaHTML(r){const f=(r.fmt||'').split(',')[0].trim(),o=origY(r);
-  return [o?`<strong class="oy" title="Original release year">${o}</strong>`:esc(r.year||''),esc(f),rpmOf(r)?rpmTxt(rpmOf(r)):'',esc(r.genre||'')].filter(Boolean).join(' · ')}
+  return [o?`<strong class="oy" title="Original release year">${o}</strong>`:esc(r.year||''),esc(f),rpmOf(r)?rpmTxt(rpmOf(r)):'',bpmOf(r)?`<span class="bpm${r.bpm?'':' sug'}">${bpmTxt(bpmOf(r))}</span>`:'',esc(r.genre||'')].filter(Boolean).join(' · ')}
 function thumbHTML(r){
   const disc=(rad,lab,col)=>`<svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="${rad}" fill="#0e0e0e" stroke="#3f3f3f"/><circle cx="24" cy="24" r="${(rad*.64).toFixed(1)}" fill="none" stroke="#262626"/><circle cx="24" cy="24" r="${lab}" style="fill:${col}"/><circle cx="24" cy="24" r="1.3" fill="#0e0e0e"/></svg>`;
   const c=r.cat;
@@ -547,7 +574,7 @@ function ago(ds){
 function markPlayed(r){r.played=today();r.nx=0;save()}
 function recHTML(r,lead='',extra=''){
   // the text area is a real button (keyboard and screen readers); the star sits beside it, not inside it
-  return `<div class="rec" data-id="${esc(r.id)}">${lead||thumbHTML(r)}<button class="t" data-id="${esc(r.id)}"><b>${esc(r.title)}</b><span class="s">${esc(r.artist)}</span><span class="s">${metaHTML(r)}</span>${noteHTML(r)}${extra}${lead?'':`<span class="tw">${tagHTML(r)}</span>`}</button>${starBtn(r)}</div>`;
+  return `<div class="rec" data-id="${esc(r.id)}">${lead||thumbHTML(r)}<button class="t" data-id="${esc(r.id)}"><b>${esc(r.title)}</b><span class="s">${esc(r.artist)}</span><span class="s">${metaHTML(r)}</span>${noteHTML(r)}${extra}${lead?'':`<span class="tw">${tagHTML(r)}${liveTag(r)}</span>`}</button>${starBtn(r)}</div>`;
 }
 function matches(){
   const w=fold(q).split(/\s+/).filter(Boolean),fo=view=='fav';
@@ -748,7 +775,9 @@ async function dgFetch(rid){
   if(!r.ok)throw 'busy';
   const j=await r.json(),rpm=new Set();
   (j.formats||[]).forEach(f=>(f.descriptions||[]).forEach(d=>{const m=d.match(/^(\d+)\s*(⅓|1\/3)?\s*RPM$/i);if(m)rpm.add(m[1])}));
-  return {rpmX:RPMS.filter(x=>rpm.has(x)).join('/'),dg:j.genres||[],ds:j.styles||[],cty:j.country||''};
+  const tl=(j.tracklist||[]).filter(t=>(t.type_||'track')=='track'&&t.title)
+    .map(t=>({p:t.position||'',t:t.title,a:t.artists&&t.artists[0]?t.artists[0].name.replace(/\s*\(\d+\)$/,''):''}));
+  return {rpmX:RPMS.filter(x=>rpm.has(x)).join('/'),dg:j.genres||[],ds:j.styles||[],cty:j.country||'',tl};
 }
 function dgTodo(){
   const seen=new Set(),out=[];
@@ -786,6 +815,148 @@ async function dgRun(){
   if(!dgState.msg||dgState.msg=='Keep the app open.'||dgState.msg=='Pausing...')dgState.msg=dgState.stop?'Paused. Press the button to resume.':'Done.';
   dgState.run=false;dgState.stop=false;try{lock&&lock.release()}catch(e){}
   dgUpdateUI();if(view!='data')render();
+}
+
+/* tempo (BPM) for 12" singles and EPs. For each release: Discogs track list → MusicBrainz recordings → AcousticBrainz BPM
+   (measured from audio, frozen in 2022), and Deezer BPM searched by artist and title. Deezer allows no cross-site requests,
+   so it is called with JSONP. Lookups are only suggestions: half or double tempo (86 vs 172) and other mixes are common. */
+const bpState={run:false,stop:false,done:0,total:0,found:0,msg:''};
+let jpN=0,lastDZ=0;
+function jsonp(url){return new Promise((res,rej)=>{
+  const cb='__dz'+(++jpN),sc=document.createElement('script');let t;
+  const end=()=>{clearTimeout(t);delete window[cb];sc.remove()};
+  window[cb]=d=>{end();res(d)};sc.onerror=()=>{end();rej('net')};t=setTimeout(()=>{end();rej('net')},12000);
+  sc.src=url+(url.includes('?')?'&':'?')+'output=jsonp&callback='+cb;document.head.appendChild(sc)})}
+async function dz(path,tries=0){
+  const at=Math.max(lastDZ+200,Date.now());lastDZ=at;if(at>Date.now())await sleep(at-Date.now());
+  const d=await jsonp('https://api.deezer.com/'+path);
+  if(d&&d.error&&d.error.code==4&&tries<3){await sleep(5000);return dz(path,tries+1)} // Deezer's "quota exceeded"
+  return d&&!d.error?d:{};
+}
+const noRemaster=t=>String(t||'').replace(/\s*[\(\[][^\)\]]*remaster[^\)\]]*[\)\]]/ig,'');
+async function dzBpm(artist,title){
+  const base=title.replace(/\s*[\(\[].*?[\)\]]/g,'').trim()||title,fa=akey(artist).split(' ')[0];
+  for(const q of [artist+' '+title,artist+' '+base]){
+    const j=await dz('search?limit=10&q='+encodeURIComponent(q));
+    for(const h of j.data||[]){
+      if(!akey(h.artist&&h.artist.name).includes(fa)||!akey(h.title).includes(akey(base)))continue;
+      const t=await dz('track/'+h.id),ht=noRemaster(h.title),mix=(title.match(/[\(\[](.*?)[\)\]]/g)||[]).map(akey);
+      // same mix as on the record? (a remaster counts as the same)
+      const x=mix.length?mix.every(m=>akey(ht+' '+(h.title_version||'')).includes(m)):!/[\(\[]| - /.test(ht);
+      return {b:t.bpm?Math.round(t.bpm*10)/10:0,x};
+    }
+  }
+  return null;
+}
+async function mbRecs(rid){
+  const j=await mb(`url?resource=${encodeURIComponent('https://www.discogs.com/release/'+rid)}&inc=release-rels`);
+  const m=(j.relations||[]).map(x=>x.release&&x.release.id).find(Boolean);if(!m)return [];
+  const k=await mb(`release/${m}?inc=recordings`);
+  return (k.media||[]).flatMap(md=>(md.tracks||[]).map(t=>({p:t.number||'',t:t.title||'',id:t.recording&&t.recording.id}))).filter(x=>x.id);
+}
+async function abBpm(ids){
+  const out={};
+  for(let i=0;i<ids.length;i+=25){
+    let j;try{const r=await fetch('https://acousticbrainz.org/api/v1/low-level?recording_ids='+ids.slice(i,i+25).join(';'));if(!r.ok)continue;j=await r.json()}catch(e){continue}
+    for(const [id,v] of Object.entries(j||{})){if(id=='mbid_mapping'||!v)continue;const sub=v['0']||Object.values(v)[0],b=sub&&sub.rhythm&&sub.rhythm.bpm;if(b)out[id]=Math.round(b*10)/10}
+  }
+  return out;
+}
+// one suggestion per release: the first track where both sources agree, else the first measured one, else the first same-mix Deezer one
+const near=(a,b)=>a&&b&&Math.abs(a-b)/a<.03;
+const trackBpm=t=>near(t.ab,t.dz)?Math.round((t.ab+t.dz)*5)/10:t.ab||t.dz||0;
+function bpmSuggest(T){const f=p=>T.find(p);const t=f(t=>near(t.ab,t.dz))||f(t=>t.ab)||f(t=>t.dz&&t.x)||f(t=>t.dz);return t?trackBpm(t):0}
+async function bpmLookup(r){
+  const rid=ridOf(r);let tl=r.tl,disc=null;
+  if(!tl||!tl.length){const d=await dgFetch(rid);tl=d?d.tl:[];if(d)disc={rpmX:d.rpmX,dg:d.dg,ds:d.ds,cty:r.cty||d.cty,dd:1}}
+  const mr=await mbRecs(rid),ab=mr.length?await abBpm(mr.map(x=>x.id)):{};
+  const T=[];
+  for(const t of tl){
+    const m=mr.find(x=>x.p&&x.p==t.p)||mr.find(x=>akey(x.t)==akey(t.t));
+    let d=null;try{d=await dzBpm(t.a||r.artist,t.t)}catch(e){}
+    T.push({p:t.p,t:t.t,ab:(m&&ab[m.id])||0,dz:d?d.b:0,x:d?d.x:false});
+  }
+  return {tl,T,sug:bpmSuggest(T),disc};
+}
+function bpmTodo(){const seen=new Set(),out=[];
+  recs.forEach(r=>{const rid=ridOf(r);if(!is12(r)||seen.has(rid)||!/^\d+$/.test(rid))return;seen.add(rid);if(!r.bpmD)out.push(r)});return out}
+const bpText=()=>{
+  const t=recs.filter(is12),have=t.filter(bpmOf).length,conf=t.filter(r=>r.bpm).length,left=bpmTodo().length;
+  return `${have} of ${t.length} 12" singles and EPs have a tempo${conf?`, ${conf} confirmed`:''}. ${left?`${left} not looked up yet (about ${Math.max(1,Math.round(left*8/60))} min).`:'All have been looked up.'}`+
+    (bpState.run?` Working: ${bpState.done} of ${bpState.total} this run, ${bpState.found} found.`:'')+(bpState.msg?' '+bpState.msg:'')};
+function bpUpdateUI(){const e=document.getElementById('bpprog');if(e)e.textContent=bpText();const b=document.getElementById('bpb');if(b)b.textContent=bpState.run?'Pause':'Fetch tempos'}
+async function bpmRun(){
+  if(bpState.run){bpState.stop=true;bpState.msg='Pausing...';bpUpdateUI();return}
+  const todo=bpmTodo();Object.assign(bpState,{run:true,stop:false,done:0,total:todo.length,found:0,msg:todo.length?'Keep the app open.':'Nothing left to look up.'});
+  let lock=null;try{lock=await navigator.wakeLock.request('screen')}catch(e){}
+  bpUpdateUI();let since=0;
+  for(const r of todo){
+    if(bpState.stop)break;
+    const rid=ridOf(r);let res,tries=0;
+    while(true){
+      try{res=await bpmLookup(r);break}
+      catch(e){
+        if((e=='rate'||e=='busy')&&++tries<4){bpState.msg='A lookup service asked us to slow down, waiting a minute.';bpUpdateUI();await sleep(60000);bpState.msg='Keep the app open.';continue}
+        bpState.msg=e=='net'?'Could not reach the lookup services. Resume when you are online.':'A lookup service is busy. Resume in a few minutes.';bpState.stop=true;res=undefined;break}
+    }
+    if(res===undefined)break;
+    recs.forEach(x=>{if(ridOf(x)!=rid)return;if(res.disc)Object.assign(x,res.disc);x.tl=res.tl;x.bpmT=res.T;x.bpmSug=res.sug;x.bpmD=1;prep(x)});
+    if(res.sug)bpState.found++;
+    bpState.done++;if(++since>=5){save();since=0}
+    bpUpdateUI();
+  }
+  save();
+  if(!bpState.msg||bpState.msg=='Keep the app open.'||bpState.msg=='Pausing...')bpState.msg=bpState.stop?'Paused. Press the button to resume.':'Done.';
+  bpState.run=false;bpState.stop=false;try{lock&&lock.release()}catch(e){}
+  bpUpdateUI();if(view!='data')render();
+}
+
+/* concerts from setlist.fm. The setlist.fm API can't be called from a web page, so tools/setlistfm_export.py
+   writes a CSV on a computer and this imports it. Stored apart from the collection; importing again replaces the list. */
+let gigs=[];try{gigs=JSON.parse(localStorage.getItem('vinylGigs')||'[]')}catch(e){gigs=[]}
+let gigIx=null;
+const saveGigs=()=>{gigIx=null;try{localStorage.setItem('vinylGigs',JSON.stringify(gigs))}catch(e){}};
+const akey=a=>fold(a).replace(/\(\d+\)/g,' ').replace(/[^a-z0-9]+/g,' ').trim().replace(/^the /,''); // "Larsson (2)" is Discogs' way to tell artists apart
+// "A / B", "A & B", "A Featuring B", "A vs. B": each name can match a concert, as can the whole
+const aParts=a=>[...new Set([a,...String(a||'').split(/\s+(?:\/|&|feat\.?|featuring|ft\.?|vs\.?)\s+|\s*,\s+/i)].map(akey).filter(x=>x.length>1))];
+function gigsFor(r){
+  if(!gigIx){gigIx=new Map();gigs.forEach(g=>{const k=akey(g.a);if(!gigIx.has(k))gigIx.set(k,[]);gigIx.get(k).push(g)})}
+  const out=new Set();aParts(r.artist).forEach(k=>(gigIx.get(k)||[]).forEach(g=>out.add(g)));
+  return [...out].sort((x,y)=>x.d<y.d?1:x.d>y.d?-1:0);
+}
+function stageGigs(text){
+  const rows=parseCSV(text);if(!rows.length)return null;
+  const h=rows[0].map(x=>x.trim().toLowerCase()),c=n=>h.indexOf(n);
+  if(c('date')<0||c('artist')<0||(c('venue')<0&&c('setlist id')<0))return null;
+  const g=(r,n)=>c(n)>=0?(r[c(n)]||'').trim():'';
+  return rows.slice(1).map(r=>({d:g(r,'date'),a:g(r,'artist'),mb:g(r,'artist mbid'),v:g(r,'venue'),c:g(r,'city'),co:g(r,'country'),
+    t:g(r,'tour'),s:g(r,'songs')?g(r,'songs').split(/\s*;\s*/):[],id:g(r,'setlist id'),u:g(r,'url')})).filter(x=>x.a&&/^\d{4}/.test(x.d));
+}
+const gigDate=d=>{const [y,m,dd]=d.split('-');return dd?`${+dd} ${MON[+m-1]} ${y}`:d};
+const gigPlace=g=>[g.v,g.c].filter(Boolean).join(', ');
+const liveTag=r=>{const n=gigs.length?gigsFor(r).length:0;return n?` <span class="loc live">Live ×${n}</span>`:''};
+function liveSheetHTML(r){
+  const gs=gigsFor(r);if(!gs.length)return '';
+  const tk=akey(r.title.replace(/\s*[\(\[].*?[\)\]]/g,''));
+  return `<label>Seen live</label><div class="dl">${gs.map(g=>{const hit=tk&&g.s.find(x=>akey(x)==tk);
+    return `<div><span>${esc(gigDate(g.d))}</span><p class="gv">${esc(gigPlace(g))}${g.a&&akey(g.a)!=akey(r.artist)?` · ${esc(g.a)}`:''}${hit?`<br><b class="hit">Played “${esc(hit)}”</b>`:''}${g.u?` <a class="dlink sm" href="${esc(g.u)}" target="_blank" rel="noopener">Setlist ↗</a>`:''}</p></div>`}).join('')}</div>`;
+}
+function liveHTML(){
+  if(!gigs.length)return '<div class="empty">No concerts yet.<br>Data → Concerts explains how to bring them in from setlist.fm.</div>';
+  const own=new Map();recs.forEach(r=>aParts(r.artist).forEach(k=>own.set(k,(own.get(k)||0)+1)));
+  const ownN=g=>own.get(akey(g.a))||0;
+  const by=f=>{const m={};gigs.forEach(g=>{const k=f(g);if(k)m[k]=(m[k]||0)+1});return m};
+  const arts=new Set(gigs.map(g=>akey(g.a)));
+  const tile=(b,t)=>`<div class="tile"><b>${b}</b><span>${t}</span></div>`;
+  let h=`<div class="tiles">${tile(gigs.length,'Concerts')}${tile(arts.size,'Artists')}${tile([...arts].filter(k=>own.get(k)).length,'On your shelves')}</div>`;
+  h+='<label>Most seen</label>'+countBars(Object.fromEntries(Object.entries(by(g=>g.a)).sort((a,b)=>b[1]-a[1]).slice(0,10)));
+  h+='<label>Venues</label>'+countBars(Object.fromEntries(Object.entries(by(gigPlace)).sort((a,b)=>b[1]-a[1]).slice(0,8)));
+  h+='<label>Per year</label>'+countBars(by(g=>g.d.slice(0,4)),0,(a,b)=>b[0].localeCompare(a[0]));
+  const list=gigs.slice().sort((a,b)=>a.d<b.d?1:a.d>b.d?-1:0);let y='';
+  h+=`<div class="count">${gigs.length} concert${gigs.length==1?'':'s'}</div>`+list.slice(0,lim).map(g=>{const n=ownN(g),yy=g.d.slice(0,4),hd=yy!=y?`<div class="yl gy">${yy}</div>`:'';y=yy;
+    return hd+`<button class="gig" data-gq="${esc(g.a)}"><b>${esc(g.a)}</b><span>${esc(gigDate(g.d))} · ${esc(gigPlace(g))}</span>${g.t?`<span>${esc(g.t)}</span>`:''}<span class="gm">${g.s.length?g.s.length+' songs':'No setlist'}${n?` · <i>${n} record${n==1?'':'s'} on your shelves</i>`:''}</span></button>`}).join('')+
+    (list.length>lim?'<button class="btn" data-more="1">Show more</button>':'');
+  return h;
 }
 
 /* explore: pick, play next, stats */
@@ -838,6 +1009,10 @@ function statsHTML(){
   const vin=recs.filter(isVinyl);
   if(vin.length){const sp={};vin.forEach(r=>{const v=rpmOf(r);sp[v?rpmTxt(v):'Not known yet']=(sp[v?rpmTxt(v):'Not known yet']||0)+1});
     h+='<label>Speed (vinyl)</label>'+countBars(sp,0,(a,b)=>(a[0]=='Not known yet')-(b[0]=='Not known yet')||parseInt(a[0])-parseInt(b[0]))}
+  const tem=recs.filter(bpmOf);
+  if(tem.length){const m={};BPMBINS.forEach(b=>m[binName(b)]=0);tem.forEach(r=>{const k=binName(BPMBINS[binOf(r)]);m[k]++});
+    const order=BPMBINS.map(binName);Object.keys(m).forEach(k=>{if(!m[k])delete m[k]});
+    h+=`<label>Tempo (BPM)</label><p class="mute" style="margin:0 0 6px">${tem.length} records have a tempo, ${tem.filter(r=>r.bpm).length} of them confirmed.</p>`+countBars(m,0,(a,b)=>order.indexOf(a[0])-order.indexOf(b[0]))}
   h+='<label>Genre</label>'+countBars(gen,12)+'<label>Decade released</label>'+countBars(dec,0,decOrd);
   delete yr[''];if(Object.keys(yr).length)h+='<label>Added per year</label>'+countBars(yr,0,decOrd);
   const rated=recs.filter(r=>r.rating);
@@ -886,7 +1061,7 @@ function timelineHTML(){
 }
 function exploreView(){
   $('#h').textContent='Explore';
-  $('#app').innerHTML=`<div class="chips"><button class="chip${exTab=='pick'?' on':''}" data-ex="pick">Pick</button><button class="chip${exTab=='stats'?' on':''}" data-ex="stats">Stats</button><button class="chip${exTab=='timeline'?' on':''}" data-ex="timeline">Timeline</button></div>`+(exTab=='stats'?statsHTML():exTab=='timeline'?timelineHTML():pickHTML());
+  $('#app').innerHTML=`<div class="chips"><button class="chip${exTab=='pick'?' on':''}" data-ex="pick">Pick</button><button class="chip${exTab=='stats'?' on':''}" data-ex="stats">Stats</button><button class="chip${exTab=='timeline'?' on':''}" data-ex="timeline">Timeline</button><button class="chip${exTab=='live'?' on':''}" data-ex="live">Live</button></div>`+(exTab=='stats'?statsHTML():exTab=='timeline'?timelineHTML():exTab=='live'?liveHTML():pickHTML());
   if($('#pc'))$('#pc').onchange=e=>{pf.cat=e.target.value;pickId=null;render()};
   if($('#pg'))$('#pg').onchange=e=>{pf.gen=e.target.value;pickId=null;render()};
   if($('#tc'))$('#tc').onchange=e=>{tf.cat=e.target.value;lim=100;render()};
@@ -923,8 +1098,13 @@ function dataView(msg=''){
     <div class="chips" style="margin-top:0"><button class="chip${covOn()?' on':''}" id="cvt">${covOn()?'Covers on':'Covers off'}</button><button class="chip" id="cvd">Test lookup</button><button class="chip" id="cvc">Refetch all</button></div>
     <label>Details from Discogs</label><p class="mute">Your Discogs export leaves out the speed. It's filled in where the format makes it clear (LP 33⅓, 7" 45, shellac 78). This looks up each release on Discogs for the exact speed, genres, styles and country; records with an unclear speed go first. Records without a genre get the first Discogs genre. It runs at about 24 records a minute, keeps going where it left off, and sends each record's Discogs number to Discogs.</p>
     <p class="mute" id="dgprog">${dgText()}</p><button class="btn" id="dgb">${dgState.run?'Pause':'Fetch details from Discogs'}</button>
+    <label>Tempo (BPM) for 12" singles</label><p class="mute">Looks up a suggested tempo for each track on your 12" singles and EPs: measured BPM from AcousticBrainz (through MusicBrainz) and Deezer's BPM by artist and title. Expect about half of them to be found, and some to be half or double the real tempo or from another mix, so check them on the record sheet, where you can also tap along to measure a tempo yourself. It takes about 8 seconds a record, keeps going where it left off, and sends each record's Discogs number to Discogs and MusicBrainz and its artist and track titles to Deezer.</p>
+    <p class="mute" id="bpprog">${bpText()}</p><button class="btn" id="bpb">${bpState.run?'Pause':'Fetch tempos'}</button>
     <label>Original release year</label><p class="mute">The Released year from Discogs is the year of your pressing. This looks up the year each album first came out on MusicBrainz and shows it in bold on the cards. It takes a while (about one record every two seconds), keeps going where it left off, and sends a record's Discogs number, and sometimes its artist and title, to MusicBrainz.</p>
     <p class="mute" id="oyprog">${oyText()}</p><button class="btn" id="oyb">${oyState.run?'Pause':'Fetch original years'}</button>
+    <label>Concerts (setlist.fm)</label><p class="mute">Brings in the concerts you've marked as attended on setlist.fm. They show as LIVE tags on records by those artists, on the record sheet, and in Explore → Live. setlist.fm doesn't let web apps fetch them, so run <b>tools/setlistfm_export.py</b> on a computer (see the README) and choose the CSV it writes. Importing again replaces the list.</p>
+    <p class="mute" id="gigmsg">${gigs.length?`${gigs.length} concerts imported. ${recs.filter(r=>gigsFor(r).length).length} of your records are by artists you've seen live.`:'No concerts imported yet.'}</p>
+    <input type="file" id="gfile" accept=".csv,text/csv,text/plain" hidden><div class="chips" style="margin-top:0"><button class="chip" id="gimp">Choose concerts CSV</button>${gigs.length?'<button class="chip" id="gclr">Remove concerts</button>':''}</div>
     <label>Back up</label><p class="mute">Export a CSV with every record's location, genre, comment, star and played date. You can import it again later.</p>
     <button class="btn" id="exp">Export CSV</button><button class="btn dng" id="clr">Clear all records</button>`;
   $('#app').innerHTML=h+`<p class="mute" id="msg">${esc(msg)}</p><p class="mute" style="text-align:center;margin-top:28px;margin-bottom:6px">Crate · version ${APP_VERSION} · ${APP_DATE}</p><div class="chips" style="justify-content:center;margin:0"><button class="chip" id="upd">Check for updates</button></div><p class="mute" id="updmsg" style="text-align:center;min-height:1.4em"></p>`;
@@ -936,12 +1116,22 @@ function dataView(msg=''){
   }else{
     $('#imp').onclick=()=>$('#file').click();
     $('#file').onchange=async e=>{const f=e.target.files[0];if(!f)return;
-      const r=stage(await readText(f));
+      const txt=await readText(f);
+      if(/(^|,)"?setlist id"?(,|\r?\n)/i.test(txt.split(/\r?\n/)[0]))return dataView('That is a concerts file. Choose it under Concerts instead.');
+      const r=stage(txt);
       if(!r||!r.length)return dataView('No records found. Check that the file has artist and title columns.');
       staged=r;dataView()};
     $('#exp').onclick=exportCSV;
+    $('#gimp').onclick=()=>$('#gfile').click();
+    $('#gfile').onchange=async e=>{const f=e.target.files[0];if(!f)return;
+      const g=stageGigs(await readText(f));
+      if(!g||!g.length)return dataView('No concerts found. Choose the CSV that tools/setlistfm_export.py writes.');
+      gigs=g;saveGigs();const a=new Set(g.map(x=>akey(x.a))).size,m=recs.filter(r=>gigsFor(r).length).length;
+      dataView(`Imported ${g.length} concerts by ${a} artists. ${m} of your records are by artists you've seen live.`)};
+    if($('#gclr'))$('#gclr').onclick=()=>{if(!confirm('Remove all imported concerts? Your records are not affected.'))return;gigs=[];saveGigs();dataView('Concerts removed.')};
     $('#oyb').onclick=oyRun;
     $('#dgb').onclick=dgRun;
+    $('#bpb').onclick=bpmRun;
     $('#upd').onclick=async()=>{$('#updmsg').textContent='Checking...';const m=await checkUpdate(true);if($('#updmsg'))$('#updmsg').textContent=m};
     $('#cvt').onclick=()=>{try{localStorage.setItem('vinylCoverOff',covOn()?'1':'0')}catch(e){}dataView()};
     $('#cvd').onclick=async()=>{$('#msg').textContent='Testing...';$('#msg').textContent=await covDiag()};
@@ -977,9 +1167,18 @@ function detailsHTML(r){
   const link=/^\d+$/.test(rid)?`<a class="dlink" href="https://www.discogs.com/release/${rid}" target="_blank" rel="noopener">Open on Discogs ↗</a>`:'';
   return rows.length||link?`<label>From Discogs</label><div class="dl">${rows.map(([k,x])=>`<div><span>${k}</span>${esc(x)}</div>`).join('')}</div>${link}`:'';
 }
+function tempoHTML(r){
+  const b=bpmOf(r),T=(r.bpmT||[]).filter(t=>t.ab||t.dz);
+  const src=t=>[t.ab?`${t.ab} AcousticBrainz`:'',t.dz?`${t.dz} Deezer${t.x?'':' (other mix?)'}`:''].filter(Boolean).join(' · ');
+  return `<label>Tempo</label><div class="tempo"><div class="tv"><b id="bpmv">${b?Math.round(b.v*10)/10:'—'}</b><span id="bpms">${b?(b.sure?'BPM · confirmed':'BPM · suggested, may be half or double'):r.bpmD?'Not found online. Tap along to measure it':'Tap along on the beat to measure it'}</span></div><button class="tap" id="tap" aria-label="Tap along on the beat">TAP</button></div>
+  ${b?`<div class="qact" style="margin:10px 0 0"><button class="chip" id="bh">×½</button><button class="chip" id="bd">×2</button>${b.sure?'<button class="chip" id="bclr">Clear</button>':'<button class="chip on" id="bok">Confirm</button>'}</div>`:''}
+  ${T.length?`<div class="dl tks">${T.map(t=>`<div><span>${esc(t.p||'·')}</span><p class="gv">${esc(t.t)}<em>${esc(src(t))}</em><button class="chip sm" data-bu="${trackBpm(t)}">Use ${trackBpm(t)}</button></p></div>`).join('')}</div>`:''}`;
+}
 function openRecSheet(id){
   const r=recs.find(x=>x.id==id);if(!r)return;
   let lid=placed(r)?r.loc:defaultLoc(r)?.id,sec=placed(r)?r.section:null,cm=r.comment||'',gn=r.genre||'';
+  let taps=[],tapT=0,changed=false; // tap tempo state lives across redraws of the sheet
+  const setBpm=v=>{r.bpm=v?Math.round(v*10)/10:0;changed=true;save();draw()};
   const body=$('#sheetbody');body.innerHTML='';
   const draw=()=>{
     if($('#cm'))cm=$('#cm').value;if($('#gn'))gn=$('#gn').value;
@@ -996,11 +1195,13 @@ function openRecSheet(id){
     ${slots}
     ${sec?`<label>Position${single(l)?'':' in '+esc(slotLabel(l,sec))}</label><input type="number" id="pos" min="1" max="${n+1}" inputmode="numeric" value="${placed(r)&&r.loc==lid&&r.section==sec?r.pos:n+1}">
     <p class="mute">Holds ${n} other record${n==1?'':'s'}${l.cap?` of ${l.cap}`:''}. Records at or after this position shift one place along.${l.cap&&n>=l.cap?' This one is already full.':''}</p>`:''}
+    ${tempoHTML(r)}
     <label>Listening</label><p class="mute" style="margin:0 0 8px">${ago(r.played)}${r.nx?' · In play next':''}</p>
     <div class="qact" style="margin:0"><button class="chip" id="pl">Played today</button><button class="chip${r.nx?' on':''}" id="pq">${r.nx?'In play next':'Add to play next'}</button>${r.played?'<button class="chip" id="pc0">Clear date</button>':''}</div>
     <label for="gn">Genre</label><input type="text" id="gn" list="gl" value="${esc(gn)}" placeholder="e.g. Electronic" autocomplete="off">
     <datalist id="gl">${genreList().map(g=>`<option value="${esc(g)}">`).join('')}</datalist>
     <label for="cm">Comment</label><textarea id="cm" placeholder="Condition, notes, who has borrowed it...">${esc(cm)}</textarea>
+    ${liveSheetHTML(r)}
     ${detailsHTML(r)}
     <button class="btn pri" id="ok">${sec?'Save':placed(r)?'Save as not placed':'Save'}</button>
     ${placed(r)?'<button class="btn dng" id="rm">Remove from storage</button>':''}<button class="btn" id="cx">Cancel</button>`;
@@ -1009,7 +1210,21 @@ function openRecSheet(id){
     $('#pl').onclick=()=>{markPlayed(r);draw()};
     $('#pq').onclick=()=>{r.nx=r.nx?0:Date.now();save();draw()};
     if($('#pc0'))$('#pc0').onclick=()=>{r.played='';save();draw()};
-    $('#cx').onclick=closeSheet;
+    // tap tempo: the average of the last taps; saved by itself 2.5 s after the last tap, once there are 5 or more
+    $('#tap').onpointerdown=e=>{e.preventDefault();const now=performance.now();
+      if(taps.length&&now-taps[taps.length-1]>2500)taps=[];taps.push(now);if(taps.length>12)taps.shift();
+      const sEl=$('#bpms'),vEl=$('#bpmv');clearTimeout(tapT);
+      if(taps.length<2){vEl.textContent='…';sEl.textContent='Keep tapping on the beat';return}
+      const v=60000*(taps.length-1)/(taps[taps.length-1]-taps[0]);vEl.textContent=v.toFixed(1);
+      sEl.textContent=taps.length<5?`Keep tapping (${taps.length})`:'Tapped. Stop to save it';
+      if(taps.length>=5)tapT=setTimeout(()=>{taps=[];setBpm(v)},2500)};
+    const bv=()=>bpmOf(r)?.v||0;
+    if($('#bh'))$('#bh').onclick=()=>setBpm(bv()/2);
+    if($('#bd'))$('#bd').onclick=()=>setBpm(bv()*2);
+    if($('#bok'))$('#bok').onclick=()=>setBpm(r.bpmSug);
+    if($('#bclr'))$('#bclr').onclick=()=>setBpm(0);
+    body.querySelectorAll('[data-bu]').forEach(b=>b.onclick=()=>setBpm(+b.dataset.bu));
+    $('#cx').onclick=()=>{clearTimeout(tapT);closeSheet();if(changed)render()};
     $('#ok').onclick=()=>{setNote(r,$('#gn').value,$('#cm').value);place(r,sec?lid:null,sec,sec?parseInt($('#pos').value)||null:null);closeSheet();render()};
     if($('#rm'))$('#rm').onclick=()=>{setNote(r,$('#gn').value,$('#cm').value);place(r,null,null);closeSheet();render()};
   };
@@ -1083,6 +1298,7 @@ document.addEventListener('click',e=>{
   else if(d.dopick){doPick();render()}
   else if(d.play){const r=recs.find(x=>x.id==d.play);if(r){markPlayed(r);render()}}
   else if(d.qt){const r=recs.find(x=>x.id==d.qt);if(r){r.nx=r.nx?0:Date.now();save();render()}}
+  else if(d.gq){q=d.gq;view='rec';catF='all';genF='all';onlyUnplaced=false;lim=100;render();window.scrollTo(0,0)}
   else if(d.el){locSheet(d.el)}
   else if(d.id){openRecSheet(d.id)}
 });

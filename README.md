@@ -12,6 +12,7 @@ A small installable web app for keeping track of where your records and CDs are 
 - Filter by format and genre, or show only records that are not placed yet.
 - **Explore** tab: pick a random record (filter by format and genre, starred only, only placed, favour unplayed), keep a play-next list, and see which records have gone longest without being played. Mark a record as played from the pick or from its sheet.
 - Speed: vinyl cards show 33⅓, 45 or 78 rpm. Discogs leaves the speed out of its CSV export, so the app fills it in where the format makes it clear (LP, 7", shellac). **Data → Fetch details from Discogs** looks up each release on the public Discogs API for the exact speed, genres, styles and country, starting with records whose speed is unclear. It runs at about 24 records a minute and keeps going where it left off. Records without a genre get the first Discogs genre. The Format filters have a Speed group.
+- Tempo (BPM) for 12" singles and EPs: **Data → Fetch tempos** looks up a suggested BPM for each track, from AcousticBrainz (measured from audio, through MusicBrainz) and from Deezer (by artist and title). About half of the 12"s are found, and a suggestion can be half or double the real tempo or belong to another mix, so the record sheet shows each track's values with **×½**, **×2**, **Confirm** and **Use** buttons. A big **TAP** button measures the tempo as you tap along to the record; it saves itself a moment after you stop. Cards show the BPM (with a ~ while it's only a suggestion), the Format filters have a Tempo group (90–100, 120–125 and so on), and Stats shows the spread. Deezer is called with JSONP, its only way to work from a web page.
 - Discogs details: the record sheet shows the speed, format tags (reissue, limited, mono, gatefold, coloured vinyl and so on), label and catalogue number, country, genres and styles, your rating, condition, where and when you bought it and the price, your Discogs folder and notes, and a link to the release on Discogs.
 \1: the Released year from Discogs is the year of your pressing. **Data → Fetch original years** looks up when each album first came out on MusicBrainz (the release group's first release date). Where it is known, the card shows that year in **bold**, instead of the pressing year, and the Timeline and the decade stats use it. It is saved with each record and included in the CSV export as the `Original release` column.
 - Timeline: a vertical timeline by release year with this year on top. Each record hangs off its year, and you can filter by format and genre.
@@ -45,6 +46,24 @@ When you place a record at a position that is already taken, the records from th
 
 The import reads the Discogs columns Label, Catalog#, Rating, CollectionFolder, Collection Bought at, Collection Date, Collection Media and Sleeve Condition, Collection Price and Collection Notes. A record without a genre gets one from its collection folder when the folder names a genre ("Electronic (Vinyl)" gives Electronic; artist folders such as "*Kraftwerk" are skipped). It also reads Genre, Comment and Starred columns if the CSV has them (a Starred cell of `Yes` marks a starred record; a column named Favourite from an older export is read too). Importing again keeps the locations, genres, comments and stars of records that match by Discogs release ID, so you can add records on Discogs, export, and re-import without losing your work. A value in the CSV wins over the app's; an empty cell keeps what the app has. If you own several copies of the same release, they are told apart by the Date Added column, so reordered rows in a Discogs export don't swap their placements. The export also carries Date Added, Last played, Play next and Original release.
 
+## Concerts from setlist.fm
+
+Crate can show which of your records are by artists you've seen live, using the concerts you've marked as **I was there** on [setlist.fm](https://www.setlist.fm). Records by those artists get a **LIVE ×n** tag, the record sheet lists each concert with date and venue (and the song, if a record's title was played that night), and **Explore → Live** shows your concerts by year with the most-seen artists, venues and concerts per year. Tap a concert to find that artist's records.
+
+setlist.fm doesn't allow web apps to call its API, so the concerts come in as a CSV made on a computer:
+
+1. Get a free API key: on setlist.fm, open your account settings and choose **API**. It's for non-commercial use.
+2. On a Mac (or any computer with Python 3 and curl), from this folder run:
+
+   ```bash
+   python3 tools/setlistfm_export.py YOUR_SETLISTFM_USERNAME
+   ```
+
+   It asks for the API key without showing it (or reads it from the `SETLISTFM_API_KEY` environment variable), and writes `setlistfm-concerts.csv`. The key is never saved.
+3. Move the file to your phone and import it in **Data → Concerts → Choose concerts CSV**. Importing again replaces the list, so re-run the script when you've been to more concerts.
+
+Concerts are matched to records by artist name. Accents and a leading "The" are ignored, and a record by "A / B", "A & B" or "A feat. B" matches concerts by either artist. Concerts are stored apart from your collection and aren't in the collection CSV export; keep the setlist.fm CSV as their backup.
+
 ## Your data
 
 Everything is stored in your browser's local storage on your own device. Nothing of your collection is uploaded, apart from the lookups: for album covers and original years a record's Discogs number, and sometimes its artist and title, are sent to MusicBrainz (covers can be switched off), and **Fetch details from Discogs** sends each Discogs number to Discogs, and this repository contains only the app, not your collection. Browser storage can be cleared, so use **Data → Export CSV** now and then to keep a backup. Don't commit your Discogs CSV to a public repository.
@@ -71,6 +90,7 @@ It then opens full screen like an app and works offline.
 | `sw.js` | Caches the app so it opens offline |
 | `icon-cyber-192.png`, `icon-cyber-512.png` | App icons |
 | `icon-cyber.svg` | Source drawing for the app icons |
+| `tools/setlistfm_export.py` | Exports your attended concerts from setlist.fm to a CSV for **Data → Concerts** |
 
 There is no build step and there are no dependencies. You can also open `index.html` directly in a browser, without installing, though the home screen icon and offline mode need the hosted version.
 
