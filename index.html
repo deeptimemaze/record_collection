@@ -240,6 +240,10 @@ label.ck::before{content:none}
 .tv span{display:block;margin-top:4px;font-size:10px;color:var(--mute);text-transform:uppercase;letter-spacing:.1em}
 .tap{flex:none;width:118px;background:var(--y);color:#000;border:2px solid var(--on-bd);box-shadow:4px 4px 0 var(--p);font:800 18px/1 var(--mono);letter-spacing:.2em;touch-action:none;-webkit-user-select:none;user-select:none}
 .tap:active{transform:translate(2px,2px);box-shadow:2px 2px 0 var(--p)}
+.btn.lsn{margin:10px 0 0}.btn.lsn.on{background:var(--p);color:#000;border-color:var(--p)}
+.lviz{display:none;grid-template-columns:repeat(12,1fr);gap:4px;height:84px;margin:10px 0 0;padding:6px;background:var(--card);border:2px solid var(--line2)}
+.lviz.on{display:grid}
+.lviz i{display:block;height:100%;background:var(--hl);transform-origin:50% 100%;transform:scaleY(.03);box-shadow:var(--glow);will-change:transform}
 .tks{margin-top:10px}.tks div{grid-template-columns:34px 1fr}.tks em{display:block;font-style:normal;font-size:11px;color:var(--mute)}
 .chip.sm{min-height:26px;margin-top:6px;padding:4px 9px;font-size:10px}
 .rec .bpm,.shd .bpm{color:var(--hl-t);font-weight:700}.rec .bpm.sug,.shd .bpm.sug{font-weight:500}
@@ -274,7 +278,7 @@ label.ck::before{content:none}
 <div id="sheet"><div id="sheetbody"></div></div>
 
 <script>
-const APP_VERSION=34,APP_DATE='21 Nov 2026';
+const APP_VERSION=35,APP_DATE='21 Nov 2026';
 const COVER_CACHE='vinyl-covers-2'; // must match COVERS in sw.js
 const DEFAULT_LOCS=[
  {id:'kallax',name:'Kallax shelf',mode:'grid',cols:3,rows:4,cap:0,formats:['lp']},
@@ -1297,10 +1301,99 @@ function detailsHTML(r){
   const link=/^\d+$/.test(rid)?`<a class="dlink" href="https://www.discogs.com/release/${rid}" target="_blank" rel="noopener">Open on Discogs ↗</a>`:'';
   return rows.length||link?`<label>From Discogs</label><div class="dl">${rows.map(([k,x])=>`<div><span>${k}</span>${esc(x)}</div>`).join('')}</div>${link}`:'';
 }
+/* listen: the tempo of what's playing, from the microphone. Nothing is recorded or kept.
+   Onsets: energy jumps in three bands (kick, snare, hats), measured on exact 256-sample hops.
+   Tempo: autocorrelation of the onset curve, scored with its multiples (2, 3, 4 beats) and weighted towards 120 BPM,
+   then refined to a fraction of a hop. The 12-band visualizer reads an analyser on each screen frame. */
+const LB=12,LS={on:false};
+async function listenStart(cb,srcFn){
+  if(LS.on)return;
+  const AC=window.AudioContext||window.webkitAudioContext;
+  if(!AC)throw new Error('This browser can\'t analyse sound.');
+  let stream=null;
+  if(!srcFn){
+    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)throw new Error(window.isSecureContext?'This browser has no microphone access.':'The microphone only works when the app is opened over https.');
+    stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
+  }
+  const ac=new AC();try{await ac.resume()}catch(e){}
+  const src=srcFn?srcFn(ac):ac.createMediaStreamSource(stream);
+  const an=ac.createAnalyser();an.fftSize=2048;an.smoothingTimeConstant=.55;an.minDecibels=-85;an.maxDecibels=-20;src.connect(an);
+  const flt=(type,f,q)=>{const b=ac.createBiquadFilter();b.type=type;b.frequency.value=f;if(q)b.Q.value=q;src.connect(b);return b};
+  const mg=ac.createChannelMerger(3);
+  flt('lowpass',150).connect(mg,0,0);flt('bandpass',1500,.8).connect(mg,0,1);flt('highpass',6000).connect(mg,0,2);
+  const sp=ac.createScriptProcessor(256,3,1),mute=ac.createGain();mute.gain.value=0;
+  mg.connect(sp);sp.connect(mute);mute.connect(ac.destination);
+  const prev=[0,0,0],W=[1,.8,.5];
+  Object.assign(LS,{on:true,stream,ac,an,sp,env:[[],[],[]],lvl:0,fps:ac.sampleRate/256,t0:performance.now(),est:[],cb,bins:new Uint8Array(an.frequencyBinCount)});
+  const ny=ac.sampleRate/2,N=an.frequencyBinCount;
+  LS.edges=Array.from({length:LB+1},(_,i)=>Math.min(N-1,Math.max(1,Math.round(35*Math.pow(16000/35,i/LB)/ny*N))));
+  sp.onaudioprocess=e=>{
+    const ib=e.inputBuffer;
+    for(let c=0;c<3;c++){const x=ib.getChannelData(Math.min(c,ib.numberOfChannels-1));let E=0;for(let i=0;i<x.length;i++)E+=x[i]*x[i];
+      const lg=Math.log(1e-9+E/x.length);if(c==0)LS.lvl=Math.max(LS.lvl*.995,E/x.length);
+      LS.env[c].push(Math.max(0,lg-prev[c])*W[c]);prev[c]=lg}
+  };
+  LS.tick=setInterval(lsTick,1000);
+  const frame=()=>{if(!LS.on)return;lsDraw();LS.raf=requestAnimationFrame(frame)};frame();
+}
+function lsTempo(envs,fps){
+  const n=Math.min(...envs.map(e=>e.length));if(n<fps*4)return null;
+  // keep only rises above the local average (about 0.4 s), band by band
+  const w=Math.round(fps*.2),os=envs.map(env=>{const cs=new Float64Array(n+1),o=new Float32Array(n);
+    for(let i=0;i<n;i++)cs[i+1]=cs[i]+env[i];
+    for(let i=0;i<n;i++){const a=Math.max(0,i-w),b=Math.min(n,i+w+1);o[i]=Math.max(0,env[i]-(cs[b]-cs[a])/(b-a))}
+    return o});
+  // 1. pick the beat: fold the onsets onto each candidate beat length and see how much lands on the beat and the
+  //    half-beat. A wrong guess like 2/3 or 3/2 of the tempo smears out; half and double are left to the 120 BPM weighting.
+  const o=new Float32Array(n);let tot=0;
+  os.forEach(b=>{let t=0;for(let i=0;i<n;i++)t+=b[i];if(!t)return;for(let i=0;i<n;i++)o[i]+=b[i]/t});
+  for(let i=0;i<n;i++)tot+=o[i];if(!tot)return null;
+  const B=32,h=new Float64Array(B),g=q=>h[(q+B)%B]+h[(q+B+1)%B]+h[(q+B-1)%B];
+  let best=0,bL=0,bF=0;
+  for(let L=fps*60/200;L<=fps*60/55;L+=.25){
+    h.fill(0);for(let i=0;i<n;i++)h[Math.floor((i%L)/L*B)]+=o[i];
+    let m=0;for(let p=0;p<B;p++){const v=g(p)+g(p+B/2);if(v>m)m=v}
+    const v=m/tot*Math.exp(-.5*Math.pow(Math.log2(60*fps/L/120)/.9,2));if(v>best){best=v;bL=L;bF=m/tot}}
+  if(!bL)return null;
+  // 2. fine tune: autocorrelation over as many beats as the window holds; errors add up over many beats, so this pins it down
+  const maxL=Math.min(n-1,Math.ceil(bL*12)),lo=Math.floor(bL-2),ac=new Float32Array(maxL+2);
+  const at=x=>{const i=Math.floor(x),f=x-i;if(i<lo||i+1>maxL)return 0;
+    for(const j of [i,i+1])if(ac[j]===0){let t=0;for(const b of os)for(let k=j;k<n;k++)t+=b[k]*b[k-j];ac[j]=t/(n-j)||1e-12}
+    return ac[i]*(1-f)+ac[i+1]*f};
+  const fine=L=>{let t=0;for(let k=1;k*L<=maxL;k++)t+=at(k*L);return t};
+  let fL=bL,fv=fine(bL);for(let x=bL-1;x<=bL+1;x+=.01){const v=fine(x);if(v>fv){fv=v;fL=x}}
+  // confidence: share of the onsets on the beat grid, against the 6 of 32 slots an even spread would put there
+  return {bpm:60*fps/fL,conf:bF/(6/B)};
+}
+function lsTick(){
+  if(!LS.on)return;
+  const s=(performance.now()-LS.t0)/1000,e=lsTempo(LS.env,LS.fps),quiet=LS.lvl<1e-7;
+  if(e&&!quiet)LS.est.push(e);
+  const last=LS.est.slice(-4),steady=s>=8&&last.length==4&&last.every(x=>x.conf>1.6&&Math.abs(x.bpm/last[3].bpm-1)<.005);
+  if(steady||s>=20)return listenFinish();
+  LS.cb({s,e:quiet?null:e,quiet});
+}
+function listenFinish(){if(!LS.on)return;const cb=LS.cb,e=LS.est[LS.est.length-1]||null;listenStop();cb&&cb({done:true,e})}
+function listenStop(){
+  if(!LS.on)return;LS.on=false;clearInterval(LS.tick);cancelAnimationFrame(LS.raf);
+  try{LS.sp.onaudioprocess=null;LS.sp.disconnect()}catch(e){}
+  if(LS.stream)LS.stream.getTracks().forEach(t=>t.stop());
+  try{LS.ac.close()}catch(e){}
+  document.querySelectorAll('#lviz i').forEach(i=>i.style.transform='');
+}
+function lsDraw(){
+  const bars=document.querySelectorAll('#lviz i');if(!bars.length)return;
+  const d=LS.bins;LS.an.getByteFrequencyData(d);
+  for(let b=0;b<LB;b++){const a=LS.edges[b],z=Math.max(a+1,LS.edges[b+1]);let m=0;for(let i=a;i<z;i++)m=Math.max(m,d[i]);
+    bars[b].style.transform=`scaleY(${Math.max(.03,m/255).toFixed(3)})`}
+}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='hidden')listenStop()});
 function tempoHTML(r){
   const b=bpmOf(r),T=(r.bpmT||[]).filter(t=>t.ab||t.dz);
   const src=t=>[t.ab?`${t.ab} AcousticBrainz`:'',t.dz?`${t.dz} Deezer${t.x?'':' (other mix?)'}`:''].filter(Boolean).join(' · ');
   return `<label>Tempo</label><div class="tempo"><div class="tv"><b id="bpmv">${b?Math.round(b.v*10)/10:'—'}</b><span id="bpms">${b?(b.sure?'BPM · confirmed':'BPM · suggested, may be half or double'):r.bpmD?'Not found online. Tap along to measure it':'Tap along on the beat to measure it'}</span></div><button class="tap" id="tap" aria-label="Tap along on the beat">TAP</button></div>
+  <button class="btn lsn${LS.on?' on':''}" id="lsn">${LS.on?'■ Stop listening':'● Listen'}</button>
+  <div class="lviz${LS.on?' on':''}" id="lviz" aria-hidden="true">${'<i></i>'.repeat(LB)}</div>
   ${b?`<div class="qact" style="margin:10px 0 0"><button class="chip" id="bh">×½</button><button class="chip" id="bd">×2</button>${b.sure?'<button class="chip" id="bclr">Clear</button>':'<button class="chip on" id="bok">Confirm</button>'}</div>`:''}
   ${T.length?`<div class="dl tks">${T.map(t=>`<div><span>${esc(t.p||'·')}</span><p class="gv">${esc(t.t)}<em>${esc(src(t))}</em><button class="chip sm" data-bu="${trackBpm(t)}">Use ${trackBpm(t)}</button></p></div>`).join('')}</div>`:''}`;
 }
@@ -1354,6 +1447,22 @@ function openRecSheet(id){
     if($('#bd'))$('#bd').onclick=()=>setBpm(bv()*2);
     if($('#bok'))$('#bok').onclick=()=>setBpm(r.bpmSug);
     if($('#bclr'))$('#bclr').onclick=()=>setBpm(0);
+    // listen: live estimate while it listens; a steady result is saved like a tapped one
+    $('#lsn').onclick=async()=>{
+      if(LS.on){listenFinish();return}
+      const say=t=>{const x=$('#bpms');if(x)x.textContent=t};
+      try{
+        await listenStart(u=>{
+          if(u.done){
+            if(u.e&&u.e.conf>1.45){setBpm(u.e.bpm);say(`Heard ${u.e.bpm.toFixed(1)} BPM · saved. Use ×½ or ×2 if it's off`)}
+            else{draw();say('No steady beat heard. Turn it up, or hold the phone closer')}
+            return}
+          const v=$('#bpmv');if(v)v.textContent=u.e?u.e.bpm.toFixed(1):'…';
+          say(u.quiet?'Listening · too quiet, turn it up':`Listening · ${Math.round(u.s)} s${u.e?u.e.conf>1.6?' · beat found':' · finding the beat':''}`);
+        });
+        draw();say('Listening · hold the phone near the speaker');$('#bpmv').textContent='…';
+      }catch(err){draw();say(err&&err.name=='NotAllowedError'?'Microphone not allowed. Allow it in the browser settings':(err&&err.message)||'Could not start the microphone')}
+    };
     body.querySelectorAll('[data-bu]').forEach(b=>b.onclick=()=>setBpm(+b.dataset.bu));
     $('#cx').onclick=()=>{clearTimeout(tapT);closeSheet();if(changed)render()};
     $('#ok').onclick=()=>{setNote(r,$('#gn').value,$('#cm').value);place(r,sec?lid:null,sec,sec?parseInt($('#pos').value)||null:null);closeSheet();render()};
@@ -1419,8 +1528,8 @@ function locSheet(id){
 }
 let sheetOpen=false;
 function showSheet(){$('#sheet').classList.add('open');if(!sheetOpen)try{history.pushState({sheet:1},'')}catch(e){}sheetOpen=true}
-function closeSheet(){if(!sheetOpen)return;sheetOpen=false;$('#sheet').classList.remove('open');try{if(history.state&&history.state.sheet)history.back()}catch(e){}}
-window.addEventListener('popstate',()=>{if(sheetOpen){sheetOpen=false;$('#sheet').classList.remove('open')}});
+function closeSheet(){listenStop();if(!sheetOpen)return;sheetOpen=false;$('#sheet').classList.remove('open');try{if(history.state&&history.state.sheet)history.back()}catch(e){}}
+window.addEventListener('popstate',()=>{listenStop();if(sheetOpen){sheetOpen=false;$('#sheet').classList.remove('open')}});
 $('#sheet').onclick=e=>{if(e.target.id=='sheet')closeSheet()};
 
 document.addEventListener('click',e=>{
