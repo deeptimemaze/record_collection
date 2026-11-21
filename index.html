@@ -274,7 +274,7 @@ label.ck::before{content:none}
 <div id="sheet"><div id="sheetbody"></div></div>
 
 <script>
-const APP_VERSION=33,APP_DATE='21 Nov 2026';
+const APP_VERSION=34,APP_DATE='21 Nov 2026';
 const COVER_CACHE='vinyl-covers-2'; // must match COVERS in sw.js
 const DEFAULT_LOCS=[
  {id:'kallax',name:'Kallax shelf',mode:'grid',cols:3,rows:4,cap:0,formats:['lp']},
@@ -550,6 +550,8 @@ function diagramHTML(l,o={}){
   const box=(x,y,w,h,z,d,back,front)=>{const f=face(x,y,w,h,z),k=face(x,y,w,h,z+d);pts.push(...f,...k);
     poly(k,back);f.forEach((p,i)=>line(p,k[i],back));poly(f,front)};
   boxes.forEach(b=>box(b.x,b.y,b.w,b.h,0,b.d,'b','f'));
+  // the Storage tab always leaves room for a drawer pulled all the way out, so opening one doesn't resize the drawing
+  if(size=='full'&&l.mode=='drawers'&&!one)boxes.forEach(b=>pts.push(...face(b.x,b.y,b.w,b.h,-b.d*.62)));
   const pz=c=>c.n===pull?-c.d*.62:0;
   cells.forEach(c=>{
     if(c.n===pull)return;
