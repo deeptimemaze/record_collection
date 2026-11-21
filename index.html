@@ -144,8 +144,14 @@ select{background-color:var(--chip);min-height:42px;font-size:12px;font-weight:6
 .rec span.s{font-size:11px;color:var(--mute);letter-spacing:.02em}
 .rec b+span.s{font-size:13px;color:var(--ink);letter-spacing:0}
 .rec .note{font-style:normal;color:var(--ink);opacity:.8}
+.qact .chip:not(.on){background:transparent;color:var(--ink)}
+.pnote{display:flex;align-items:center;gap:10px;margin:14px 0 0;padding:8px 10px;border:2px solid var(--hl);font:600 11px/1.4 var(--mono);text-transform:uppercase;letter-spacing:.06em}.pnote span{flex:1}
 .rec .oy,.sh strong{font-weight:800;color:var(--hl-t)}
 .thumb{width:56px;height:56px;border:1px solid var(--line2);background:var(--thumb)}.thumb svg{width:42px;height:42px}
+.thumb.big{display:grid;width:100%;max-width:320px;height:auto;aspect-ratio:1;margin:0 auto 14px;border:2px solid var(--line2)}.thumb.big svg{width:56%;height:56%}
+.shd b{display:block;font-size:14px;font-weight:700;line-height:1.3}
+.shd span.s{display:block;margin-top:2px;font-size:11px;color:var(--mute);letter-spacing:.02em}.shd b+span.s{font-size:13px;color:var(--ink);letter-spacing:0}
+.shd .oy{font-weight:800;color:var(--hl-t)}
 .loc,.tag{display:inline-block;margin-top:7px;padding:3px 8px;background:transparent;border:1px solid var(--line2);color:var(--ink);font:600 10px/1.3 var(--mono);text-transform:uppercase;letter-spacing:.08em}
 .tag{margin-top:0}
 .loc.no{color:var(--p);border-color:var(--p);background:transparent}
@@ -236,7 +242,7 @@ label.ck::before{content:none}
 .tap:active{transform:translate(2px,2px);box-shadow:2px 2px 0 var(--p)}
 .tks{margin-top:10px}.tks div{grid-template-columns:34px 1fr}.tks em{display:block;font-style:normal;font-size:11px;color:var(--mute)}
 .chip.sm{min-height:26px;margin-top:6px;padding:4px 9px;font-size:10px}
-.rec .bpm{color:var(--hl-t);font-weight:700}.rec .bpm.sug{font-weight:500}
+.rec .bpm,.shd .bpm{color:var(--hl-t);font-weight:700}.rec .bpm.sug,.shd .bpm.sug{font-weight:500}
 /* wireframe 3D storage */
 .s3{position:relative;margin:12px auto 18px}
 .s3.mini{margin:6px 0 12px}
@@ -268,7 +274,7 @@ label.ck::before{content:none}
 <div id="sheet"><div id="sheetbody"></div></div>
 
 <script>
-const APP_VERSION=31,APP_DATE='21 Nov 2026';
+const APP_VERSION=33,APP_DATE='21 Nov 2026';
 const COVER_CACHE='vinyl-covers-2'; // must match COVERS in sw.js
 const DEFAULT_LOCS=[
  {id:'kallax',name:'Kallax shelf',mode:'grid',cols:3,rows:4,cap:0,formats:['lp']},
@@ -632,8 +638,13 @@ function syncPlays(r,...more){
   r.plays=[...new Set([...(Array.isArray(r.plays)?r.plays:[]),...more.flat(),r.played].filter(d=>DAY.test(d||'')))].sort();
   r.played=r.plays[r.plays.length-1]||'';
 }
-function markPlayed(r){syncPlays(r,today());r.nx=0;save()}
-function unPlay(r){r.plays=(r.plays||[]).slice(0,-1);r.played='';syncPlays(r);save()}
+// playing a record takes it off play next; taking the play back puts it back in its place in the queue
+let lastPlay=null;
+function markPlayed(r){if(r.played==today())return;syncPlays(r,today());r.nxWas=r.nx||0;r.nx=0;lastPlay=r.id;save()}
+function unPlay(r){r.plays=(r.plays||[]).slice(0,-1);r.played='';syncPlays(r);if(r.nxWas&&!r.nx)r.nx=r.nxWas;delete r.nxWas;if(lastPlay==r.id)lastPlay=null;save()}
+const playedToday=r=>r.played==today();
+// the same three buttons as on the record sheet: off = outlined, on = lime with a tick
+const playBtns=(r,label='Play this')=>`<div class="qact"><button class="chip${playedToday(r)?' on':''}" data-play="${esc(r.id)}" aria-pressed="${playedToday(r)}">${playedToday(r)?'✓ Played today':label}</button><button class="chip${r.nx?' on':''}" data-qt="${esc(r.id)}" aria-pressed="${!!r.nx}">${r.nx?'✓ In play next':'Add to play next'}</button>${r.played?`<button class="chip" data-unplay="${esc(r.id)}">Remove last play</button>`:''}</div>`;
 const nPlays=r=>(r.plays||[]).length;
 function recHTML(r,lead='',extra=''){
   // the text area is a real button (keyboard and screen readers); the star sits beside it, not inside it
@@ -743,7 +754,9 @@ function haveCov(rid){const c=cov[rid];return !!c&&(!!c.u||Date.now()-c.n<30*864
 function paintCover(rid){
   const c=cov[rid];if(!c||!c.u)return;
   document.querySelectorAll('.thumb[data-cv]').forEach(el=>{if(el.dataset.cv!==rid||el.querySelector('.cv'))return;
-    const i=document.createElement('img');i.className='cv';i.alt='';i.crossOrigin='anonymous';i.src=c.u;i.onerror=()=>i.remove();el.appendChild(i)});
+    const i=document.createElement('img'),big=el.classList.contains('big');i.className='cv';i.alt='';i.crossOrigin='anonymous';
+    // the big cover on the record sheet uses the 500 px image, falling back to the 250 px one
+    i.src=big?c.u.replace(/\/front-250$/,'/front-500'):c.u;i.onerror=()=>{if(big&&i.src!=c.u)i.src=c.u;else i.remove()};el.appendChild(i)});
 }
 async function covPump(){
   if(covBusy)return;covBusy=true;
@@ -1041,10 +1054,13 @@ function pickHTML(){
   <div class="chips">${chip('fresh','Favour unplayed')}${chip('fav','Starred only')}${chip('placed','Only placed')}</div>
   <button class="btn pri" data-dopick="1">${pickId?'Pick another':'Pick a record'}</button>`;
   const r=recs.find(x=>x.id==pickId);
-  if(r)h+=`<div style="margin-top:14px">${recHTML(r,'',playedLine(r))}</div><div class="qact"><button class="chip on" data-play="${esc(r.id)}">Play this</button><button class="chip" data-qt="${esc(r.id)}">${r.nx?'In play next':'Add to play next'}</button></div>`;
+  if(r)h+=`<div style="margin-top:14px">${recHTML(r,'',playedLine(r))}</div>${playBtns(r)}`;
   else if(!pool().length&&recs.length)h+='<div class="empty">Nothing matches these filters.</div>';
   const qd=recs.filter(x=>x.nx).sort((a,b)=>a.nx-b.nx);
-  h+=`<label>Play next${qd.length?` (${qd.length})`:''}</label>`+(qd.length?qd.map(x=>`${recHTML(x,'',playedLine(x))}<div class="qact"><button class="chip" data-play="${esc(x.id)}">Mark played</button><button class="chip" data-qt="${esc(x.id)}">Remove</button></div>`).join(''):'<p class="mute">Nothing queued. Add records from a pick, or from a record\'s sheet.</p>');
+  // a record marked played leaves the queue, so say so with a way back
+  const lp=recs.find(x=>x.id==lastPlay&&x.id!=pickId&&playedToday(x));
+  if(lp)h+=`<div class="pnote"><span>✓ Played “${esc(lp.title)}” today${lp.nxWas?' and took it off play next':''}.</span><button class="chip" data-unplay="${esc(lp.id)}">Undo</button></div>`;
+  h+=`<label>Play next${qd.length?` (${qd.length})`:''}</label>`+(qd.length?qd.map(x=>`${recHTML(x,'',playedLine(x))}<div class="qact"><button class="chip" data-play="${esc(x.id)}">Mark played</button><button class="chip" data-qt="${esc(x.id)}">Remove from queue</button></div>`).join(''):'<p class="mute">Nothing queued. Add records from a pick, or from a record\'s sheet.</p>');
   const unp=recs.filter(x=>!x.played).length,old=recs.slice().sort((a,b)=>(a.played||'')<(b.played||'')?-1:(a.played||'')>(b.played||'')?1:a.sk<b.sk?-1:1).slice(0,8);
   if(recs.length)h+=`<label>Not played for the longest</label><p class="mute">${unp} of ${recs.length} records have no played date yet.</p>`+old.map(x=>recHTML(x,'',playedLine(x))).join('');
   return h;
@@ -1260,12 +1276,14 @@ function dataView(msg=''){
 const genreList=()=>[...new Set([...GENRES,...recs.map(r=>r.genre).filter(Boolean)])].sort((a,b)=>a.localeCompare(b));
 function setNote(r,g,c){r.genre=(g||'').trim();r.comment=(c||'').trim();prep(r)}
 // record sheet: speed and format tags under the title, Discogs details below the comment
+const bigArtHTML=r=>thumbHTML(r).replace('class="thumb"','class="thumb big"').replace(/src="([^"]*)\/front-250"/,(m,u)=>`src="${u}/front-500" data-sm="${u}/front-250"`).replace('onerror="this.remove()"','onerror="if(this.dataset.sm){this.src=this.dataset.sm;delete this.dataset.sm}else this.remove()"');
 function tagRowHTML(r){const v=rpmOf(r),t=[v?rpmTxt(v):'',...fmtTags(r.fmt)].filter(Boolean);
   return t.length?`<div class="ftags">${t.map(x=>`<span class="tag">${esc(x)}</span>`).join('')}</div>`:''}
 function detailsHTML(r){
   const rid=ridOf(r),v=rpmOf(r),bt=/^\d{4}/.test(r.bought||'')?r.bought:'';
   const rows=[
     ['Label',[uniqList(r.label),r.catno].filter(Boolean).join(' · ')],
+    ['Pressing',origY(r)&&r.year&&r.year!=origY(r)?`This edition ${r.year}`:''],
     ['Country',r.cty],
     ['Speed',isVinyl(r)?(v?rpmTxt(v)+(r.rpmX?'':' (from the format)'):(r.dd?'Not listed on Discogs':'Not known yet. Data → Fetch details from Discogs')):''],
     ['Genres',(r.dg||[]).join(', ')],['Styles',(r.ds||[]).join(', ')],
@@ -1299,25 +1317,26 @@ function openRecSheet(id){
     if(!single(l)){
       slots=`<label>${unitOf(l)[0].toUpperCase()+unitOf(l).slice(1)}</label>`+diagramHTML(l,{size:'pick',attr:'data-s',hi:new Set(sec?[sec]:[]),sel:sec});
     }
-    body.innerHTML=`<div class="sh"><div><b class="sht">${esc(r.title)}</b><div class="mute">${esc(r.artist)}</div><div class="mute">${[origY(r)?`<strong>${origY(r)}</strong>`+(r.year&&r.year!=origY(r)?` <span>(this edition ${esc(r.year)})</span>`:''):esc(r.year||''),esc((r.fmt||'').split(',')[0].trim())].filter(Boolean).join(' · ')}</div></div>${starBtn(r)}</div>
+    body.innerHTML=`${bigArtHTML(r)}<div class="sh shd"><div><b>${esc(r.title)}</b><span class="s">${esc(r.artist)}</span><span class="s">${metaHTML(r)}</span></div>${starBtn(r)}</div>
     ${tagRowHTML(r)}
-    ${locs.length>1?`<label>Location</label><div class="chips">${locs.map(x=>`<button class="chip${x.id==lid?' on':''}" data-pl="${esc(x.id)}">${esc(x.name)}</button>`).join('')}</div>`:''}
-    ${slots}
-    ${sec?`<label>Position${single(l)?'':' in '+esc(slotLabel(l,sec))}</label><input type="number" id="pos" min="1" max="${n+1}" inputmode="numeric" value="${placed(r)&&r.loc==lid&&r.section==sec?r.pos:n+1}">
-    <p class="mute">Holds ${n} other record${n==1?'':'s'}${l.cap?` of ${l.cap}`:''}. ${l.mode=='drawers'?'#1 is at the front of the drawer. Records at or behind this position move one place back.':'Records at or after this position shift one place along.'}${l.cap&&n>=l.cap?' This one is already full.':''}</p>`:''}
     ${tempoHTML(r)}
     <label>Listening</label><p class="mute" style="margin:0 0 8px">${ago(r.played)}${nPlays(r)>1?` · ${nPlays(r)} plays in all`:''}${r.nx?' · In play next':''}</p>
-    <div class="qact" style="margin:0"><button class="chip" id="pl">Played today</button><button class="chip${r.nx?' on':''}" id="pq">${r.nx?'In play next':'Add to play next'}</button>${r.played?'<button class="chip" id="pc0">Remove last play</button>':''}</div>
+    <div class="qact" style="margin:0"><button class="chip${playedToday(r)?' on':''}" id="pl" aria-pressed="${playedToday(r)}">${playedToday(r)?'✓ Played today':'Played today'}</button><button class="chip${r.nx?' on':''}" id="pq" aria-pressed="${!!r.nx}">${r.nx?'✓ In play next':'Add to play next'}</button>${r.played?'<button class="chip" id="pc0">Remove last play</button>':''}</div>
     <label for="gn">Genre</label><input type="text" id="gn" list="gl" value="${esc(gn)}" placeholder="e.g. Electronic" autocomplete="off">
     <datalist id="gl">${genreList().map(g=>`<option value="${esc(g)}">`).join('')}</datalist>
     <label for="cm">Comment</label><textarea id="cm" placeholder="Condition, notes, who has borrowed it...">${esc(cm)}</textarea>
     ${liveSheetHTML(r)}
     ${detailsHTML(r)}
+    ${locs.length>1?`<label>Location</label><div class="chips">${locs.map(x=>`<button class="chip${x.id==lid?' on':''}" data-pl="${esc(x.id)}">${esc(x.name)}</button>`).join('')}</div>`:''}
+    ${slots}
+    ${sec?`<label>Position${single(l)?'':' in '+esc(slotLabel(l,sec))}</label><input type="number" id="pos" min="1" max="${n+1}" inputmode="numeric" value="${placed(r)&&r.loc==lid&&r.section==sec?r.pos:n+1}">
+    <p class="mute">Holds ${n} other record${n==1?'':'s'}${l.cap?` of ${l.cap}`:''}. ${l.mode=='drawers'?'#1 is at the front of the drawer. Records at or behind this position move one place back.':'Records at or after this position shift one place along.'}${l.cap&&n>=l.cap?' This one is already full.':''}</p>`:''}
     <button class="btn pri" id="ok">${sec?'Save':placed(r)?'Save as not placed':'Save'}</button>
     ${placed(r)?'<button class="btn dng" id="rm">Remove from storage</button>':''}<button class="btn" id="cx">Cancel</button>`;
     body.querySelectorAll('[data-pl]').forEach(b=>b.onclick=()=>{lid=b.dataset.pl;sec=null;draw()});
     body.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{sec=sec==+b.dataset.s?null:+b.dataset.s;draw()});
-    $('#pl').onclick=()=>{markPlayed(r);draw()};
+    covScan();
+    $('#pl').onclick=()=>{playedToday(r)?unPlay(r):markPlayed(r);draw()};
     $('#pq').onclick=()=>{r.nx=r.nx?0:Date.now();save();draw()};
     if($('#pc0'))$('#pc0').onclick=()=>{unPlay(r);draw()};
     // tap tempo: the average of the last taps; saved by itself 2.5 s after the last tap, once there are 5 or more
@@ -1415,7 +1434,8 @@ document.addEventListener('click',e=>{
   else if(d.hp){hPer=d.hp;lim=100;render()}
   else if(d.pf){pf[d.pf]=!pf[d.pf];pickId=null;render()}
   else if(d.dopick){doPick();render()}
-  else if(d.play){const r=recs.find(x=>x.id==d.play);if(r){markPlayed(r);render()}}
+  else if(d.play){const r=recs.find(x=>x.id==d.play);if(r){playedToday(r)?unPlay(r):markPlayed(r);render()}}
+  else if(d.unplay){const r=recs.find(x=>x.id==d.unplay);if(r){unPlay(r);render()}}
   else if(d.qt){const r=recs.find(x=>x.id==d.qt);if(r){r.nx=r.nx?0:Date.now();save();render()}}
   else if(d.gq){q=d.gq;view='rec';catF='all';genF='all';onlyUnplaced=false;lim=100;render();window.scrollTo(0,0)}
   else if(d.el){locSheet(d.el)}
