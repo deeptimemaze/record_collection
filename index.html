@@ -97,11 +97,11 @@ label.ck input{width:20px;height:20px}
 /* cyberpunk brutalist skin: near-black, monospace, square, 2px rules, one acid accent (lime) and one signal colour (magenta).
    Hard offset shadows only on the primary action and timeline years; a faint grid behind everything. */
 :root{--mono:ui-monospace,"SF Mono","JetBrains Mono","Cascadia Mono",Menlo,Consolas,"Roboto Mono",monospace;--font:var(--mono);
-  --y:#c6ff00;--p:#ff2e88;
+  --y:#c6ff00;--p:#ff2e88;--az:#00e5ff;--az-glow:0 0 8px rgba(0,229,255,.5);
   --bg:#050505;--head:#050505;--card:#0c0c0c;--chip:#0c0c0c;--field:#000;--thumb:#151515;
   --ink:#ececec;--mute:#7d7d7d;--line:#1f1f1f;--line2:#3b3b3b;--bd:#ececec;--red:#ff2e88;
   --hl:var(--y);--hl-t:var(--y);--on-bd:var(--y);--grid:rgba(255,255,255,.035);--glow:0 0 14px rgba(198,255,0,.55)}
-@media(prefers-color-scheme:light){:root{--p:#e0006e;
+@media(prefers-color-scheme:light){:root{--p:#e0006e;--az:#0079b8;--az-glow:none;
   --bg:#eeeee8;--head:#eeeee8;--card:#fafaf6;--chip:#fafaf6;--field:#fff;--thumb:#dfdfd8;
   --ink:#0a0a0a;--mute:#5a5a5a;--line:#d6d6ce;--line2:#a3a39b;--bd:#0a0a0a;--red:#d1005a;
   --hl:var(--p);--hl-t:var(--ink);--on-bd:#0a0a0a;--grid:rgba(0,0,0,.05);--glow:none}}
@@ -246,7 +246,11 @@ label.ck::before{content:none}
 .lviz i{display:block;height:100%;background:var(--hl);transform-origin:50% 100%;transform:scaleY(.03);box-shadow:var(--glow);will-change:transform}
 .tks{margin-top:10px}.tks div{grid-template-columns:34px 1fr}.tks em{display:block;font-style:normal;font-size:11px;color:var(--mute)}
 .chip.sm{min-height:26px;margin-top:6px;padding:4px 9px;font-size:10px}
-.rec .bpm,.shd .bpm{color:var(--hl-t);font-weight:700}.rec .bpm.sug,.shd .bpm.sug{font-weight:500}
+.rcol{flex:none;align-self:stretch;display:flex;flex-direction:column;align-items:flex-end;justify-content:space-between;gap:4px}
+.rcol .star{margin-top:auto;margin-bottom:auto}.rcol .bpmc+.star{margin-top:0}
+.bpmc{display:inline-block;padding:3px 7px;border:1.5px solid var(--az);border-radius:7px;color:var(--az);font:700 11px/1.2 var(--mono);letter-spacing:.04em;white-space:nowrap;box-shadow:var(--az-glow),inset var(--az-glow);text-shadow:var(--az-glow)}
+.bpmc.sug{border-style:dashed;opacity:.8;font-weight:600}
+.shd .tw{display:block;margin-top:2px}.sh>.rcol{flex:none;min-width:0}
 /* wireframe 3D storage */
 .s3{position:relative;margin:12px auto 18px}
 .s3.mini{margin:6px 0 12px}
@@ -274,11 +278,11 @@ label.ck::before{content:none}
 <body>
 <h1 id="h"></h1>
 <main id="app"></main>
-<nav><button data-v="rec"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.6"/><path d="M12 3a9 9 0 0 1 9 9" opacity=".5"/></svg></span>Records</button><button data-v="shelf"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="1.5"/><path d="M9 4v16M15 4v16M3 12h18"/></svg></span>Storage</button><button data-v="fav"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.2 1.2-6.5L2.5 9.5l6.6-.9z"/></svg></span>Starred</button><button data-v="ex"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h4l10 10h4M3 17h4l2.5-2.5M13.5 9.5L17 7h4M18 4l3 3-3 3M18 14l3 3-3 3"/></svg></span>Explore</button><button data-v="data"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg></span>Data</button></nav>
+<nav><button data-v="rec"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.6"/><path d="M12 3a9 9 0 0 1 9 9" opacity=".5"/></svg></span>Records</button><button data-v="shelf"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="1.5"/><path d="M9 4v16M15 4v16M3 12h18"/></svg></span>Storage</button><button data-v="fav"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4" fill="currentColor" stroke="none"/></svg></span>Selected</button><button data-v="ex"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h4l10 10h4M3 17h4l2.5-2.5M13.5 9.5L17 7h4M18 4l3 3-3 3M18 14l3 3-3 3"/></svg></span>Explore</button><button data-v="data"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg></span>Data</button></nav>
 <div id="sheet"><div id="sheetbody"></div></div>
 
 <script>
-const APP_VERSION=35,APP_DATE='21 Nov 2026';
+const APP_VERSION=37,APP_DATE='21 Nov 2026';
 const COVER_CACHE='vinyl-covers-2'; // must match COVERS in sw.js
 const DEFAULT_LOCS=[
  {id:'kallax',name:'Kallax shelf',mode:'grid',cols:3,rows:4,cap:0,formats:['lp']},
@@ -407,7 +411,7 @@ function stage(text){
   const ix=(...res)=>{for(const re of res){const i=h.findIndex(x=>re.test(x));if(i>=0)return i}return -1};
   let ia=ix(/^artist$/,/artist|band|performer/),it=ix(/^(title|album|name)$/,/title|album|release name/),
       iy=ix(/^(released|year)$/,/year|released/),ifm=ix(/^format$/),ir=ix(/^release_id$/,/release.?id/),
-      is=ix(/^section$/),ip=ix(/^pos(ition)?$/),il=ix(/^location$/),ig=ix(/^genre$/),ic=ix(/^comments?$/),ifv=ix(/^(fav(ou?rites?)?|starred?)$/),ida=ix(/^date.?added$/,/^added$/),ipl=ix(/^(last.?)?played$/),iq=ix(/^play.?next$/),ioy=ix(/^original.?(release|released|year|date)$/),body=rows.slice(1);
+      is=ix(/^section$/),ip=ix(/^pos(ition)?$/),il=ix(/^location$/),ig=ix(/^genre$/),ic=ix(/^comments?$/),ifv=ix(/^(selected|fav(ou?rites?)?|starred?)$/),ida=ix(/^date.?added$/,/^added$/),ipl=ix(/^(last.?)?played$/),iq=ix(/^play.?next$/),ioy=ix(/^original.?(release|released|year|date)$/),body=rows.slice(1);
   const xi=XF.map(([,re])=>ix(re)),irt=ix(/^rating$/),ipr=ix(/^(collection )?price\b/),irpm=ix(/^rpm$/),idg=ix(/^discogs genres$/),ids=ix(/^discogs styles$/),ibp=ix(/^bpm$/),ibs=ix(/^bpm \(suggested\)$/),ips=ix(/^plays$/);
   const cur=ipr>=0?((rows[0][ipr].match(/\(([A-Za-z]{3})\)/)||[])[1]||'').toUpperCase():'';
   if(ia<0&&it<0){ia=0;it=1;body=rows}
@@ -422,7 +426,7 @@ function stage(text){
     const lc=locs.find(l=>l.id===lo||l.name.toLowerCase()===lo.toLowerCase()),ok=il>=0&&lc&&s>=1&&s<=nSlots(lc);
     out.push({id:rid+'#'+seen[rid],artist,title,year:g(r,iy).replace(/^0$/,''),fmt,cat:ifm>=0?catOf(fmt):'lp',
       loc:ok?lc.id:null,section:ok?s:null,pos:ok&&p>0?p:null,
-      genre:g(r,ig),comment:g(r,ic),fav:/^(yes|y|1|true|x|★)$/i.test(g(r,ifv)),
+      genre:g(r,ig),comment:g(r,ic),fav:/^(yes|y|1|true|x|★|●)$/i.test(g(r,ifv)),
       da:g(r,ida),played:(g(r,ipl).match(/^\d{4}-\d{2}-\d{2}/)||[''])[0],nx:/^(yes|y|1|true|x)$/i.test(g(r,iq))?Date.now()+n:0,oy:(g(r,ioy).match(/^\d{4}(-\d{2}(-\d{2})?)?/)||[''])[0]});
     // price: "25", "12,50", "94 SEK (1430 JPY)" or "€33.00"; a symbol or code in the cell beats the column's currency
     const pm=g(r,ipr).match(/^([€£$])?\s*(\d+(?:[.,]\d+)?)\s*([A-Z]{3})?\b/),rt=parseInt(g(r,irt));
@@ -500,7 +504,7 @@ function finishImport(){
   const gone=recs.length-kept.size,old=recs.length;
   if(old)setUndo('import','');
   recs=pick;recs.forEach(prep);renumberAll();save();staged=null;
-  const msg=`Imported ${recs.length} records, ${recs.filter(placed).length} placed, ${recs.filter(r=>r.genre).length} with a genre, ${recs.filter(r=>r.fav).length} starred.`+(gone?` ${gone} records that were not in the import were removed${lost?`, ${lost} of them placed`:''}.`:'');
+  const msg=`Imported ${recs.length} records, ${recs.filter(placed).length} placed, ${recs.filter(r=>r.genre).length} with a genre, ${recs.filter(r=>r.fav).length} selected.`+(gone?` ${gone} records that were not in the import were removed${lost?`, ${lost} of them placed`:''}.`:'');
   if(old)noteUndo(msg);
   return msg;
 }
@@ -508,7 +512,7 @@ function exportCSV(){
   const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
   // the Discogs columns keep Discogs' own names, so a Discogs export and this one read the same way
   const cur=(Object.entries(recs.reduce((m,r)=>{if(r.cur)m[r.cur]=(m[r.cur]||0)+1;return m},{})).sort((a,b)=>b[1]-a[1])[0]||['SEK'])[0];
-  const lines=['Artist,Title,Released,Format,release_id,location,section,position,Genre,Comment,Starred,Date Added,Last played,Play next,Original release,'+XF.map(x=>x[2]).join(',')+`,Rating,Collection Price (${cur}),RPM,Discogs genres,Discogs styles,BPM,BPM (suggested),Plays`,
+  const lines=['Artist,Title,Released,Format,release_id,location,section,position,Genre,Comment,Selected,Date Added,Last played,Play next,Original release,'+XF.map(x=>x[2]).join(',')+`,Rating,Collection Price (${cur}),RPM,Discogs genres,Discogs styles,BPM,BPM (suggested),Plays`,
     ...recs.map(r=>[r.artist,r.title,r.year,r.fmt,r.id.split('#')[0],placed(r)?L(r.loc).name:'',placed(r)?r.section:'',placed(r)?r.pos:'',r.genre||'',r.comment||'',r.fav?'Yes':'',r.da||'',r.played||'',r.nx?'Yes':'',oyOK(r.oy)?r.oy:'',
       ...XF.map(x=>r[x[0]]||''),r.rating||'',r.price!==''&&r.cur&&r.cur!==cur?`${r.price} ${r.cur}`:r.price,r.rpmX||'',(r.dg||[]).join('; '),(r.ds||[]).join('; '),r.bpm?Math.round(r.bpm*10)/10:'',r.bpmSug?Math.round(r.bpmSug*10)/10:'',(r.plays||[]).join('; ')].map(q).join(','))];
   const a=document.createElement('a');
@@ -593,8 +597,8 @@ function diagramHTML(l,o={}){
   return t+'</div>';
 }
 const shelfHTML=(l,hi,mini,selN)=>diagramHTML(l,{hi,size:mini?'mini':'full',sel:selN});
-const STAR='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.2 1.2-6.5L2.5 9.5l6.6-.9z"/></svg>';
-const starBtn=r=>`<button class="star${r.fav?' on':''}" data-fav="${esc(r.id)}" aria-label="Starred" aria-pressed="${!!r.fav}">${STAR}</button>`;
+const STAR='<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/></svg>'; // the Selected mark: an empty ring, filled when selected
+const starBtn=r=>`<button class="star${r.fav?' on':''}" data-fav="${esc(r.id)}" aria-label="Selected" aria-pressed="${!!r.fav}">${STAR}</button>`;
 const gkey=r=>r.genre||'__none';
 // format filter: a format category, or a speed (rpm33, rpm45, rpm78)
 const fmtOK=(r,v)=>v=='all'||(v.startsWith('rpm')?rpmOf(r).split('/').includes(v.slice(3)):v.startsWith('bpm')?binOf(r)==+v.slice(3):r.cat==v);
@@ -609,8 +613,11 @@ const oyOK=v=>/^\d{4}(-\d{2}(-\d{2})?)?$/.test(v||'');
 const origY=r=>oyOK(r.oy)?r.oy.slice(0,4):'';
 const effY=r=>parseInt(origY(r)||r.year);
 const effD=r=>oyOK(r.oy)?r.oy:String(r.year||'');
+// top-right column of a card: the BPM chip (dashed while it's only a suggestion), then the Selected circle
+const bpmChip=r=>{const b=bpmOf(r);return b?`<span class="bpmc${b.sure?'':' sug'}" title="${b.sure?'Tempo':'Suggested tempo, may be half or double'}">${bpmTxt(b)}</span>`:''};
+const rcolHTML=r=>`<div class="rcol">${bpmChip(r)}${starBtn(r)}</div>`;
 function metaHTML(r){const f=(r.fmt||'').split(',')[0].trim(),o=origY(r);
-  return [o?`<strong class="oy" title="Original release year">${o}</strong>`:esc(r.year||''),esc(f),rpmOf(r)?rpmTxt(rpmOf(r)):'',bpmOf(r)?`<span class="bpm${r.bpm?'':' sug'}">${bpmTxt(bpmOf(r))}</span>`:'',esc(r.genre||'')].filter(Boolean).join(' · ')}
+  return [o?`<strong class="oy" title="Original release year">${o}</strong>`:esc(r.year||''),esc(f),rpmOf(r)?rpmTxt(rpmOf(r)):'',esc(r.genre||'')].filter(Boolean).join(' · ')}
 function thumbHTML(r){
   const disc=(rad,lab,col)=>`<svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="${rad}" fill="#0e0e0e" stroke="#3f3f3f"/><circle cx="24" cy="24" r="${(rad*.64).toFixed(1)}" fill="none" stroke="#262626"/><circle cx="24" cy="24" r="${lab}" style="fill:${col}"/><circle cx="24" cy="24" r="1.3" fill="#0e0e0e"/></svg>`;
   const c=r.cat;
@@ -653,8 +660,8 @@ const playedToday=r=>r.played==today();
 const playBtns=(r,label='Play this')=>`<div class="qact"><button class="chip${playedToday(r)?' on':''}" data-play="${esc(r.id)}" aria-pressed="${playedToday(r)}">${playedToday(r)?'✓ Played today':label}</button><button class="chip${r.nx?' on':''}" data-qt="${esc(r.id)}" aria-pressed="${!!r.nx}">${r.nx?'✓ In play next':'Add to play next'}</button>${r.played?`<button class="chip" data-unplay="${esc(r.id)}">Remove last play</button>`:''}</div>`;
 const nPlays=r=>(r.plays||[]).length;
 function recHTML(r,lead='',extra=''){
-  // the text area is a real button (keyboard and screen readers); the star sits beside it, not inside it
-  return `<div class="rec" data-id="${esc(r.id)}">${lead||thumbHTML(r)}<button class="t" data-id="${esc(r.id)}"><b>${esc(r.title)}</b><span class="s">${esc(r.artist)}</span><span class="s">${metaHTML(r)}</span>${noteHTML(r)}${extra}${lead?'':`<span class="tw">${tagHTML(r)}${liveTag(r)}</span>`}</button>${starBtn(r)}</div>`;
+  // the text area is a real button (keyboard and screen readers); the Selected circle sits beside it, not inside it
+  return `<div class="rec" data-id="${esc(r.id)}">${lead||thumbHTML(r)}<button class="t" data-id="${esc(r.id)}"><b>${esc(r.title)}</b><span class="s">${esc(r.artist)}</span><span class="s">${metaHTML(r)}</span>${noteHTML(r)}${extra}${lead?'':`<span class="tw">${tagHTML(r)}${liveTag(r)}</span>`}</button>${rcolHTML(r)}</div>`;
 }
 function matches(){
   const w=fold(q).split(/\s+/).filter(Boolean),fo=view=='fav';
@@ -668,9 +675,9 @@ function fillList(){
   });
   $('#mini').innerHTML=mini;
   $('#list').innerHTML=!recs.length?'<div class="empty">No records yet.<br>Open the Data tab to import your CSV.</div>':
-    (view=='fav'&&!recs.some(r=>r.fav))?'<div class="empty">Nothing starred yet.<br>Tap the star next to a record to add it here.</div>':
+    (view=='fav'&&!recs.some(r=>r.fav))?'<div class="empty">Nothing selected yet.<br>Tap the circle next to a record to add it here.</div>':
     !m.length?'<div class="empty">No matches.</div>':
-    `<div class="count">${m.length} ${view=='fav'?'starred':'record'}${m.length==1?'':'s'}</div>`+m.slice(0,lim).map(r=>recHTML(r)).join('')+(m.length>lim?`<button class="btn" data-more="1">Show more</button>`:'');
+    `<div class="count">${m.length} ${view=='fav'?'selected':'record'}${view=='fav'||m.length==1?'':'s'}</div>`+m.slice(0,lim).map(r=>recHTML(r)).join('')+(m.length>lim?`<button class="btn" data-more="1">Show more</button>`:'');
 }
 function toggleFav(id){
   const r=recs.find(x=>x.id==id);if(!r)return;
@@ -684,7 +691,7 @@ function render(){
   const app=$('#app');
   if(view=='rec'||view=='fav'){
     const fo=view=='fav';
-    $('#h').textContent=fo?'Starred':'Records';
+    $('#h').textContent=fo?'Selected':'Records';
     const base=fo?recs.filter(r=>r.fav):recs,np=recs.filter(r=>!placed(r)).length,cc={},gc={};
     base.forEach(r=>{fmtCount(cc,r);gc[gkey(r)]=(gc[gkey(r)]||0)+1});
     if(catF!='all'&&!cc[catF])catF='all';
@@ -1057,7 +1064,7 @@ function pickHTML(){
   const chip=(k,t)=>`<button class="chip${pf[k]?' on':''}" data-pf="${k}">${t}</button>`;
   let h=`<div class="sel2"><select id="pc" aria-label="Format"><option value="all">Any format</option>${fmtOpts(fmtCount({},...recs),pf.cat,false)}</select>
   <select id="pg" aria-label="Genre"><option value="all">Any genre</option>${gens.map(k=>`<option value="${esc(k)}"${pf.gen==k?' selected':''}>${k=='__none'?'No genre':esc(k)}</option>`).join('')}</select></div>
-  <div class="chips">${chip('fresh','Favour unplayed')}${chip('fav','Starred only')}${chip('placed','Only placed')}</div>
+  <div class="chips">${chip('fresh','Favour unplayed')}${chip('fav','Selected only')}${chip('placed','Only placed')}</div>
   <button class="btn pri" data-dopick="1">${pickId?'Pick another':'Pick a record'}</button>`;
   const r=recs.find(x=>x.id==pickId);
   if(r)h+=`<div style="margin-top:14px">${recHTML(r,'',playedLine(r))}</div>${playBtns(r)}`;
@@ -1085,7 +1092,7 @@ function statsHTML(){
   const cat=by(r=>SHORT[r.cat]),gen=by(r=>r.genre||'No genre'),dec=by(r=>{const y=effY(r);return y>=1900?Math.floor(y/10)*10+'s':'Unknown'}),
     yr=by(r=>(r.da||'').slice(0,4)||''),
     decOrd=(a,b)=>(a[0]=='Unknown')-(b[0]=='Unknown')||a[0].localeCompare(b[0]);
-  let h=`<div class="tiles">${tile(n,'Records')}${tile(pl,'Placed')}${tile(n-pl,'Not placed')}${tile(recs.filter(r=>r.fav).length,'Starred')}${tile(pd,'Played')}${tile(recs.filter(r=>r.nx).length,'Play next')}</div>`;
+  let h=`<div class="tiles">${tile(n,'Records')}${tile(pl,'Placed')}${tile(n-pl,'Not placed')}${tile(recs.filter(r=>r.fav).length,'Selected')}${tile(pd,'Played')}${tile(recs.filter(r=>r.nx).length,'Play next')}</div>`;
   h+='<label>Storage</label><p class="mute" style="margin:0 0 6px">Records, and sections, shelves or drawers in use.</p>'+barsHTML(locs.map(l=>{
     const a=recs.filter(r=>r.loc===l.id&&r.section),k=a.length,used=new Set(a.map(r=>r.section)).size,tot=nSlots(l),cap=l.cap*tot;
     return cap?[l.name,`${k} / ${cap}`,k/cap]:[l.name,`${k} · ${used}/${tot}`,used/tot];
@@ -1201,21 +1208,21 @@ function exploreView(){
 }
 function dataView(msg=''){
   $('#h').textContent='Data';
-  let h=`<p class="mute">${recs.length} records · ${recs.filter(placed).length} placed · ${recs.filter(r=>r.genre).length} with a genre · ${recs.filter(r=>r.fav).length} starred</p>`;
+  let h=`<p class="mute">${recs.length} records · ${recs.filter(placed).length} placed · ${recs.filter(r=>r.genre).length} with a genre · ${recs.filter(r=>r.fav).length} selected</p>`;
   const u=!staged&&getUndo();
-  if(u)h+=`<div class="box"><b>${u.what=='clear'?'Records cleared':'Collection imported'} on ${when(u.at)}</b>${u.note?`<p>${esc(u.note)}</p>`:''}<p>Undo puts back the ${u.n} record${u.n==1?'':'s'} you had before${u.what=='clear'?'':' the import'}, with their locations, stars and notes.</p>
+  if(u)h+=`<div class="box"><b>${u.what=='clear'?'Records cleared':'Collection imported'} on ${when(u.at)}</b>${u.note?`<p>${esc(u.note)}</p>`:''}<p>Undo puts back the ${u.n} record${u.n==1?'':'s'} you had before${u.what=='clear'?'':' the import'}, with their locations, selections and notes.</p>
     <div class="chips" style="margin-bottom:0"><button class="chip on" id="und">Undo ${u.what=='clear'?'clear':'import'}</button><button class="chip" id="undx">Keep it</button></div></div>`;
   if(staged){
     const c={};staged.forEach(r=>c[r.cat]=(c[r.cat]||0)+1);
     const p=planImport(),n=p.pick.length,g=p.gone,gw=g.filter(hasWork);
     const pl=s=>s==1?'':'s',cnt=(f,t)=>{const k=g.filter(f).length;return k?`${k} ${t}`:''};
-    const what=[cnt(placed,'placed'),cnt(r=>r.fav,'starred'),cnt(r=>r.genre||r.comment,'with a genre or comment'),cnt(r=>r.played||r.nx,'with play history')].filter(Boolean);
-    const line=r=>{const l=L(r.loc),bits=[placed(r)?[l.name,slotLabel(l,r.section),'#'+r.pos].filter(Boolean).join(' · '):'',r.fav?'★':'',r.comment?'✎ '+r.comment.replace(/\s+/g,' '):''].filter(Boolean);
+    const what=[cnt(placed,'placed'),cnt(r=>r.fav,'selected'),cnt(r=>r.genre||r.comment,'with a genre or comment'),cnt(r=>r.played||r.nx,'with play history')].filter(Boolean);
+    const line=r=>{const l=L(r.loc),bits=[placed(r)?[l.name,slotLabel(l,r.section),'#'+r.pos].filter(Boolean).join(' · '):'',r.fav?'●':'',r.comment?'✎ '+r.comment.replace(/\s+/g,' '):''].filter(Boolean);
       return `<li><b>${esc(r.title)}</b> · ${esc(r.artist)}${bits.length?`<span>${esc(bits.join(' · '))}</span>`:''}</li>`};
     h+=`<label>What should be imported?</label><p class="mute">Found ${staged.length} rows. Pick the formats you want to keep track of.</p>`+
       Object.keys(CATS).filter(k=>c[k]).map(k=>`<label class="ck"><input type="checkbox" data-cat="${k}" ${sel[k]?'checked':''}> ${CATS[k]} <span class="mute">(${c[k]})</span></label>`).join('')+
       `<label>Preview</label><div class="tiles">${[[n,'After import'],[p.added.length,'New'],[g.length,'Removed']].map(([b,t])=>`<div class="tile"><b>${b}</b><span>${t}</span></div>`).join('')}</div>`+
-      (p.pair.size?`<p class="mute">${p.pair.size} record${pl(p.pair.size)} already in the app keep their location, genre, comment, star and play history where the file leaves those empty.</p>`:'')+
+      (p.pair.size?`<p class="mute">${p.pair.size} record${pl(p.pair.size)} already in the app keep their location, genre, comment, selection and play history where the file leaves those empty.</p>`:'')+
       (g.length?`<div class="box warn"><b>${g.length} record${pl(g.length)} in the app ${g.length==1?'is':'are'} not in this import and will be removed${what.length?`: ${what.join(', ')}`:''}.</b>`+
         (p.unticked.length?`<p>${p.unticked.length} of them ${p.unticked.length==1?'is':'are'} in the file, in a format you have unticked.</p>`:'')+
         (gw.length?`<p>Records you have set up that will be removed:</p><ul class="gone">${gw.slice(0,25).map(line).join('')}</ul>${gw.length>25?`<p>And ${gw.length-25} more.</p>`:''}`:'')+
@@ -1224,7 +1231,7 @@ function dataView(msg=''){
   }else h+=`<label>Storage locations</label>`+
     locs.map(l=>`<button class="rec" data-el="${esc(l.id)}"><div class="t"><b>${esc(l.name)}</b><span class="s">${single(l)?'One compartment':l.mode=='units'?`${l.cols*stk(l)} units × ${l.rows} shelves · ${l.w} × ${l.h} × ${l.d} cm`:l.mode=='drawers'?`${l.cols} × ${l.rows} drawers · ${l.w} × ${l.h} × ${l.d} cm`:`${l.cols} × ${l.rows} sections`}${l.cap?`, ${l.cap} per ${single(l)?'case':l.mode=='drawers'?'drawer':l.mode=='units'?'shelf':'section'}`:''}</span></div><span class="tag no">Edit</span></button>`).join('')+
     `<button class="btn" id="addloc">Add storage location</button>
-    <label>Import collection (CSV)</label><p class="mute">Works with your Discogs export, or with a CSV exported from this app. Label, catalogue number, rating, folder, where and when you bought it, price, condition and Discogs notes are read too, along with Genre, Comment, Starred, Last played and Play next from this app's own export. A record without a genre gets one from its Discogs folder when the folder names a genre. Two copies of the same release are told apart by their Date Added. Records you have already set up keep their location, genre, comment and star when you import again.</p>
+    <label>Import collection (CSV)</label><p class="mute">Works with your Discogs export, or with a CSV exported from this app. Label, catalogue number, rating, folder, where and when you bought it, price, condition and Discogs notes are read too, along with Genre, Comment, Selected, Last played and Play next from this app's own export. A record without a genre gets one from its Discogs folder when the folder names a genre. Two copies of the same release are told apart by their Date Added. Records you have already set up keep their location, genre, comment and selection when you import again.</p>
     <input type="file" id="file" accept=".csv,text/csv,text/plain" hidden><button class="btn pri" id="imp">Choose CSV file</button>
     <label>Album covers</label><p class="mute">Covers are looked up on MusicBrainz and the Cover Art Archive as records scroll into view, and saved on this phone. This sends a record's Discogs number, and sometimes its artist and title, to those sites.</p>
     <div class="chips" style="margin-top:0"><button class="chip${covOn()?' on':''}" id="cvt">${covOn()?'Covers on':'Covers off'}</button><button class="chip" id="cvd">Test lookup</button><button class="chip" id="cvc">Refetch all</button></div>
@@ -1237,7 +1244,7 @@ function dataView(msg=''){
     <label>Concerts (setlist.fm)</label><p class="mute">Brings in the concerts you've marked as attended on setlist.fm. They show as LIVE tags on records by those artists, on the record sheet, and in Explore → Live. setlist.fm doesn't let web apps fetch them, so run <b>tools/setlistfm_export.py</b> on a computer (see the README) and choose the CSV it writes. Importing again replaces the list.</p>
     <p class="mute" id="gigmsg">${gigs.length?`${gigs.length} concerts imported. ${recs.filter(r=>gigsFor(r).length).length} of your records are by artists you've seen live.`:'No concerts imported yet.'}</p>
     <input type="file" id="gfile" accept=".csv,text/csv,text/plain" hidden><div class="chips" style="margin-top:0"><button class="chip" id="gimp">Choose concerts CSV</button>${gigs.length?'<button class="chip" id="gclr">Remove concerts</button>':''}</div>
-    <label>Back up</label><p class="mute">Export a CSV with every record's location, genre, comment, star and played date. You can import it again later.</p>
+    <label>Back up</label><p class="mute">Export a CSV with every record's location, genre, comment, selection and played date. You can import it again later.</p>
     <button class="btn" id="exp">Export CSV</button><button class="btn dng" id="clr">Clear all records</button>`;
   $('#app').innerHTML=h+`<p class="mute" id="msg">${esc(msg)}</p><p class="mute" style="text-align:center;margin-top:28px;margin-bottom:6px">Crate · version ${APP_VERSION} · ${APP_DATE}</p><div class="chips" style="justify-content:center;margin:0"><button class="chip" id="upd">Check for updates</button></div><p class="mute" id="updmsg" style="text-align:center;min-height:1.4em"></p>`;
   if(staged){
@@ -1412,7 +1419,7 @@ function openRecSheet(id){
     if(!single(l)){
       slots=`<label>${unitOf(l)[0].toUpperCase()+unitOf(l).slice(1)}</label>`+diagramHTML(l,{size:'pick',attr:'data-s',hi:new Set(sec?[sec]:[]),sel:sec});
     }
-    body.innerHTML=`${bigArtHTML(r)}<div class="sh shd"><div><b>${esc(r.title)}</b><span class="s">${esc(r.artist)}</span><span class="s">${metaHTML(r)}</span></div>${starBtn(r)}</div>
+    body.innerHTML=`${bigArtHTML(r)}<div class="sh shd"><div><b>${esc(r.title)}</b><span class="s">${esc(r.artist)}</span><span class="s">${metaHTML(r)}</span><span class="tw">${tagHTML(r)}${liveTag(r)}</span></div>${rcolHTML(r)}</div>
     ${tagRowHTML(r)}
     ${tempoHTML(r)}
     <label>Listening</label><p class="mute" style="margin:0 0 8px">${ago(r.played)}${nPlays(r)>1?` · ${nPlays(r)} plays in all`:''}${r.nx?' · In play next':''}</p>
