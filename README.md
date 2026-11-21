@@ -6,7 +6,7 @@ A small installable web app for keeping track of where your records and CDs are 
 
 - Import a Discogs CSV export. Choose which formats to keep: LP/12"/10", 7", shellac, CD, cassette.
 - Place each record in a storage location by section and position, counting from 1.
-- See each location as a diagram, with the number of records in every section.
+- See each location as a wireframe 3D drawing, with the number of records in every section, shelf or drawer. Tap a drawer to pull it out and see its records standing front to back.
 - Give each record a genre, a free-text comment and a star. Starred records have their own tab.
 - Search by artist, title, comment, Discogs notes, label, catalogue number, folder or Discogs style. Accents are ignored, so "sigur ros" finds Sigur Rós and "einsturzende" finds Einstürzende.
 - Filter by format and genre, or show only records that are not placed yet.
@@ -30,11 +30,17 @@ Three locations are set up by default and can be edited in the **Data** tab:
 | --- | --- | --- |
 | Kallax shelf | 3 × 4 sections, numbered along each row from the top left | LP, 12", 10" |
 | 7" case | One compartment, capacity 200 | 7" singles |
-| String Pocket | Shelves layout: 8 units with 3 shelves each, 78 × 20 cm per shelf, numbered 1–24 from the top | CDs |
+| String Pocket | Shelves layout: 8 units with 3 shelves each, 78 × 20 × 15 cm per shelf, numbered 1–24 from the top | CDs |
 
-You can add more locations with either the **Grid section** or the **Shelves** layout. For Shelves you enter the width and height of each shelf in centimetres, and the diagram is drawn to those proportions. A location can't be made smaller than the highest section or shelf that holds records, so your placements are never lost by an edit.
+You can add more locations with one of three layouts:
 
-When you place a record at a position that is already taken, the records from that position onwards shift one place along, as if you slid it in on the shelf.
+- **Grid section**: columns and rows of square sections, drawn as cubes (like a Kallax). Sections are numbered along each row from the top left.
+- **Shelves**: units side by side and stacked, each with a number of shelves. Enter the width, height and depth of each shelf in centimetres; the drawing uses those proportions. Shelves are numbered from the top, unit by unit.
+- **Drawers**: a cabinet of drawers side by side and stacked. Enter the width, height and depth of each drawer in centimetres. Drawers are numbered along each row from the top left, and inside a drawer records are numbered from the front to the back.
+
+The drawings are wireframe 3D, with depth going up and to the right. A location can't be made smaller than the highest section, shelf or drawer that holds records, so your placements are never lost by an edit.
+
+When you place a record at a position that is already taken, the records from that position onwards shift one place along, as if you slid it in on the shelf (in a drawer: one place further back).
 
 ## Use it
 

@@ -75,23 +75,8 @@ button.t .tw{display:block}
 .star{flex:none;width:44px;height:44px;margin:0 -6px 0 0;padding:0;background:none;border:0;display:grid;place-items:center}
 .star svg{width:26px;height:26px;fill:none;stroke:var(--mute);stroke-width:1.7;stroke-linejoin:round}
 .star.on svg{fill:#f0b429;stroke:#d9a007}
-.store{display:grid;grid-template-columns:repeat(var(--cols,3),minmax(0,1fr));gap:6px;padding:10px;background:var(--card);border:1px solid var(--line);border-radius:14px;margin:10px 0}
-.store.units.full,.store.units.pick{margin-left:auto;margin-right:auto}
-.cell{position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;aspect-ratio:var(--ar,1);min-width:0;padding:0 6px;border:0;border-radius:8px;background:var(--chip);color:var(--ink)}
-.cell .n{font:600 20px/1 var(--font)}
-.cell .c{font:500 12px/1 var(--font);color:var(--mute)}
-.cell.wide{flex-direction:row;justify-content:space-between;padding:0 16px}
-.cell.wide .n{font-size:18px}
-.cell.ub{margin-bottom:10px}
-.cell.hi{background:var(--ink);color:var(--bg)}.cell.hi .c{color:var(--bg);opacity:.7}
-.cell.sel{outline:2px solid var(--ink);outline-offset:2px}
 .fill{position:absolute;left:0;bottom:0;height:4px;background:var(--ink);opacity:.85}
-.store.mini{padding:8px;gap:5px}.store.mini .cell{border-radius:6px}.store.mini .n{font-size:14px}.store.mini .c{display:none}
-.store.pick.units{margin-top:6px}.store.pick.units .cell{min-height:0}.store.pick{padding:8px;gap:5px}.store.pick .cell{min-height:40px;border-radius:6px}.store.pick .n{font-size:15px}
-.store.one{padding:12px}.store.one .cell{aspect-ratio:4/1}.store.one .n{display:none}.store.one .c{display:block;font-size:17px;font-weight:600;color:inherit}
-.store.one.mini .cell{aspect-ratio:6/1}.store.one.mini .c{font-size:13px}
 .locname{font-weight:600;margin-top:12px}
-#lprev .cell{pointer-events:none}
 .mute{color:var(--mute);font-size:14px}.empty{text-align:center;color:var(--mute);padding:34px 10px}
 .btn{min-height:50px;padding:12px 18px;border-radius:999px;border:0;background:var(--chip);font-weight:600;width:100%;margin:6px 0}
 .btn.pri{background:var(--acc);color:var(--acc-ink)}
@@ -177,13 +162,7 @@ nav button.on{color:var(--ink)}
 nav button.on .ic{background:var(--y);color:#000;box-shadow:var(--glow)}
 
 /* storage diagrams */
-.store{gap:6px;padding:8px;margin:12px 0 16px;background:transparent;border:2px solid var(--line2);box-shadow:none}
-.cell{background:var(--card);border:1px solid var(--line2);font-family:var(--mono)}
-.cell .n{font-weight:700}.cell .c{font-weight:500;color:var(--mute)}
-.cell.hi{background:var(--y);color:#000;border-color:var(--on-bd)}.cell.hi .c{color:#000;opacity:.75}
-.cell.sel{outline:2px solid var(--hl);outline-offset:2px}
 .fill{height:4px;background:var(--p);opacity:1}
-.store.mini .cell,.store.pick .cell{border-width:1px}
 .locname{font:600 11px/1 var(--mono);text-transform:uppercase;letter-spacing:.14em;margin-top:14px}
 
 /* stats */
@@ -252,6 +231,27 @@ label.ck::before{content:none}
 .tks{margin-top:10px}.tks div{grid-template-columns:34px 1fr}.tks em{display:block;font-style:normal;font-size:11px;color:var(--mute)}
 .chip.sm{min-height:26px;margin-top:6px;padding:4px 9px;font-size:10px}
 .rec .bpm{color:var(--hl-t);font-weight:700}.rec .bpm.sug{font-weight:500}
+/* wireframe 3D storage */
+.s3{position:relative;margin:12px auto 18px}
+.s3.mini{margin:6px 0 12px}
+.s3 svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.s3 svg *{fill:none;vector-effect:non-scaling-stroke;stroke-linejoin:round;stroke-linecap:square}
+.s3 .f{stroke:var(--ink);stroke-width:1.5}
+.s3 .b{stroke:var(--line2);stroke-width:1;stroke-dasharray:3 3}
+.s3 .i{stroke:var(--line2);stroke-width:1}
+.s3 .k{stroke:var(--mute);stroke-width:2}
+.s3 .h{stroke:var(--hl);stroke-width:2;filter:drop-shadow(var(--glow))}
+.s3 .occ{fill:var(--bg);stroke:none}
+.s3.pulled .s3b:not(.out){opacity:.3}.s3b.out{z-index:1}
+.s3 .it{stroke:var(--hl);stroke-width:1;opacity:.55}.s3 .it.a{opacity:1;stroke-width:1.6}
+.s3b{position:absolute;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.25em;padding:0;margin:0;background:transparent;border:0;color:var(--ink);font-family:var(--mono);overflow:hidden}
+@media(hover:hover){.s3b:hover{background:color-mix(in srgb,var(--ink) 9%,transparent)}}
+.s3b .n{font-weight:700;line-height:1}.s3b .c{font-size:.68em;line-height:1;color:var(--mute)}
+.s3b.wide{flex-direction:row;justify-content:space-between;padding:0 7%}
+.s3b.sel{background:color-mix(in srgb,var(--y) 18%,transparent)}
+.s3b.hi{background:color-mix(in srgb,var(--y) 88%,transparent);color:#000}.s3b.hi .c{color:#000}
+.s3b .fill{position:absolute;left:0;bottom:0;height:3px;background:var(--p)}
+#lprev .s3b{pointer-events:none}
 .dlink{display:inline-block;margin:12px 0 4px;color:var(--hl-t);font:700 11px/1 var(--mono);text-transform:uppercase;letter-spacing:.14em;text-underline-offset:4px}
 </style>
 </head>
@@ -262,12 +262,12 @@ label.ck::before{content:none}
 <div id="sheet"><div id="sheetbody"></div></div>
 
 <script>
-const APP_VERSION=29,APP_DATE='21 Nov 2026';
+const APP_VERSION=30,APP_DATE='21 Nov 2026';
 const COVER_CACHE='vinyl-covers-2'; // must match COVERS in sw.js
 const DEFAULT_LOCS=[
  {id:'kallax',name:'Kallax shelf',mode:'grid',cols:3,rows:4,cap:0,formats:['lp']},
  {id:'case7',name:'7" case',mode:'grid',cols:1,rows:1,cap:200,formats:['s7']},
- {id:'string',name:'String Pocket',mode:'units',cols:1,stack:8,rows:3,w:78,h:20,cap:0,formats:['cd']}];
+ {id:'string',name:'String Pocket',mode:'units',cols:1,stack:8,rows:3,w:78,h:20,d:15,cap:0,formats:['cd']}];
 let locs=[],recs=[],view='rec',q='',onlyUnplaced=false,catF='all',genF='all',selLoc=null,selSec=null,lim=100,staged=null,
     sel={lp:1,s7:1,cd:1,shellac:0,cass:0,other:0};
 const CATS={lp:'LP, 12" and 10"',s7:'7"',shellac:'Shellac (78 rpm)',cd:'CD and MiniDisc',cass:'Cassette',other:'Other (boxes, etc.)'};
@@ -314,7 +314,8 @@ function load(){
   if(!Array.isArray(locs)||!locs.length)locs=JSON.parse(JSON.stringify(DEFAULT_LOCS));
   recs.forEach(norm);
   locs.forEach(l=>{if(l.id=='string'&&l.mode=='units'&&((l.cols==8&&!l.stack)||(l.cols==4&&l.stack==2))){l.cols=1;l.stack=8}});
-  locs.forEach(l=>{if(l.mode=='units'){l.w=+l.w||78;l.h=+l.h||20}});
+  locs.forEach(l=>{if(l.mode=='units'){l.w=+l.w||78;l.h=+l.h||20;l.d=+l.d||(l.id=='string'?15:30)}
+    if(l.mode=='drawers'){l.w=+l.w||40;l.h=+l.h||15;l.d=+l.d||50}});
 }
 function norm(r){r.fav=!!r.fav;r.nx=+r.nx||0;r.played=r.played||'';r.da=r.da||'';r.oy=oyOK(r.oy)?r.oy:'';
   XF.forEach(([k])=>r[k]=r[k]||'');r.rating=+r.rating||0;r.price=r.price===''||r.price==null?'':+r.price;r.cur=r.cur||'';r.rpmX=r.rpmX||'';
@@ -330,9 +331,9 @@ const dRows=l=>l.rows*stk(l);
 const nSlots=l=>l.cols*dRows(l);
 const single=l=>nSlots(l)==1;
 const placed=r=>!!(r.section&&L(r.loc));
-const slotLabel=(l,n)=>single(l)?'':l.mode=='units'?`Shelf ${n}`:`Section ${n}`;
+const UNIT={grid:'section',units:'shelf',drawers:'drawer'},unitOf=l=>UNIT[l.mode]||'section';
+const slotLabel=(l,n)=>single(l)?'':`${unitOf(l)[0].toUpperCase()+unitOf(l).slice(1)} ${n}`;
 const slotShort=(l,n)=>single(l)?'':String(n);
-const slotAt=(l,r,c)=>l.mode=='units'?c*dRows(l)+r+1:r*l.cols+c+1;
 const inSlot=(id,n)=>recs.filter(r=>r.loc===id&&r.section===n).sort((a,b)=>a.pos-b.pos);
 const defaultLoc=r=>locs.find(l=>(l.formats||[]).includes(r.cat))||locs[0];
 
@@ -499,29 +500,76 @@ function exportCSV(){
 }
 
 /* UI pieces */
-function diagramHTML(l,o={}){
-  const size=o.size||'full',hi=o.hi||new Set(),selN=o.sel||null,attr=o.attr||'data-sec';
-  const units=l.mode=='units',one=single(l),rows=l.rows,w=+l.w||78,h=+l.h||20,ratio=w/h;
-  let cols=l.cols,ar=1,cells=[],style='';
-  if(one){cols=1}
-  else if(units&&size!='mini'){
-    ar=ratio;
-    for(let r=0;r<dRows(l);r++)for(let c=0;c<l.cols;c++)cells.push({n:slotAt(l,r,c),ub:(r+1)%rows==0&&r<dRows(l)-1});
-    const cw=46*Math.max(ratio,1);
-    style=`max-width:${Math.min(560,Math.round(cols*cw+(cols-1)*6+22))}px;`;
-  }else if(units){
-    ar=ratio;cols=rows>=3?Math.min(rows,6):4;
-    for(let u=0;u<l.cols*stk(l);u++)for(let k=1;k<=rows;k++)cells.push({n:u*rows+k});
+/* storage diagrams: oblique wireframe 3D. Fronts stay true rectangles, so the tap targets are plain buttons laid over them;
+   depth recedes up and to the right. Grid sections are cubes; shelves and drawers use their real width, height and depth in cm. */
+const KX=.42,KY=.27;
+function geo(l,size){
+  const cells=[],boxes=[];
+  if(l.mode=='units'){
+    const w=+l.w||78,h=+l.h||20,d=+l.d||30,R=l.rows,S=stk(l),C=l.cols,gx=w*.08,gy=h*.3;
+    // tall stacks of units are laid out side by side in the small diagrams, so they stay readable
+    const reflow=(size=='mini'||size=='pick')&&S>1&&S*R>6,K=reflow?Math.min(4,C*S):0;let i=0;
+    for(let c=0;c<C;c++)for(let s=0;s<S;s++){
+      const ox=reflow?(i%K)*(w+gx):c*(w+gx),oy=reflow?Math.floor(i/K)*(R*h+gy):s*R*h;i++;
+      boxes.push({x:ox,y:oy,w,h:R*h,d});
+      for(let k=0;k<R;k++)cells.push({n:c*dRows(l)+s*R+k+1,x:ox,y:oy+k*h,w,h,d});
+    }
+  }else if(l.mode=='drawers'){
+    const w=+l.w||40,h=+l.h||15,d=+l.d||50;
+    boxes.push({x:0,y:0,w:l.cols*w,h:l.rows*h,d});
+    for(let r=0;r<l.rows;r++)for(let c=0;c<l.cols;c++)cells.push({n:r*l.cols+c+1,x:c*w,y:r*h,w,h,d,dr:1});
   }else{
-    ar=size=='mini'?1.5:1;
-    for(let r=0;r<l.rows;r++)for(let c=0;c<l.cols;c++)cells.push({n:slotAt(l,r,c)});
+    boxes.push({x:0,y:0,w:l.cols,h:l.rows,d:1});
+    for(let r=0;r<l.rows;r++)for(let c=0;c<l.cols;c++)cells.push({n:r*l.cols+c+1,x:c,y:r,w:1,h:1,d:1});
   }
-  if(one)cells=[{n:1}];
-  const wide=size!='mini'&&units&&ratio>=2.2&&l.cols<=2;
-  let t=`<div class="store ${units?'units':'grid'} ${size}${one?' one':''}${l.id=='case7'?' case':''}" style="--cols:${cols};--ar:${ar.toFixed(3)};${style}">`;
-  cells.forEach(({n,ub})=>{
-    const k=inSlot(l.id,n).length;
-    t+=`<button class="cell${wide?' wide':''}${hi.has(n)?' hi':''}${selN===n&&!one?' sel':''}${ub?' ub':''}" data-loc="${esc(l.id)}" ${attr}="${n}"><span class="n">${slotShort(l,n)}</span>${size=='pick'?'':`<span class="c">${k}${l.cap?' / '+l.cap:''}</span>`}${size=='full'&&l.cap?`<i class="fill" style="width:${Math.min(100,k/l.cap*100)}%"></i>`:''}</button>`;
+  return {cells,boxes};
+}
+function diagramHTML(l,o={}){
+  const size=o.size||'full',hi=o.hi||new Set(),selN=o.sel||null,attr=o.attr||'data-sec',one=single(l);
+  const {cells,boxes}=geo(l,size);
+  // in the Storage tab the selected drawer is drawn pulled out, with its records standing front to back
+  const pull=size=='full'&&l.mode=='drawers'&&selN&&!one?selN:null;
+  const P=(x,y,z)=>[x+z*KX,y-z*KY],pts=[],svg=[];
+  const poly=(q,cls)=>svg.push(`<polygon class="${cls}" points="${q.map(p=>p.map(v=>+v.toFixed(2)).join(',')).join(' ')}"/>`);
+  const line=(p1,p2,cls)=>svg.push(`<line class="${cls}" x1="${+p1[0].toFixed(2)}" y1="${+p1[1].toFixed(2)}" x2="${+p2[0].toFixed(2)}" y2="${+p2[1].toFixed(2)}"/>`);
+  const face=(x,y,w,h,z)=>[P(x,y,z),P(x+w,y,z),P(x+w,y+h,z),P(x,y+h,z)];
+  // a box: back face and depth edges (dimmer), then the front face
+  const box=(x,y,w,h,z,d,back,front)=>{const f=face(x,y,w,h,z),k=face(x,y,w,h,z+d);pts.push(...f,...k);
+    poly(k,back);f.forEach((p,i)=>line(p,k[i],back));poly(f,front)};
+  boxes.forEach(b=>box(b.x,b.y,b.w,b.h,0,b.d,'b','f'));
+  const pz=c=>c.n===pull?-c.d*.62:0;
+  cells.forEach(c=>{
+    if(c.n===pull)return;
+    if(c.dr){const f=face(c.x,c.y,c.w,c.h,0);poly(f,'f');line(P(c.x+c.w*.42,c.y+c.h*.13,0),P(c.x+c.w*.58,c.y+c.h*.13,0),'k')}
+    else if(!one)box(c.x,c.y,c.w,c.h,0,c.d,'i','f');
+  });
+  cells.filter(c=>c.n===pull||hi.has(c.n)||(c.n===selN&&!one)).forEach(c=>{
+    const z=pz(c);
+    if(c.n===pull){const F=face(c.x,c.y,c.w,c.h,z),B=face(c.x,c.y,c.w,c.h,z+c.d);
+      poly([F[0],F[1],B[1],B[0]],'occ');poly([F[1],B[1],B[2],F[2]],'occ');poly(F,'occ')}
+    box(c.x,c.y,c.w,c.h,z,c.d,'h','h');
+    if(c.n===pull){
+      const k=Math.min(inSlot(l.id,c.n).length,24);
+      for(let j=0;j<k;j++){const zz=z+c.d*(.06+.88*(j+.5)/Math.max(k,1));poly(face(c.x+c.w*.08,c.y+c.h*.22,c.w*.84,c.h*.78,zz),j?'it':'it a')}
+      line(P(c.x+c.w*.42,c.y+c.h*.13,z),P(c.x+c.w*.58,c.y+c.h*.13,z),'k');
+    }
+  });
+  const xs=pts.map(p=>p[0]),ys=pts.map(p=>p[1]),x0=Math.min(...xs),y0=Math.min(...ys),x1=Math.max(...xs),y1=Math.max(...ys);
+  const pad=Math.max(x1-x0,y1-y0)*.02,VW=x1-x0+2*pad,VH=y1-y0+2*pad,ox=x0-pad,oy=y0-pad;
+  const minH=Math.min(...cells.map(c=>c.h));
+  let maxH={full:520,prev:230,pick:300,mini:110}[size]||520;const maxW={mini:240}[size]||560;
+  if(size=='full')maxH=Math.min(1400,Math.max(maxH,VH*34/minH));
+  const pxu=Math.min(maxH/VH,Math.min(maxW,345)/VW); // rough pixels per unit on a phone, for label sizes
+  let t=`<div class="s3 ${size}${pull?' pulled':''}" style="aspect-ratio:${VW.toFixed(2)}/${VH.toFixed(2)};width:min(100%,${Math.round(Math.min(maxW,maxH*VW/VH))}px)">`+
+    `<svg viewBox="${ox.toFixed(2)} ${oy.toFixed(2)} ${VW.toFixed(2)} ${VH.toFixed(2)}" aria-hidden="true">${svg.join('')}</svg>`;
+  cells.forEach(c=>{
+    const k=inSlot(l.id,c.n).length,[fx,fy]=P(c.x,c.y,pz(c)),hp=c.h*pxu,wp=c.w*pxu;
+    const fs=Math.max(8,Math.min(size=='mini'?12:20,hp*.36,wp*.3)),wide=wp/hp>=2.2&&hp<44,cnt=size!='pick'&&size!='mini'&&hp>=(wide?14:26);
+    const lbl=one?l.name:slotLabel(l,c.n);
+    t+=`<button class="s3b${wide?' wide':''}${hi.has(c.n)?' hi':''}${selN===c.n&&!one?' sel':''}${c.n===pull?' out':''}" data-loc="${esc(l.id)}" ${attr}="${c.n}" aria-label="${esc(lbl)}: ${k} record${k==1?'':'s'}" `+
+      `style="left:${((fx-ox)/VW*100).toFixed(3)}%;top:${((fy-oy)/VH*100).toFixed(3)}%;width:${(c.w/VW*100).toFixed(3)}%;height:${(c.h/VH*100).toFixed(3)}%;font-size:${fs.toFixed(1)}px">`+
+      (one?'':`<span class="n">${slotShort(l,c.n)}</span>`)+(cnt||one&&size!='pick'?`<span class="c">${k}${l.cap?' / '+l.cap:''}</span>`:'')+
+      (size=='full'&&l.cap?`<i class="fill" style="width:${Math.min(100,k/l.cap*100)}%"></i>`:'')+`</button>`;
   });
   return t+'</div>';
 }
@@ -629,11 +677,11 @@ function render(){
       if(single(l))selSec=1;
       h+=shelfHTML(l,new Set(),false,selSec);
       if(selSec){const a=inSlot(l.id,selSec);
-        h+=`<p class="mute">${esc(single(l)?l.name:slotLabel(l,selSec))}${single(l)?'':', left to right'}: ${a.length}${l.cap?' of '+l.cap:''} records</p>`+
+        h+=`<p class="mute">${esc(single(l)?l.name:slotLabel(l,selSec))}${single(l)?'':l.mode=='drawers'?', front to back':', left to right'}: ${a.length}${l.cap?' of '+l.cap:''} records</p>`+
         (a.length?a.slice(0,lim).map(r=>recHTML(r)).join('')+(a.length>lim?'<button class="btn" data-more="1">Show more</button>':''):'<div class="empty">Nothing here yet.</div>');
       }else{
         const all=recs.filter(r=>r.loc===l.id&&r.section).sort((a,b)=>a.section-b.section||a.pos-b.pos);
-        h+=`<p class="mute">${l.mode=='units'?`Shelves are numbered from the top, ${l.rows} per unit, drawn to scale at ${l.w} × ${l.h} cm each. Tap a shelf to see only its records.`:'Sections are numbered along each row, starting at the top left. Tap a section to see only its records.'}</p>
+        h+=`<p class="mute">${l.mode=='units'?`Shelves are numbered from the top, ${l.rows} per unit, drawn to scale at ${l.w} × ${l.h} × ${l.d} cm each. Tap a shelf to see only its records.`:l.mode=='drawers'?`Drawers are numbered along each row from the top left, drawn to scale at ${l.w} × ${l.h} × ${l.d} cm each. Tap a drawer to pull it out and see its records; #1 is at the front.`:'Sections are numbered along each row, starting at the top left. Tap a section to see only its records.'}</p>
         <div class="count">${all.length} record${all.length==1?'':'s'} in ${esc(l.name)}</div>`+
         (all.length?all.slice(0,lim).map(r=>recHTML(r)).join('')+(all.length>lim?'<button class="btn" data-more="1">Show more</button>':''):'<div class="empty">Nothing here yet.</div>');
       }
@@ -1001,7 +1049,7 @@ function statsHTML(){
     yr=by(r=>(r.da||'').slice(0,4)||''),
     decOrd=(a,b)=>(a[0]=='Unknown')-(b[0]=='Unknown')||a[0].localeCompare(b[0]);
   let h=`<div class="tiles">${tile(n,'Records')}${tile(pl,'Placed')}${tile(n-pl,'Not placed')}${tile(recs.filter(r=>r.fav).length,'Starred')}${tile(pd,'Played')}${tile(recs.filter(r=>r.nx).length,'Play next')}</div>`;
-  h+='<label>Storage</label><p class="mute" style="margin:0 0 6px">Records, and sections or shelves in use.</p>'+barsHTML(locs.map(l=>{
+  h+='<label>Storage</label><p class="mute" style="margin:0 0 6px">Records, and sections, shelves or drawers in use.</p>'+barsHTML(locs.map(l=>{
     const a=recs.filter(r=>r.loc===l.id&&r.section),k=a.length,used=new Set(a.map(r=>r.section)).size,tot=nSlots(l),cap=l.cap*tot;
     return cap?[l.name,`${k} / ${cap}`,k/cap]:[l.name,`${k} · ${used}/${tot}`,used/tot];
   }));
@@ -1090,7 +1138,7 @@ function dataView(msg=''){
         `<p>You can undo the import afterwards in this tab.</p></div>`:'')+
       `<button class="btn pri" id="go">${g.length?`Import ${n} and remove ${g.length}`:`Import ${n} records`}</button><button class="btn" id="no">Cancel</button>`;
   }else h+=`<label>Storage locations</label>`+
-    locs.map(l=>`<button class="rec" data-el="${esc(l.id)}"><div class="t"><b>${esc(l.name)}</b><span class="s">${single(l)?'One compartment':l.mode=='units'?`${l.cols*stk(l)} units × ${l.rows} shelves · ${l.w} × ${l.h} cm`:`${l.cols} × ${l.rows} sections`}${l.cap?`, ${l.cap} per ${single(l)?'case':l.mode=='units'?'shelf':'section'}`:''}</span></div><span class="tag no">Edit</span></button>`).join('')+
+    locs.map(l=>`<button class="rec" data-el="${esc(l.id)}"><div class="t"><b>${esc(l.name)}</b><span class="s">${single(l)?'One compartment':l.mode=='units'?`${l.cols*stk(l)} units × ${l.rows} shelves · ${l.w} × ${l.h} × ${l.d} cm`:l.mode=='drawers'?`${l.cols} × ${l.rows} drawers · ${l.w} × ${l.h} × ${l.d} cm`:`${l.cols} × ${l.rows} sections`}${l.cap?`, ${l.cap} per ${single(l)?'case':l.mode=='drawers'?'drawer':l.mode=='units'?'shelf':'section'}`:''}</span></div><span class="tag no">Edit</span></button>`).join('')+
     `<button class="btn" id="addloc">Add storage location</button>
     <label>Import collection (CSV)</label><p class="mute">Works with your Discogs export, or with a CSV exported from this app. Label, catalogue number, rating, folder, where and when you bought it, price, condition and Discogs notes are read too, along with Genre, Comment, Starred, Last played and Play next from this app's own export. A record without a genre gets one from its Discogs folder when the folder names a genre. Two copies of the same release are told apart by their Date Added. Records you have already set up keep their location, genre, comment and star when you import again.</p>
     <input type="file" id="file" accept=".csv,text/csv,text/plain" hidden><button class="btn pri" id="imp">Choose CSV file</button>
@@ -1187,14 +1235,14 @@ function openRecSheet(id){
     const n=sec?inSlot(l.id,sec).filter(x=>x.id!=r.id).length:0;
     let slots='';
     if(!single(l)){
-      slots=`<label>${l.mode=='units'?'Shelf':'Section'}</label>`+diagramHTML(l,{size:'pick',attr:'data-s',hi:new Set(sec?[sec]:[]),sel:sec});
+      slots=`<label>${unitOf(l)[0].toUpperCase()+unitOf(l).slice(1)}</label>`+diagramHTML(l,{size:'pick',attr:'data-s',hi:new Set(sec?[sec]:[]),sel:sec});
     }
     body.innerHTML=`<div class="sh"><div><b class="sht">${esc(r.title)}</b><div class="mute">${esc(r.artist)}</div><div class="mute">${[origY(r)?`<strong>${origY(r)}</strong>`+(r.year&&r.year!=origY(r)?` <span>(this edition ${esc(r.year)})</span>`:''):esc(r.year||''),esc((r.fmt||'').split(',')[0].trim())].filter(Boolean).join(' · ')}</div></div>${starBtn(r)}</div>
     ${tagRowHTML(r)}
     ${locs.length>1?`<label>Location</label><div class="chips">${locs.map(x=>`<button class="chip${x.id==lid?' on':''}" data-pl="${esc(x.id)}">${esc(x.name)}</button>`).join('')}</div>`:''}
     ${slots}
     ${sec?`<label>Position${single(l)?'':' in '+esc(slotLabel(l,sec))}</label><input type="number" id="pos" min="1" max="${n+1}" inputmode="numeric" value="${placed(r)&&r.loc==lid&&r.section==sec?r.pos:n+1}">
-    <p class="mute">Holds ${n} other record${n==1?'':'s'}${l.cap?` of ${l.cap}`:''}. Records at or after this position shift one place along.${l.cap&&n>=l.cap?' This one is already full.':''}</p>`:''}
+    <p class="mute">Holds ${n} other record${n==1?'':'s'}${l.cap?` of ${l.cap}`:''}. ${l.mode=='drawers'?'#1 is at the front of the drawer. Records at or behind this position move one place back.':'Records at or after this position shift one place along.'}${l.cap&&n>=l.cap?' This one is already full.':''}</p>`:''}
     ${tempoHTML(r)}
     <label>Listening</label><p class="mute" style="margin:0 0 8px">${ago(r.played)}${r.nx?' · In play next':''}</p>
     <div class="qact" style="margin:0"><button class="chip" id="pl">Played today</button><button class="chip${r.nx?' on':''}" id="pq">${r.nx?'In play next':'Add to play next'}</button>${r.played?'<button class="chip" id="pc0">Clear date</button>':''}</div>
@@ -1232,41 +1280,49 @@ function openRecSheet(id){
 }
 function locSheet(id){
   const o=id?L(id):null;
-  const l=o?{...o,formats:[...(o.formats||[])]}:{id:'l'+Date.now().toString(36),name:'',mode:'grid',cols:3,rows:4,stack:1,w:78,h:20,cap:0,formats:[]};
+  const l=o?{...o,formats:[...(o.formats||[])]}:{id:'l'+Date.now().toString(36),name:'',mode:'grid',cols:3,rows:4,stack:1,w:78,h:20,d:30,cap:0,formats:[]};
+  // sizes remembered per layout while you switch between them in the editor
+  const dims={units:{w:l.mode=='units'?l.w:78,h:l.mode=='units'?l.h:20,d:l.mode=='units'?l.d||30:30},drawers:{w:l.mode=='drawers'?l.w:40,h:l.mode=='drawers'?l.h:15,d:l.mode=='drawers'?l.d:50}};
+  let lastMode=l.mode;
   const body=$('#sheetbody'),nPlaced=o?recs.filter(r=>r.loc===o.id&&r.section).length:0;
   body.innerHTML=`<b class="sht">${o?'Edit storage location':'New storage location'}</b>
   <label>Name</label><input type="text" id="ln" value="${esc(l.name)}" placeholder="e.g. Hallway shelf">
-  <label>Layout</label><select id="lm"><option value="grid" ${l.mode=='grid'?'selected':''}>Grid section</option><option value="units" ${l.mode=='units'?'selected':''}>Shelves</option></select>
+  <label>Layout</label><select id="lm"><option value="grid" ${l.mode=='grid'?'selected':''}>Grid section</option><option value="units" ${l.mode=='units'?'selected':''}>Shelves</option><option value="drawers" ${l.mode=='drawers'?'selected':''}>Drawers</option></select>
   <label id="lc">Columns</label><input type="number" id="lcols" min="1" max="12" value="${l.cols}" inputmode="numeric">
   <div id="lsw"><label>Units stacked above each other</label><input type="number" id="lstack" min="1" max="30" value="${l.stack||1}" inputmode="numeric"></div>
   <label id="lr">Rows</label><input type="number" id="lrows" min="1" max="30" value="${l.rows}" inputmode="numeric">
-  <div id="ldim"><label>Width of each shelf (cm)</label><input type="number" id="lw" min="5" max="400" step="0.5" value="${l.w||78}" inputmode="decimal">
-  <label>Height of each shelf (cm)</label><input type="number" id="lh" min="5" max="400" step="0.5" value="${l.h||20}" inputmode="decimal"></div>
+  <div id="ldim"><label id="ldw">Width (cm)</label><input type="number" id="lw" min="5" max="400" step="0.5" value="${l.w||78}" inputmode="decimal">
+  <label id="ldh">Height (cm)</label><input type="number" id="lh" min="2" max="400" step="0.5" value="${l.h||20}" inputmode="decimal">
+  <label id="ldd">Depth (cm)</label><input type="number" id="ld" min="5" max="400" step="0.5" value="${l.d||30}" inputmode="decimal"></div>
   <label id="lcl">Capacity per section (0 for no limit)</label><input type="number" id="lcap" min="0" value="${l.cap||0}" inputmode="numeric">
   <label>Usually holds</label>${Object.keys(CATS).map(k=>`<label class="ck"><input type="checkbox" data-lf="${k}" ${l.formats.includes(k)?'checked':''}> ${CATS[k]}</label>`).join('')}
   <label>Preview</label><div id="lprev"></div>
-  ${nPlaced?`<p class="mute">${nPlaced} placed record${nPlaced==1?'':'s'} keep their shelf numbers when you change the layout. A change that would remove a numbered shelf or section that holds records is not allowed.</p>`:''}
+  ${nPlaced?`<p class="mute">${nPlaced} placed record${nPlaced==1?'':'s'} keep their section, shelf or drawer numbers when you change the layout. A change that would remove a numbered one that holds records is not allowed.</p>`:''}
   <p class="mute" id="lmsg" style="color:var(--red)"></p>
   <button class="btn pri" id="ok">Save</button>${o?'<button class="btn dng" id="del">Delete location</button>':''}<button class="btn" id="cx">Cancel</button>`;
   const num=(id,lo,hi,def)=>{const v=parseFloat($(id).value);return Math.max(lo,Math.min(hi,isFinite(v)?v:def))};
-  const form=()=>{const u=$('#lm').value=='units';return {id:l.id,name:$('#ln').value.trim()||'Storage',mode:$('#lm').value,
+  const form=()=>{const m=$('#lm').value,u=m=='units',sz=m!='grid',df=dims[m]||{};return {id:l.id,name:$('#ln').value.trim()||'Storage',mode:m,
     cols:Math.round(num('#lcols',1,12,1)),rows:Math.round(num('#lrows',1,30,1)),stack:u?Math.round(num('#lstack',1,30,1)):1,
-    w:u?num('#lw',5,400,78):undefined,h:u?num('#lh',5,400,20):undefined,cap:Math.round(num('#lcap',0,100000,0)),
+    w:sz?num('#lw',5,400,df.w):undefined,h:sz?num('#lh',2,400,df.h):undefined,d:sz?num('#ld',5,400,df.d):undefined,cap:Math.round(num('#lcap',0,100000,0)),
     formats:[...body.querySelectorAll('[data-lf]:checked')].map(i=>i.dataset.lf)}};
-  const lab=()=>{const u=$('#lm').value=='units';
-    $('#lc').textContent=u?'Units side by side':'Columns of sections';
-    $('#lr').textContent=u?'Shelves per unit':'Rows of sections';
-    $('#lcl').textContent=u?'Capacity per shelf (0 for no limit)':'Capacity per section (0 for no limit)';
-    $('#lsw').style.display=u?'':'none';$('#ldim').style.display=u?'':'none';
-    const f=form();$('#lprev').innerHTML=diagramHTML(f,{size:'full'});};
+  const lab=()=>{const m=$('#lm').value,u=m=='units',dr=m=='drawers',one=unitOf({mode:m});
+    // switching layout: keep each layout's own sizes in the fields
+    if(m!==lastMode){if(dims[lastMode])dims[lastMode]={w:+$('#lw').value,h:+$('#lh').value,d:+$('#ld').value};
+      if(dims[m]){$('#lw').value=dims[m].w;$('#lh').value=dims[m].h;$('#ld').value=dims[m].d}lastMode=m}
+    $('#lc').textContent=u?'Units side by side':dr?'Drawers side by side':'Columns of sections';
+    $('#lr').textContent=u?'Shelves per unit':dr?'Drawers stacked':'Rows of sections';
+    $('#lcl').textContent=`Capacity per ${one} (0 for no limit)`;
+    ['w','h','d'].forEach((k,i)=>$('#ld'+k).textContent=`${['Width','Height','Depth'][i]} of each ${one} (cm)`);
+    $('#lsw').style.display=u?'':'none';$('#ldim').style.display=u||dr?'':'none';
+    const f=form();$('#lprev').innerHTML=diagramHTML(f,{size:'prev'});};
   lab();
   body.querySelectorAll('input,select').forEach(e=>{e.oninput=lab;e.onchange=lab});
   $('#cx').onclick=closeSheet;
   $('#ok').onclick=()=>{
     const n=form(),total=nSlots(n);
     const top=Math.max(0,...recs.filter(r=>r.loc===n.id&&r.section).map(r=>r.section));
-    if(top>total){$('#lmsg').textContent=`Records are placed up to ${n.mode=='units'?'shelf':'section'} ${top}, but this layout only has ${total}. Make it at least ${top}, or move those records first.`;return}
-    if(n.mode!='units'){delete n.w;delete n.h}
+    if(top>total){$('#lmsg').textContent=`Records are placed up to ${unitOf(n)} ${top}, but this layout only has ${total}. Make it at least ${top}, or move those records first.`;return}
+    if(n.mode=='grid'){delete n.w;delete n.h;delete n.d}
     if(o)locs[locs.indexOf(o)]=n;else locs.push(n);
     save();closeSheet();render();
   };
