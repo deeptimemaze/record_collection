@@ -1,5 +1,6 @@
 // Opens the newest version when online and falls back to the saved copy offline.
-const CACHE='vinyl-shelf-v22',COVERS='vinyl-covers';
+// COVERS must match COVER_CACHE in index.html. The old 'vinyl-covers' cache held unreadable (opaque) responses, including failed ones; activate deletes it.
+const CACHE='vinyl-shelf-v23',COVERS='vinyl-covers-2';
 const FILES=['./','./index.html','./manifest.webmanifest','./icon-crate-192.png','./icon-crate-512.png'];
 const COVER_HOST=/(^|\.)(coverartarchive|archive)\.org$/;
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES.map(f=>new Request(f,{cache:'reload'})))).then(()=>self.skipWaiting()))});
@@ -8,8 +9,9 @@ self.addEventListener('fetch',e=>{
   if(e.request.method!=='GET')return;
   const u=new URL(e.request.url);
   if(COVER_HOST.test(u.hostname)){
-    // album art: keep a copy so covers you have seen still show offline
-    e.respondWith(caches.open(COVERS).then(c=>c.match(e.request).then(hit=>hit||fetch(e.request).then(r=>{if(r.ok||r.type==='opaque')c.put(e.request,r.clone());return r}))));
+    // album art: keep a copy so covers you have seen still show offline.
+    // Covers load with CORS, so failures are visible here and only real images are saved.
+    e.respondWith(caches.open(COVERS).then(c=>c.match(e.request).then(hit=>hit||fetch(e.request).then(r=>{if(r.ok&&r.type!=='opaque')c.put(e.request,r.clone()).catch(()=>{});return r}))));
     return;
   }
   if(u.origin!==location.origin)return;
