@@ -69,7 +69,8 @@ It then opens full screen like an app and works offline.
 | `index.html` | The whole app: layout, styles and logic in one file |
 | `manifest.webmanifest` | Name, colours and icons for installing on a home screen |
 | `sw.js` | Caches the app so it opens offline |
-| `icon-crate-192.png`, `icon-crate-512.png` | App icons |
+| `icon-cyber-192.png`, `icon-cyber-512.png` | App icons |
+| `icon-cyber.svg` | Source drawing for the app icons |
 
 There is no build step and there are no dependencies. You can also open `index.html` directly in a browser, without installing, though the home screen icon and offline mode need the hosted version.
 

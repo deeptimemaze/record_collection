@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Crate app icon. Source for icon-cyber-192.png and icon-cyber-512.png.
+       Artwork stays inside the central 80% circle so it also works as a maskable icon. -->
+  <defs>
+    <pattern id="g" width="32" height="32" patternUnits="userSpaceOnUse">
+      <path d="M32 0H0V32" fill="none" stroke="#161616" stroke-width="2"/>
+    </pattern>
+  </defs>
+  <rect width="512" height="512" fill="#050505"/>
+  <rect width="512" height="512" fill="url(#g)"/>
+  <!-- hard magenta offset shadow -->
+  <circle cx="272" cy="272" r="146" fill="#ff2e88"/>
+  <!-- disc -->
+  <circle cx="244" cy="244" r="146" fill="#050505" stroke="#c6ff00" stroke-width="10"/>
+  <circle cx="244" cy="244" r="116" fill="none" stroke="#c6ff00" stroke-width="4"/>
+  <circle cx="244" cy="244" r="94" fill="none" stroke="#c6ff00" stroke-width="4"/>
+  <!-- label and spindle hole -->
+  <circle cx="244" cy="244" r="56" fill="#c6ff00"/>
+  <circle cx="244" cy="244" r="11" fill="#050505"/>
+</svg>

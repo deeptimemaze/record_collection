@@ -1,7 +1,7 @@
 // Opens the newest version when online and falls back to the saved copy offline.
 // COVERS must match COVER_CACHE in index.html. The old 'vinyl-covers' cache held unreadable (opaque) responses, including failed ones; activate deletes it.
-const CACHE='vinyl-shelf-v26',COVERS='vinyl-covers-2';
-const FILES=['./','./index.html','./manifest.webmanifest','./icon-crate-192.png','./icon-crate-512.png'];
+const CACHE='vinyl-shelf-v27',COVERS='vinyl-covers-2';
+const FILES=['./','./index.html','./manifest.webmanifest','./icon-cyber-192.png','./icon-cyber-512.png'];
 const COVER_HOST=/(^|\.)(coverartarchive|archive)\.org$/;
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES.map(f=>new Request(f,{cache:'reload'})))).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==CACHE&&x!==COVERS).map(x=>caches.delete(x)))).then(()=>self.clients.claim()))});
