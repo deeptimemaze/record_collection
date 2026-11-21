@@ -18,7 +18,7 @@ A small installable web app for keeping track of where your records and CDs are 
 - Stats: counts by format, speed, genre and decade, records added per year, how full each storage location is, and, when the Discogs export has them, your ratings, top labels, where you bought your records and what you spent.
 - Album covers from MusicBrainz and the Cover Art Archive replace the disc icon on the cards when one is found. They are fetched as you scroll, saved on the phone, and can be switched off in the Data tab.
 - Back up and restore with a CSV export that includes every record's location, genre, comment and star.
-- Neo-brutalist look: thick black outlines, hard shadows, flat yellow and pink accents and no rounded corners. It follows your phone's light or dark setting.
+- Cyberpunk brutalist look: near-black with a faint grid, monospace type, square 2px outlines, one acid-lime accent and magenta for warnings and hard shadows. It follows your phone's light or dark setting; the light version is off-white and black.
 - Works offline and can be installed on a phone's home screen.
 
 ## Storage locations
