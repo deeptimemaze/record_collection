@@ -192,6 +192,12 @@ label.ck::before{content:none}
 .grid12 button{font-weight:700;border:1px solid var(--line2);box-shadow:none}.grid12 button.on{background:var(--y);color:#000}
 
 /* timeline */
+.hcal{display:grid;grid-template-rows:repeat(7,1fr);grid-auto-flow:column;grid-auto-columns:1fr;gap:2px;margin:4px 0 4px}
+.hcal.d30{grid-template-rows:none;grid-auto-flow:row;grid-template-columns:repeat(15,1fr)}
+.hcal i{display:block;aspect-ratio:1;background:var(--chip);border:1px solid var(--line)}
+.hcal i.x{visibility:hidden}.hcal i.l1{background:var(--hl);opacity:.35;border:0}.hcal i.l2{background:var(--hl);opacity:.6;border:0}.hcal i.l3{background:var(--hl);opacity:.85;border:0}.hcal i.l4{background:var(--hl);border:0;box-shadow:var(--glow)}
+.hcal i.t{outline:2px solid var(--p);outline-offset:-1px}
+.hkey{display:flex;justify-content:space-between;font:600 10px/1.2 var(--mono);color:var(--mute);text-transform:uppercase;letter-spacing:.1em;margin:0 0 6px}
 .tl{position:relative;padding-left:26px;margin:14px 0 0}
 .tl::before{content:"";position:absolute;left:8px;top:0;bottom:0;width:2px;background:var(--line2)}
 .ty{margin:0 0 6px}
@@ -262,7 +268,7 @@ label.ck::before{content:none}
 <div id="sheet"><div id="sheetbody"></div></div>
 
 <script>
-const APP_VERSION=30,APP_DATE='21 Nov 2026';
+const APP_VERSION=31,APP_DATE='21 Nov 2026';
 const COVER_CACHE='vinyl-covers-2'; // must match COVERS in sw.js
 const DEFAULT_LOCS=[
  {id:'kallax',name:'Kallax shelf',mode:'grid',cols:3,rows:4,cap:0,formats:['lp']},
@@ -317,7 +323,7 @@ function load(){
   locs.forEach(l=>{if(l.mode=='units'){l.w=+l.w||78;l.h=+l.h||20;l.d=+l.d||(l.id=='string'?15:30)}
     if(l.mode=='drawers'){l.w=+l.w||40;l.h=+l.h||15;l.d=+l.d||50}});
 }
-function norm(r){r.fav=!!r.fav;r.nx=+r.nx||0;r.played=r.played||'';r.da=r.da||'';r.oy=oyOK(r.oy)?r.oy:'';
+function norm(r){r.fav=!!r.fav;r.nx=+r.nx||0;r.played=r.played||'';syncPlays(r);r.da=r.da||'';r.oy=oyOK(r.oy)?r.oy:'';
   XF.forEach(([k])=>r[k]=r[k]||'');r.rating=+r.rating||0;r.price=r.price===''||r.price==null?'':+r.price;r.cur=r.cur||'';r.rpmX=r.rpmX||'';
   r.dg=Array.isArray(r.dg)?r.dg:[];r.ds=Array.isArray(r.ds)?r.ds:[];
   r.bpm=+r.bpm||0;r.bpmSug=+r.bpmSug||0;r.bpmT=Array.isArray(r.bpmT)?r.bpmT:[];prep(r)}
@@ -392,7 +398,7 @@ function stage(text){
   let ia=ix(/^artist$/,/artist|band|performer/),it=ix(/^(title|album|name)$/,/title|album|release name/),
       iy=ix(/^(released|year)$/,/year|released/),ifm=ix(/^format$/),ir=ix(/^release_id$/,/release.?id/),
       is=ix(/^section$/),ip=ix(/^pos(ition)?$/),il=ix(/^location$/),ig=ix(/^genre$/),ic=ix(/^comments?$/),ifv=ix(/^(fav(ou?rites?)?|starred?)$/),ida=ix(/^date.?added$/,/^added$/),ipl=ix(/^(last.?)?played$/),iq=ix(/^play.?next$/),ioy=ix(/^original.?(release|released|year|date)$/),body=rows.slice(1);
-  const xi=XF.map(([,re])=>ix(re)),irt=ix(/^rating$/),ipr=ix(/^(collection )?price\b/),irpm=ix(/^rpm$/),idg=ix(/^discogs genres$/),ids=ix(/^discogs styles$/),ibp=ix(/^bpm$/),ibs=ix(/^bpm \(suggested\)$/);
+  const xi=XF.map(([,re])=>ix(re)),irt=ix(/^rating$/),ipr=ix(/^(collection )?price\b/),irpm=ix(/^rpm$/),idg=ix(/^discogs genres$/),ids=ix(/^discogs styles$/),ibp=ix(/^bpm$/),ibs=ix(/^bpm \(suggested\)$/),ips=ix(/^plays$/);
   const cur=ipr>=0?((rows[0][ipr].match(/\(([A-Za-z]{3})\)/)||[])[1]||'').toUpperCase():'';
   if(ia<0&&it<0){ia=0;it=1;body=rows}
   if(it<0)it=ia===0?1:0;
@@ -417,6 +423,7 @@ function stage(text){
     o.rpmX=/^\d+(\/\d+)*$/.test(g(r,irpm))?g(r,irpm):'';
     o.dg=g(r,idg)?g(r,idg).split(/\s*;\s*/):[];o.ds=g(r,ids)?g(r,ids).split(/\s*;\s*/):[];
     const bp=parseFloat(g(r,ibp)),bs=parseFloat(g(r,ibs));o.bpm=bp>20&&bp<400?bp:0;o.bpmSug=bs>20&&bs<400?bs:0;o.bpmT=[];if(o.bpmSug)o.bpmD=1;
+    o.plays=g(r,ips).split(/\s*;\s*/).filter(d=>DAY.test(d));syncPlays(o);
     if(o.dg.length||o.rpmX)o.dd=1;
   });
   return out;
@@ -470,7 +477,7 @@ function finishImport(){
     if(!r.genre&&o.genre)r.genre=o.genre;
     if(!r.comment&&o.comment)r.comment=o.comment;
     if(!r.fav&&o.fav)r.fav=true;
-    if(!r.played&&o.played)r.played=o.played;
+    syncPlays(r,o.plays||[],o.played||'');
     if(!oyOK(r.oy)&&oyOK(o.oy))r.oy=o.oy;
     if(!r.nx&&o.nx)r.nx=o.nx;
     // Discogs columns: a value in the file wins, an empty cell keeps the app's
@@ -491,9 +498,9 @@ function exportCSV(){
   const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
   // the Discogs columns keep Discogs' own names, so a Discogs export and this one read the same way
   const cur=(Object.entries(recs.reduce((m,r)=>{if(r.cur)m[r.cur]=(m[r.cur]||0)+1;return m},{})).sort((a,b)=>b[1]-a[1])[0]||['SEK'])[0];
-  const lines=['Artist,Title,Released,Format,release_id,location,section,position,Genre,Comment,Starred,Date Added,Last played,Play next,Original release,'+XF.map(x=>x[2]).join(',')+`,Rating,Collection Price (${cur}),RPM,Discogs genres,Discogs styles,BPM,BPM (suggested)`,
+  const lines=['Artist,Title,Released,Format,release_id,location,section,position,Genre,Comment,Starred,Date Added,Last played,Play next,Original release,'+XF.map(x=>x[2]).join(',')+`,Rating,Collection Price (${cur}),RPM,Discogs genres,Discogs styles,BPM,BPM (suggested),Plays`,
     ...recs.map(r=>[r.artist,r.title,r.year,r.fmt,r.id.split('#')[0],placed(r)?L(r.loc).name:'',placed(r)?r.section:'',placed(r)?r.pos:'',r.genre||'',r.comment||'',r.fav?'Yes':'',r.da||'',r.played||'',r.nx?'Yes':'',oyOK(r.oy)?r.oy:'',
-      ...XF.map(x=>r[x[0]]||''),r.rating||'',r.price!==''&&r.cur&&r.cur!==cur?`${r.price} ${r.cur}`:r.price,r.rpmX||'',(r.dg||[]).join('; '),(r.ds||[]).join('; '),r.bpm?Math.round(r.bpm*10)/10:'',r.bpmSug?Math.round(r.bpmSug*10)/10:''].map(q).join(','))];
+      ...XF.map(x=>r[x[0]]||''),r.rating||'',r.price!==''&&r.cur&&r.cur!==cur?`${r.price} ${r.cur}`:r.price,r.rpmX||'',(r.dg||[]).join('; '),(r.ds||[]).join('; '),r.bpm?Math.round(r.bpm*10)/10:'',r.bpmSug?Math.round(r.bpmSug*10)/10:'',(r.plays||[]).join('; ')].map(q).join(','))];
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob(['\uFEFF'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'}));
   a.download='vinyl-collection.csv';document.body.appendChild(a);a.click();a.remove();
@@ -619,7 +626,15 @@ function ago(ds){
   const abs=`${d} ${MON[m-1]} ${y}`;
   return n<=0?'Played today':n==1?'Played yesterday':n<60?`Played ${n} days ago`:`Played ${abs}`;
 }
-function markPlayed(r){r.played=today();r.nx=0;save()}
+// r.plays: every day the record was played (one entry per day, oldest first); r.played is the newest of them
+const DAY=/^\d{4}-\d{2}-\d{2}$/;
+function syncPlays(r,...more){
+  r.plays=[...new Set([...(Array.isArray(r.plays)?r.plays:[]),...more.flat(),r.played].filter(d=>DAY.test(d||'')))].sort();
+  r.played=r.plays[r.plays.length-1]||'';
+}
+function markPlayed(r){syncPlays(r,today());r.nx=0;save()}
+function unPlay(r){r.plays=(r.plays||[]).slice(0,-1);r.played='';syncPlays(r);save()}
+const nPlays=r=>(r.plays||[]).length;
 function recHTML(r,lead='',extra=''){
   // the text area is a real button (keyboard and screen readers); the star sits beside it, not inside it
   return `<div class="rec" data-id="${esc(r.id)}">${lead||thumbHTML(r)}<button class="t" data-id="${esc(r.id)}"><b>${esc(r.title)}</b><span class="s">${esc(r.artist)}</span><span class="s">${metaHTML(r)}</span>${noteHTML(r)}${extra}${lead?'':`<span class="tw">${tagHTML(r)}${liveTag(r)}</span>`}</button>${starBtn(r)}</div>`;
@@ -1107,9 +1122,56 @@ function timelineHTML(){
   h+=`<div class="count">${list.length} record${list.length==1?'':'s'}</div><div class="tl">${body}</div>`+(more?'<button class="btn" data-more="1">Show more</button>':'');
   return h;
 }
+/* explore: what you have listened to */
+let hPer='year';
+const WD=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const dUTC=ds=>{const [y,m,d]=ds.split('-').map(Number);return new Date(Date.UTC(y,m-1,d))};
+const dStr=t=>t.toISOString().slice(0,10);
+const dayName=ds=>{const t=dUTC(ds);return `${WD[t.getUTCDay()]} ${t.getUTCDate()} ${MON[t.getUTCMonth()]} ${t.getUTCFullYear()}`};
+function heardHTML(){
+  const all=[];recs.forEach(r=>(r.plays||[]).forEach(d=>all.push([d,r])));
+  if(!all.length)return '<div class="empty">Nothing listened to yet.<br>Tap “Played today” on a record\'s sheet, or “Play this” under Pick, and it shows up here.</div>';
+  const T=dUTC(today()),from=hPer=='30'?dStr(new Date(T-29*864e5)):hPer=='year'?dStr(new Date(T-364*864e5)):'';
+  const ev=all.filter(([d])=>d>=from&&d<=today()).sort((a,b)=>a[0]<b[0]?1:a[0]>b[0]?-1:a[1].sk<b[1].sk?-1:1);
+  const chip=(k,t)=>`<button class="chip${hPer==k?' on':''}" data-hp="${k}">${t}</button>`;
+  let h=`<div class="chips">${chip('30','30 days')}${chip('year','12 months')}${chip('all','All time')}</div>`;
+  const tile=(b,t)=>`<div class="tile"><b>${b}</b><span>${t}</span></div>`;
+  const byDay=new Map();ev.forEach(([d,r])=>(byDay.get(d)||byDay.set(d,[]).get(d)).push(r));
+  const rs=new Set(ev.map(e=>e[1])),ar=new Set(ev.map(e=>akey(e[1].artist)));
+  h+=`<div class="tiles">${tile(ev.length,'Plays')}${tile(rs.size,'Records')}${tile(ar.size,'Artists')}${tile(byDay.size,'Days')}${tile(streak(new Set(all.map(x=>x[0])),T),'Day streak')}${tile(recs.filter(r=>!r.played).length,'Never played')}</div>`;
+  if(!ev.length)return h+`<p class="mute">No plays in this period. The last play was ${ago(all.map(x=>x[0]).sort().pop()).replace(/^Played /,'')}.</p>`;
+  // activity: a square per day (30 days, or 53 weeks of 7 days), or plays per year for all time
+  const lvl=n=>n?'l'+Math.min(4,n):'';
+  if(hPer=='all'){const y={};ev.forEach(([d])=>{const k=d.slice(0,4);y[k]=(y[k]||0)+1});
+    h+='<label>Plays per year</label>'+countBars(y,0,(a,b)=>a[0].localeCompare(b[0]))}
+  else{
+    const n=hPer=='30'?30:371,start=new Date(T-(n-1)*864e5);
+    const pad=hPer=='30'?0:(start.getUTCDay()+6)%7;let cells='<i class="x"></i>'.repeat(pad);
+    for(let i=0;i<n;i++){const t=new Date(+start+i*864e5),ds=dStr(t),c=(byDay.get(ds)||[]).length;
+      cells+=`<i class="${lvl(c)}${ds==today()?' t':''}" title="${dayName(ds)}: ${c} play${c==1?'':'s'}"></i>`}
+    h+=`<label>Activity</label><div class="hcal${hPer=='30'?' d30':''}">${cells}</div><div class="hkey"><span>${hPer=='30'?dayName(dStr(start)).slice(4):MON[start.getUTCMonth()]+' '+start.getUTCFullYear()}</span><span>Today</span></div>`}
+  // most played
+  const cnt=new Map();ev.forEach(([,r])=>cnt.set(r,(cnt.get(r)||0)+1));
+  const top=[...cnt].filter(x=>x[1]>1).sort((a,b)=>b[1]-a[1]||(a[0].played<b[0].played?1:-1)).slice(0,10);
+  if(top.length)h+='<label>Most played</label>'+top.map(([r,c])=>recHTML(r,'',`<span class="s played">${c} plays · ${ago(r.played).replace(/^Played /,'last played ')}</span>`)).join('');
+  const by=f=>{const m={};ev.forEach(([,r])=>{const k=f(r);if(k)m[k]=(m[k]||0)+1});return m};
+  if(ar.size>1)h+='<label>Top artists</label>'+countBars(Object.fromEntries(Object.entries(by(r=>r.artist.replace(/\s*\(\d+\)$/,''))).sort((a,b)=>b[1]-a[1]).slice(0,10)));
+  const gen=by(r=>r.genre||'No genre');if(Object.keys(gen).length>1)h+='<label>Genres played</label>'+countBars(gen,8);
+  const fm=by(r=>SHORT[r.cat]);if(Object.keys(fm).length>1)h+='<label>Formats played</label>'+countBars(fm);
+  const wd={};WD.slice(1).concat('Sun').forEach(k=>wd[k]=0);ev.forEach(([d])=>wd[WD[dUTC(d).getUTCDay()]]++);
+  if(byDay.size>6)h+='<label>Day of the week</label>'+countBars(wd,0,()=>0);
+  // history, newest first
+  let budget=lim,body='';
+  for(const [d,arr] of byDay){if(budget<=0)break;const shown=arr.slice(0,budget);budget-=shown.length;
+    body+=`<div class="ty"><div class="yl">${esc(dayName(d))}<small>${arr.length}</small></div>${shown.map(r=>recHTML(r,'',nPlays(r)>1?`<span class="s played">${nPlays(r)} plays in all</span>`:'')).join('')}</div>`}
+  h+=`<label>History</label><div class="tl">${body}</div>`+(lim<ev.length?'<button class="btn" data-more="1">Show more</button>':'');
+  return h;
+}
+// days in a row with at least one play, ending today (or yesterday, so the streak survives until you play today)
+function streak(byDay,T){let n=0,t=+T;if(!byDay.has(dStr(new Date(t))))t-=864e5;while(byDay.has(dStr(new Date(t)))){n++;t-=864e5}return n}
 function exploreView(){
   $('#h').textContent='Explore';
-  $('#app').innerHTML=`<div class="chips"><button class="chip${exTab=='pick'?' on':''}" data-ex="pick">Pick</button><button class="chip${exTab=='stats'?' on':''}" data-ex="stats">Stats</button><button class="chip${exTab=='timeline'?' on':''}" data-ex="timeline">Timeline</button><button class="chip${exTab=='live'?' on':''}" data-ex="live">Live</button></div>`+(exTab=='stats'?statsHTML():exTab=='timeline'?timelineHTML():exTab=='live'?liveHTML():pickHTML());
+  $('#app').innerHTML=`<div class="chips"><button class="chip${exTab=='pick'?' on':''}" data-ex="pick">Pick</button><button class="chip${exTab=='stats'?' on':''}" data-ex="stats">Stats</button><button class="chip${exTab=='timeline'?' on':''}" data-ex="timeline">Timeline</button><button class="chip${exTab=='live'?' on':''}" data-ex="live">Live</button><button class="chip${exTab=='heard'?' on':''}" data-ex="heard">Listened</button></div>`+(exTab=='heard'?heardHTML():exTab=='stats'?statsHTML():exTab=='timeline'?timelineHTML():exTab=='live'?liveHTML():pickHTML());
   if($('#pc'))$('#pc').onchange=e=>{pf.cat=e.target.value;pickId=null;render()};
   if($('#pg'))$('#pg').onchange=e=>{pf.gen=e.target.value;pickId=null;render()};
   if($('#tc'))$('#tc').onchange=e=>{tf.cat=e.target.value;lim=100;render()};
@@ -1244,8 +1306,8 @@ function openRecSheet(id){
     ${sec?`<label>Position${single(l)?'':' in '+esc(slotLabel(l,sec))}</label><input type="number" id="pos" min="1" max="${n+1}" inputmode="numeric" value="${placed(r)&&r.loc==lid&&r.section==sec?r.pos:n+1}">
     <p class="mute">Holds ${n} other record${n==1?'':'s'}${l.cap?` of ${l.cap}`:''}. ${l.mode=='drawers'?'#1 is at the front of the drawer. Records at or behind this position move one place back.':'Records at or after this position shift one place along.'}${l.cap&&n>=l.cap?' This one is already full.':''}</p>`:''}
     ${tempoHTML(r)}
-    <label>Listening</label><p class="mute" style="margin:0 0 8px">${ago(r.played)}${r.nx?' · In play next':''}</p>
-    <div class="qact" style="margin:0"><button class="chip" id="pl">Played today</button><button class="chip${r.nx?' on':''}" id="pq">${r.nx?'In play next':'Add to play next'}</button>${r.played?'<button class="chip" id="pc0">Clear date</button>':''}</div>
+    <label>Listening</label><p class="mute" style="margin:0 0 8px">${ago(r.played)}${nPlays(r)>1?` · ${nPlays(r)} plays in all`:''}${r.nx?' · In play next':''}</p>
+    <div class="qact" style="margin:0"><button class="chip" id="pl">Played today</button><button class="chip${r.nx?' on':''}" id="pq">${r.nx?'In play next':'Add to play next'}</button>${r.played?'<button class="chip" id="pc0">Remove last play</button>':''}</div>
     <label for="gn">Genre</label><input type="text" id="gn" list="gl" value="${esc(gn)}" placeholder="e.g. Electronic" autocomplete="off">
     <datalist id="gl">${genreList().map(g=>`<option value="${esc(g)}">`).join('')}</datalist>
     <label for="cm">Comment</label><textarea id="cm" placeholder="Condition, notes, who has borrowed it...">${esc(cm)}</textarea>
@@ -1257,7 +1319,7 @@ function openRecSheet(id){
     body.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{sec=sec==+b.dataset.s?null:+b.dataset.s;draw()});
     $('#pl').onclick=()=>{markPlayed(r);draw()};
     $('#pq').onclick=()=>{r.nx=r.nx?0:Date.now();save();draw()};
-    if($('#pc0'))$('#pc0').onclick=()=>{r.played='';save();draw()};
+    if($('#pc0'))$('#pc0').onclick=()=>{unPlay(r);draw()};
     // tap tempo: the average of the last taps; saved by itself 2.5 s after the last tap, once there are 5 or more
     $('#tap').onpointerdown=e=>{e.preventDefault();const now=performance.now();
       if(taps.length&&now-taps[taps.length-1]>2500)taps=[];taps.push(now);if(taps.length>12)taps.shift();
@@ -1350,6 +1412,7 @@ document.addEventListener('click',e=>{
   else if(d.more){lim+=100;view=='rec'||view=='fav'?fillList():render()}
   else if(d.sec&&view=='shelf'){const n=+d.sec;selSec=selSec==n?null:n;lim=100;render()}
   else if(d.ex){exTab=d.ex;lim=100;render()}
+  else if(d.hp){hPer=d.hp;lim=100;render()}
   else if(d.pf){pf[d.pf]=!pf[d.pf];pickId=null;render()}
   else if(d.dopick){doPick();render()}
   else if(d.play){const r=recs.find(x=>x.id==d.play);if(r){markPlayed(r);render()}}
