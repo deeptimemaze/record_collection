@@ -181,6 +181,11 @@ label.ck{text-transform:none;font-size:15px;letter-spacing:0;font-weight:600}
 .box.warn{background:var(--p);color:#000;--bd:#000}
 .gone{margin:8px 0 0;padding:0 0 0 18px;max-height:260px;overflow:auto}
 .gone li{margin:0 0 6px}.gone span{display:block;font-size:12px}
+.ftags{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 2px}
+.dl{border:2px solid var(--bd);background:var(--card);margin:0 3px 0 0;font-size:14px}
+.dl div{display:grid;grid-template-columns:110px 1fr;gap:10px;padding:8px 12px;border-top:1px solid var(--line2)}.dl div:first-child{border-top:0}
+.dl span{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:var(--mute);padding-top:2px}
+.dlink{display:inline-block;margin:10px 0 4px;color:var(--ink);font-weight:700}
 </style>
 </head>
 <body>
@@ -190,7 +195,7 @@ label.ck{text-transform:none;font-size:15px;letter-spacing:0;font-weight:600}
 <div id="sheet"><div id="sheetbody"></div></div>
 
 <script>
-const APP_VERSION=24,APP_DATE='21 Nov 2026';
+const APP_VERSION=25,APP_DATE='21 Nov 2026';
 const COVER_CACHE='vinyl-covers-2'; // must match COVERS in sw.js
 const DEFAULT_LOCS=[
  {id:'kallax',name:'Kallax shelf',mode:'grid',cols:3,rows:4,cap:0,formats:['lp']},
@@ -201,6 +206,30 @@ let locs=[],recs=[],view='rec',q='',onlyUnplaced=false,catF='all',genF='all',sel
 const CATS={lp:'LP, 12" and 10"',s7:'7"',shellac:'Shellac (78 rpm)',cd:'CD and MiniDisc',cass:'Cassette',other:'Other (boxes, etc.)'};
 const SHORT={lp:'LP / 12"',s7:'7"',shellac:'Shellac',cd:'CD',cass:'Cassette',other:'Other'};
 const GENRES=['Alternative','Ambient','Blues','Classical','Comedy','Country','Drum n Bass','EBM','Electronic','Folk','Funk / Soul','Gospel','Hip Hop','IDM','Industrial','Jazz','Metal','New Wave','Pop','R&B','Reggae','Rock','Soundtrack / Cast','Spoken Word','World'];
+// extra Discogs columns kept as text: [field, header pattern, export header]
+const XF=[['label',/^label$/,'Label'],['catno',/^catalog#?$/,'Catalog#'],['folder',/^collectionfolder$/,'CollectionFolder'],
+  ['shop',/^collection bought at$/,'Collection Bought at'],['bought',/^collection date$/,'Collection Date'],
+  ['mc',/^collection media condition$/,'Collection Media Condition'],['sc',/^collection sleeve condition$/,'Collection Sleeve Condition'],
+  ['dnote',/^collection notes$/,'Collection Notes'],['cty',/^country$/,'Country']];
+// "Electronic (Vinyl)" → Electronic; artist folders (*Kraftwerk) and Uncategorized are not genres
+const folderGenre=f=>!f||/^\*|^uncategori[sz]ed$|^all$/i.test(f.trim())?'':f.replace(/\s*\((vinyl|cd|lp|7"?|cass(ette)?|shellac)\)\s*$/i,'').trim();
+const fmtToks=f=>String(f||'').split(',').map(t=>t.trim()).filter(Boolean);
+// speed: exact from Discogs when looked up, otherwise only where the format leaves no doubt
+function rpmGuess(f){const t=fmtToks(f),first=(t[0]||'').replace(/^\d+x/i,'');
+  if(first=='Shellac')return '78';if(first=='LP')return '33';if(first=='7"')return '45';
+  if((first=='12"'||first=='10"')&&t.includes('LP'))return '33';return ''}
+const rpmOf=r=>r.rpmX||rpmGuess(r.fmt);
+const RPMS=['33','45','78','16'],rpmTxt=v=>v.split('/').map(x=>x=='33'?'33⅓':x).join(' / ')+' rpm';
+const isVinyl=r=>r.cat=='lp'||r.cat=='s7'||r.cat=='shellac';
+const FTAGS={RE:'Reissue',RP:'Repress',RM:'Remastered',Ltd:'Limited',Promo:'Promo',Mono:'Mono','180':'180 g',Gat:'Gatefold',Num:'Numbered',RSD:'Record Store Day',
+  Unofficial:'Unofficial',Pic:'Picture disc',Box:'Box set','S/Edition':'Special edition',Dlx:'Deluxe',TP:'Test pressing',Quad:'Quadraphonic',Club:'Club edition',Smplr:'Sampler'};
+const COLOURS=new Set(['Red','Blu','Gre','Whi','Cle','Yel','Ora','Pur','Pin','Gol','Sil','Bro','Gry','Mar','Spl','Tra','Pnk','Vio','Tur','Mag','Cya']);
+function fmtTags(f){const t=fmtToks(f),n=parseInt((t[0]||'').match(/^(\d+)x/i)?.[1]),out=[];
+  if(n>1)out.push(n+' discs');t.forEach(x=>{if(FTAGS[x])out.push(FTAGS[x])});
+  // Discogs cuts free-text descriptions to three letters (Red, Blu, Cle...); only meaningful as colours on vinyl
+  if(/^(\d+x)?(LP|7"|10"|12"|Shellac)$/.test(t[0]||'')&&t.some(x=>COLOURS.has(x)))out.push('Coloured');return [...new Set(out)]}
+const cond=s=>{const m=String(s||'').match(/\(([^)]+)\)/);return m?m[1].split(/\s+or\s+/)[0]:String(s||'')};
+const uniqList=s=>[...new Set(String(s||'').split(/\s*,\s*/).filter(Boolean))].join(', ');
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const fold=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/ł/gi,'l').replace(/ø/gi,'o').replace(/æ/gi,'ae').replace(/ß/g,'ss').replace(/đ/gi,'d').toLowerCase();
@@ -213,8 +242,11 @@ function load(){
   locs.forEach(l=>{if(l.id=='string'&&l.mode=='units'&&((l.cols==8&&!l.stack)||(l.cols==4&&l.stack==2))){l.cols=1;l.stack=8}});
   locs.forEach(l=>{if(l.mode=='units'){l.w=+l.w||78;l.h=+l.h||20}});
 }
-function norm(r){r.fav=!!r.fav;r.nx=+r.nx||0;r.played=r.played||'';r.da=r.da||'';r.oy=oyOK(r.oy)?r.oy:'';prep(r)}
-function prep(r){r.k=fold(r.artist+' '+r.title+' '+(r.comment||''));r.sk=fold(r.artist).replace(/^the /,'')+'|'+fold(r.title)}
+function norm(r){r.fav=!!r.fav;r.nx=+r.nx||0;r.played=r.played||'';r.da=r.da||'';r.oy=oyOK(r.oy)?r.oy:'';
+  XF.forEach(([k])=>r[k]=r[k]||'');r.rating=+r.rating||0;r.price=r.price===''||r.price==null?'':+r.price;r.cur=r.cur||'';r.rpmX=r.rpmX||'';
+  r.dg=Array.isArray(r.dg)?r.dg:[];r.ds=Array.isArray(r.ds)?r.ds:[];prep(r)}
+// search covers artist, title, comment, Discogs notes, label, catalogue number, folder and Discogs styles
+function prep(r){r.k=fold([r.artist,r.title,r.comment,r.dnote,r.label,r.catno,r.folder,...(r.ds||[])].filter(Boolean).join(' '));r.sk=fold(r.artist).replace(/^the /,'')+'|'+fold(r.title)}
 
 /* locations */
 const L=id=>locs.find(l=>l.id===id);
@@ -284,6 +316,8 @@ function stage(text){
   let ia=ix(/^artist$/,/artist|band|performer/),it=ix(/^(title|album|name)$/,/title|album|release name/),
       iy=ix(/^(released|year)$/,/year|released/),ifm=ix(/^format$/),ir=ix(/^release_id$/,/release.?id/),
       is=ix(/^section$/),ip=ix(/^pos(ition)?$/),il=ix(/^location$/),ig=ix(/^genre$/),ic=ix(/^comments?$/),ifv=ix(/^(fav(ou?rites?)?|starred?)$/),ida=ix(/^date.?added$/,/^added$/),ipl=ix(/^(last.?)?played$/),iq=ix(/^play.?next$/),ioy=ix(/^original.?(release|released|year|date)$/),body=rows.slice(1);
+  const xi=XF.map(([,re])=>ix(re)),irt=ix(/^rating$/),ipr=ix(/^(collection )?price\b/),irpm=ix(/^rpm$/),idg=ix(/^discogs genres$/),ids=ix(/^discogs styles$/);
+  const cur=ipr>=0?((rows[0][ipr].match(/\(([A-Za-z]{3})\)/)||[])[1]||'').toUpperCase():'';
   if(ia<0&&it<0){ia=0;it=1;body=rows}
   if(it<0)it=ia===0?1:0;
   const g=(r,i)=>i>=0?(r[i]||'').trim():'';
@@ -298,6 +332,15 @@ function stage(text){
       loc:ok?lc.id:null,section:ok?s:null,pos:ok&&p>0?p:null,
       genre:g(r,ig),comment:g(r,ic),fav:/^(yes|y|1|true|x|★)$/i.test(g(r,ifv)),
       da:g(r,ida),played:(g(r,ipl).match(/^\d{4}-\d{2}-\d{2}/)||[''])[0],nx:/^(yes|y|1|true|x)$/i.test(g(r,iq))?Date.now()+n:0,oy:(g(r,ioy).match(/^\d{4}(-\d{2}(-\d{2})?)?/)||[''])[0]});
+    // price: "25", "12,50", "94 SEK (1430 JPY)" or "€33.00"; a symbol or code in the cell beats the column's currency
+    const pm=g(r,ipr).match(/^([€£$])?\s*(\d+(?:[.,]\d+)?)\s*([A-Z]{3})?\b/),rt=parseInt(g(r,irt));
+    const o=out[out.length-1];
+    XF.forEach(([k],j)=>o[k]=g(r,xi[j]));
+    o.rating=rt>=1&&rt<=5?rt:0;o.price=pm?+pm[2].replace(',','.'):'';
+    o.cur=pm?(pm[3]||{'€':'EUR','£':'GBP','$':'USD'}[pm[1]]||cur):'';
+    o.rpmX=/^\d+(\/\d+)*$/.test(g(r,irpm))?g(r,irpm):'';
+    o.dg=g(r,idg)?g(r,idg).split(/\s*;\s*/):[];o.ds=g(r,ids)?g(r,ids).split(/\s*;\s*/):[];
+    if(o.dg.length||o.rpmX)o.dd=1;
   });
   return out;
 }
@@ -352,7 +395,12 @@ function finishImport(){
     if(!r.fav&&o.fav)r.fav=true;
     if(!r.played&&o.played)r.played=o.played;
     if(!oyOK(r.oy)&&oyOK(o.oy))r.oy=o.oy;
-    if(!r.nx&&o.nx)r.nx=o.nx});
+    if(!r.nx&&o.nx)r.nx=o.nx;
+    // Discogs columns: a value in the file wins, an empty cell keeps the app's
+    [...XF.map(x=>x[0]),'rating','price','cur','rpmX','dd'].forEach(k=>{if((r[k]===''||r[k]==null||r[k]===0)&&o[k])r[k]=o[k]});
+    ['dg','ds'].forEach(k=>{if(!(r[k]||[]).length&&(o[k]||[]).length)r[k]=o[k]})});
+  // no genre yet: use the Discogs collection folder when it names a genre ("Electronic (Vinyl)" → Electronic)
+  pick.forEach(r=>{if(!r.genre)r.genre=folderGenre(r.folder)||((r.dg||[])[0]||'')});
   const kept=new Set(pair.values());
   const lost=recs.filter(r=>placed(r)&&!kept.has(r)).length;
   const gone=recs.length-kept.size,old=recs.length;
@@ -364,8 +412,11 @@ function finishImport(){
 }
 function exportCSV(){
   const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
-  const lines=['Artist,Title,Released,Format,release_id,location,section,position,Genre,Comment,Starred,Date Added,Last played,Play next,Original release',
-    ...recs.map(r=>[r.artist,r.title,r.year,r.fmt,r.id.split('#')[0],placed(r)?L(r.loc).name:'',placed(r)?r.section:'',placed(r)?r.pos:'',r.genre||'',r.comment||'',r.fav?'Yes':'',r.da||'',r.played||'',r.nx?'Yes':'',oyOK(r.oy)?r.oy:''].map(q).join(','))];
+  // the Discogs columns keep Discogs' own names, so a Discogs export and this one read the same way
+  const cur=(Object.entries(recs.reduce((m,r)=>{if(r.cur)m[r.cur]=(m[r.cur]||0)+1;return m},{})).sort((a,b)=>b[1]-a[1])[0]||['SEK'])[0];
+  const lines=['Artist,Title,Released,Format,release_id,location,section,position,Genre,Comment,Starred,Date Added,Last played,Play next,Original release,'+XF.map(x=>x[2]).join(',')+`,Rating,Collection Price (${cur}),RPM,Discogs genres,Discogs styles`,
+    ...recs.map(r=>[r.artist,r.title,r.year,r.fmt,r.id.split('#')[0],placed(r)?L(r.loc).name:'',placed(r)?r.section:'',placed(r)?r.pos:'',r.genre||'',r.comment||'',r.fav?'Yes':'',r.da||'',r.played||'',r.nx?'Yes':'',oyOK(r.oy)?r.oy:'',
+      ...XF.map(x=>r[x[0]]||''),r.rating||'',r.price!==''&&r.cur&&r.cur!==cur?`${r.price} ${r.cur}`:r.price,r.rpmX||'',(r.dg||[]).join('; '),(r.ds||[]).join('; ')].map(q).join(','))];
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob(['\uFEFF'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'}));
   a.download='vinyl-collection.csv';document.body.appendChild(a);a.click();a.remove();
@@ -402,12 +453,20 @@ const shelfHTML=(l,hi,mini,selN)=>diagramHTML(l,{hi,size:mini?'mini':'full',sel:
 const STAR='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.2 1.2-6.5L2.5 9.5l6.6-.9z"/></svg>';
 const starBtn=r=>`<button class="star${r.fav?' on':''}" data-fav="${esc(r.id)}" aria-label="Starred" aria-pressed="${!!r.fav}">${STAR}</button>`;
 const gkey=r=>r.genre||'__none';
+// format filter: a format category, or a speed (rpm33, rpm45, rpm78)
+const fmtOK=(r,v)=>v=='all'||(v.startsWith('rpm')?rpmOf(r).split('/').includes(v.slice(3)):r.cat==v);
+function fmtCount(cc,...rs){rs.forEach(r=>{cc[r.cat]=(cc[r.cat]||0)+1;const v=rpmOf(r);if(v)v.split('/').forEach(x=>cc['rpm'+x]=(cc['rpm'+x]||0)+1)});return cc}
+function fmtOpts(cc,cur,showN){
+  const o=k=>`<option value="${k}"${cur==k?' selected':''}>${k.startsWith('rpm')?rpmTxt(k.slice(3)):SHORT[k]}${showN?` (${cc[k]})`:''}</option>`;
+  const a=Object.keys(SHORT).filter(k=>cc[k]).map(o).join(''),b=RPMS.map(x=>'rpm'+x).filter(k=>cc[k]).map(o).join('');
+  return b?`<optgroup label="Format">${a}</optgroup><optgroup label="Speed">${b}</optgroup>`:a;
+}
 const oyOK=v=>/^\d{4}(-\d{2}(-\d{2})?)?$/.test(v||'');
 const origY=r=>oyOK(r.oy)?r.oy.slice(0,4):'';
 const effY=r=>parseInt(origY(r)||r.year);
 const effD=r=>oyOK(r.oy)?r.oy:String(r.year||'');
 function metaHTML(r){const f=(r.fmt||'').split(',')[0].trim(),o=origY(r);
-  return [o?`<strong class="oy" title="Original release year">${o}</strong>`:esc(r.year||''),esc(f),esc(r.genre||'')].filter(Boolean).join(' · ')}
+  return [o?`<strong class="oy" title="Original release year">${o}</strong>`:esc(r.year||''),esc(f),rpmOf(r)?rpmTxt(rpmOf(r)):'',esc(r.genre||'')].filter(Boolean).join(' · ')}
 function thumbHTML(r){
   const disc=(rad,lab,col)=>`<svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="${rad}" fill="#0e0e0e" stroke="#3f3f3f"/><circle cx="24" cy="24" r="${(rad*.64).toFixed(1)}" fill="none" stroke="#262626"/><circle cx="24" cy="24" r="${lab}" fill="${col}"/><circle cx="24" cy="24" r="1.3" fill="#0e0e0e"/></svg>`;
   const c=r.cat;
@@ -426,7 +485,7 @@ function tagHTML(r){
   const l=L(r.loc),sl=slotLabel(l,r.section);
   return `<span class="loc">${esc(l.name)} · <span style="white-space:nowrap">${sl?esc(sl)+' · ':''}#${r.pos}</span></span>`;
 }
-const noteHTML=r=>r.comment?`<span class="s note">✎ ${esc(r.comment.replace(/\s+/g,' '))}</span>`:'';
+const noteHTML=r=>{const n=r.comment||r.dnote;return n?`<span class="s note">✎ ${esc(n.replace(/\s+/g,' '))}</span>`:''};
 const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
 function ago(ds){
@@ -442,7 +501,7 @@ function recHTML(r,lead='',extra=''){
 }
 function matches(){
   const w=fold(q).split(/\s+/).filter(Boolean),fo=view=='fav';
-  return recs.filter(r=>(fo?r.fav:(!onlyUnplaced||!placed(r)))&&(catF=='all'||r.cat==catF)&&(genF=='all'||gkey(r)==genF)&&w.every(x=>r.k.includes(x))).sort((a,b)=>a.sk<b.sk?-1:a.sk>b.sk?1:0);
+  return recs.filter(r=>(fo?r.fav:(!onlyUnplaced||!placed(r)))&&fmtOK(r,catF)&&(genF=='all'||gkey(r)==genF)&&w.every(x=>r.k.includes(x))).sort((a,b)=>a.sk<b.sk?-1:a.sk>b.sk?1:0);
 }
 function fillList(){
   const m=matches();let mini='';
@@ -470,10 +529,10 @@ function render(){
     const fo=view=='fav';
     $('#h').textContent=fo?'Starred':'Records';
     const base=fo?recs.filter(r=>r.fav):recs,np=recs.filter(r=>!placed(r)).length,cc={},gc={};
-    base.forEach(r=>{cc[r.cat]=(cc[r.cat]||0)+1;gc[gkey(r)]=(gc[gkey(r)]||0)+1});
+    base.forEach(r=>{fmtCount(cc,r);gc[gkey(r)]=(gc[gkey(r)]||0)+1});
     if(catF!='all'&&!cc[catF])catF='all';
     if(genF!='all'&&!gc[genF])genF='all';
-    const fopt=Object.keys(SHORT).filter(k=>cc[k]).map(k=>`<option value="${k}"${catF==k?' selected':''}>${SHORT[k]} (${cc[k]})</option>`).join('');
+    const fopt=fmtOpts(cc,catF,true);
     const gopt=Object.keys(gc).sort((a,b)=>(a=='__none')-(b=='__none')||gc[b]-gc[a]||a.localeCompare(b)).map(k=>`<option value="${esc(k)}"${genF==k?' selected':''}>${k=='__none'?'No genre':esc(k)} (${gc[k]})</option>`).join('');
     app.innerHTML=`<div class="stick"><input type="search" id="q" placeholder="Search artist, title or comment" value="${esc(q)}" autocomplete="off" autocapitalize="off" enterkeyhint="search">
     ${fo?'':`<div class="chips"><button class="chip${onlyUnplaced?'':' on'}" data-f="all">All ${recs.length}</button><button class="chip${onlyUnplaced?' on':''}" data-f="un">Not placed ${np}</button></div>`}
@@ -628,9 +687,60 @@ async function oyRun(){
   oyUpdateUI();if(view=='rec'||view=='fav'||view=='ex')render();
 }
 
+/* details from Discogs: exact speed, genres, styles and country, from the public release API (no account needed, 25 requests a minute) */
+const dgState={run:false,stop:false,done:0,total:0,found:0,msg:''};
+let lastDG=0;
+async function dgFetch(rid){
+  const at=Math.max(lastDG+2500,Date.now());lastDG=at;if(at>Date.now())await sleep(at-Date.now());
+  let r;try{r=await fetch('https://api.discogs.com/releases/'+rid)}catch(e){throw 'net'}
+  if(r.status==404)return null;
+  if(r.status==429)throw 'rate';
+  if(!r.ok)throw 'busy';
+  const j=await r.json(),rpm=new Set();
+  (j.formats||[]).forEach(f=>(f.descriptions||[]).forEach(d=>{const m=d.match(/^(\d+)\s*(⅓|1\/3)?\s*RPM$/i);if(m)rpm.add(m[1])}));
+  return {rpmX:RPMS.filter(x=>rpm.has(x)).join('/'),dg:j.genres||[],ds:j.styles||[],cty:j.country||''};
+}
+function dgTodo(){
+  const seen=new Set(),out=[];
+  recs.forEach(r=>{const rid=ridOf(r);if(seen.has(rid)||!/^\d+$/.test(rid))return;seen.add(rid);if(!r.dd)out.push(r)});
+  const rank=r=>isVinyl(r)?(rpmOf(r)?1:0):2;
+  return out.sort((a,b)=>rank(a)-rank(b));
+}
+const dgText=()=>{
+  const v=recs.filter(isVinyl),sure=v.filter(rpmOf).length,ex=v.filter(r=>r.rpmX).length,left=dgTodo().length;
+  return `Speed known for ${sure} of ${v.length} vinyl records${ex?`, ${ex} of them checked on Discogs`:''}. ${left?`${left} release${left==1?'':'s'} not looked up yet (about ${Math.max(1,Math.round(left*2.5/60))} min).`:'Every release has been looked up.'}`+
+    (dgState.run?` Working: ${dgState.done} of ${dgState.total} this run.`:'')+(dgState.msg?' '+dgState.msg:'')};
+function dgUpdateUI(){const e=document.getElementById('dgprog');if(e)e.textContent=dgText();const b=document.getElementById('dgb');if(b)b.textContent=dgState.run?'Pause':'Fetch details from Discogs'}
+async function dgRun(){
+  if(dgState.run){dgState.stop=true;dgState.msg='Pausing...';dgUpdateUI();return}
+  const todo=dgTodo();Object.assign(dgState,{run:true,stop:false,done:0,total:todo.length,found:0,msg:todo.length?'Keep the app open.':'Nothing left to look up.'});
+  let lock=null;try{lock=await navigator.wakeLock.request('screen')}catch(e){}
+  dgUpdateUI();let sinceSave=0;
+  for(const r of todo){
+    if(dgState.stop)break;
+    const rid=ridOf(r);let d,tries=0;
+    while(true){
+      try{d=await dgFetch(rid);break}
+      catch(e){
+        if((e=='rate'||e=='busy')&&++tries<4){dgState.msg='Discogs asked us to slow down, waiting a minute.';dgUpdateUI();await sleep(60000);dgState.msg='Keep the app open.';continue}
+        dgState.msg=e=='net'?'Could not reach Discogs. Resume when you are online.':'Discogs is busy. Resume in a few minutes.';dgState.stop=true;d=undefined;break}
+    }
+    if(d===undefined)break;
+    recs.forEach(x=>{if(ridOf(x)!=rid)return;x.dd=1;
+      if(d){x.rpmX=d.rpmX;x.dg=d.dg;x.ds=d.ds;if(!x.cty)x.cty=d.cty;if(!x.genre&&d.dg[0])x.genre=d.dg[0];prep(x)}});
+    if(d)dgState.found++;
+    dgState.done++;if(++sinceSave>=10){save();sinceSave=0}
+    dgUpdateUI();
+  }
+  save();
+  if(!dgState.msg||dgState.msg=='Keep the app open.'||dgState.msg=='Pausing...')dgState.msg=dgState.stop?'Paused. Press the button to resume.':'Done.';
+  dgState.run=false;dgState.stop=false;try{lock&&lock.release()}catch(e){}
+  dgUpdateUI();if(view!='data')render();
+}
+
 /* explore: pick, play next, stats */
 let exTab='pick',pickId=null;const tf={cat:'all',gen:'all'};const pf={cat:'all',gen:'all',fav:false,placed:false,fresh:true};
-const pool=()=>recs.filter(r=>(pf.cat=='all'||r.cat==pf.cat)&&(pf.gen=='all'||gkey(r)==pf.gen)&&(!pf.fav||r.fav)&&(!pf.placed||placed(r)));
+const pool=()=>recs.filter(r=>fmtOK(r,pf.cat)&&(pf.gen=='all'||gkey(r)==pf.gen)&&(!pf.fav||r.fav)&&(!pf.placed||placed(r)));
 function doPick(){
   let p=pool();if(!p.length){pickId=null;return}
   if(pf.fresh){const n=p.filter(r=>!r.played);
@@ -642,7 +752,7 @@ const playedLine=r=>`<span class="s played">${ago(r.played)}</span>`;
 function pickHTML(){
   const cats=[...new Set(recs.map(r=>r.cat))],gens=[...new Set(recs.map(gkey))].sort((a,b)=>(a=='__none')-(b=='__none')||a.localeCompare(b));
   const chip=(k,t)=>`<button class="chip${pf[k]?' on':''}" data-pf="${k}">${t}</button>`;
-  let h=`<div class="sel2"><select id="pc" aria-label="Format"><option value="all">Any format</option>${Object.keys(SHORT).filter(k=>cats.includes(k)).map(k=>`<option value="${k}"${pf.cat==k?' selected':''}>${SHORT[k]}</option>`).join('')}</select>
+  let h=`<div class="sel2"><select id="pc" aria-label="Format"><option value="all">Any format</option>${fmtOpts(fmtCount({},...recs),pf.cat,false)}</select>
   <select id="pg" aria-label="Genre"><option value="all">Any genre</option>${gens.map(k=>`<option value="${esc(k)}"${pf.gen==k?' selected':''}>${k=='__none'?'No genre':esc(k)}</option>`).join('')}</select></div>
   <div class="chips">${chip('fresh','Favour unplayed')}${chip('fav','Starred only')}${chip('placed','Only placed')}</div>
   <button class="btn pri" data-dopick="1">${pickId?'Pick another':'Pick a record'}</button>`;
@@ -674,15 +784,37 @@ function statsHTML(){
     const a=recs.filter(r=>r.loc===l.id&&r.section),k=a.length,used=new Set(a.map(r=>r.section)).size,tot=nSlots(l),cap=l.cap*tot;
     return cap?[l.name,`${k} / ${cap}`,k/cap]:[l.name,`${k} · ${used}/${tot}`,used/tot];
   }));
-  h+='<label>Format</label>'+countBars(cat)+'<label>Genre</label>'+countBars(gen,12)+'<label>Decade released</label>'+countBars(dec,0,decOrd);
+  h+='<label>Format</label>'+countBars(cat);
+  const vin=recs.filter(isVinyl);
+  if(vin.length){const sp={};vin.forEach(r=>{const v=rpmOf(r);sp[v?rpmTxt(v):'Not known yet']=(sp[v?rpmTxt(v):'Not known yet']||0)+1});
+    h+='<label>Speed (vinyl)</label>'+countBars(sp,0,(a,b)=>(a[0]=='Not known yet')-(b[0]=='Not known yet')||parseInt(a[0])-parseInt(b[0]))}
+  h+='<label>Genre</label>'+countBars(gen,12)+'<label>Decade released</label>'+countBars(dec,0,decOrd);
   delete yr[''];if(Object.keys(yr).length)h+='<label>Added per year</label>'+countBars(yr,0,decOrd);
+  const rated=recs.filter(r=>r.rating);
+  if(rated.length){const m={};rated.forEach(r=>{const k='★'.repeat(r.rating);m[k]=(m[k]||0)+1});
+    h+=`<label>Your rating</label><p class="mute" style="margin:0 0 6px">${rated.length} of ${n} records are rated on Discogs.</p>`+countBars(m,0,(a,b)=>b[0].length-a[0].length)}
+  const lab={};recs.forEach(r=>{const l=uniqList(r.label).split(', ')[0];if(l)lab[l]=(lab[l]||0)+1});
+  if(Object.keys(lab).length)h+='<label>Top labels</label>'+countBars(Object.fromEntries(Object.entries(lab).sort((a,b)=>b[1]-a[1]).slice(0,12))); // no "Other" row: it would dwarf the rest
+  const shop={};recs.forEach(r=>{if(r.shop)shop[r.shop]=(shop[r.shop]||0)+1});
+  if(Object.keys(shop).length)h+='<label>Where you bought them</label>'+countBars(shop,10);
+  // spending, in the most common currency of the export
+  const curs={};recs.forEach(r=>{if(r.price!==''&&r.cur!=null)curs[r.cur]=(curs[r.cur]||0)+1});
+  const cur=(Object.entries(curs).sort((a,b)=>b[1]-a[1])[0]||[])[0];
+  const paid=cur===undefined?[]:recs.filter(r=>r.price!==''&&r.cur===cur);
+  if(paid.length){
+    const ps=paid.map(r=>+r.price).sort((a,b)=>a-b),tot=ps.reduce((a,b)=>a+b,0),med=ps[Math.floor(ps.length/2)],fmtN=x=>Math.round(x).toLocaleString('sv-SE');
+    const py={};paid.forEach(r=>{const y=(/^\d{4}/.test(r.bought||'')?r.bought:r.da||'').slice(0,4);if(y)py[y]=(py[y]||0)+(+r.price)});
+    const pyE=Object.entries(py).sort((a,b)=>a[0].localeCompare(b[0])),pyM=Math.max(1,...pyE.map(x=>x[1]));
+    h+=`<label>Spending${cur?' ('+esc(cur)+')':''}</label><div class="tiles">${tile(fmtN(tot),'Total')}${tile(fmtN(med),'Median')}${tile(fmtN(ps[ps.length-1]),'Most paid')}</div><p class="mute" style="margin:0 0 6px">${paid.length} of ${n} records have a price. Per year bought, or added when the purchase date is missing:</p>`+
+      barsHTML(pyE.map(([y,v])=>[y,fmtN(v),v/pyM]));
+  }
   return h;
 }
 function timelineHTML(){
   const cur=new Date().getFullYear(),cats=[...new Set(recs.map(r=>r.cat))],gens=[...new Set(recs.map(gkey))].sort((a,b)=>(a=='__none')-(b=='__none')||a.localeCompare(b));
-  let h=`<div class="sel2"><select id="tc" aria-label="Format"><option value="all">Any format</option>${Object.keys(SHORT).filter(k=>cats.includes(k)).map(k=>`<option value="${k}"${tf.cat==k?' selected':''}>${SHORT[k]}</option>`).join('')}</select>
+  let h=`<div class="sel2"><select id="tc" aria-label="Format"><option value="all">Any format</option>${fmtOpts(fmtCount({},...recs),tf.cat,false)}</select>
   <select id="tg" aria-label="Genre"><option value="all">Any genre</option>${gens.map(k=>`<option value="${esc(k)}"${tf.gen==k?' selected':''}>${k=='__none'?'No genre':esc(k)}</option>`).join('')}</select></div>`;
-  const list=recs.filter(r=>(tf.cat=='all'||r.cat==tf.cat)&&(tf.gen=='all'||gkey(r)==tf.gen));
+  const list=recs.filter(r=>fmtOK(r,tf.cat)&&(tf.gen=='all'||gkey(r)==tf.gen));
   const by=new Map(),unk=[];
   list.forEach(r=>{const y=effY(r);if(y>=1000&&y<=cur){(by.get(y)||by.set(y,[]).get(y)).push(r)}else unk.push(r)});
   const ys=[...by.keys()];if(!by.has(cur))ys.push(cur);ys.sort((a,b)=>b-a);
@@ -735,10 +867,12 @@ function dataView(msg=''){
   }else h+=`<label>Storage locations</label>`+
     locs.map(l=>`<button class="rec" data-el="${esc(l.id)}"><div class="t"><b>${esc(l.name)}</b><span class="s">${single(l)?'One compartment':l.mode=='units'?`${l.cols*stk(l)} units × ${l.rows} shelves · ${l.w} × ${l.h} cm`:`${l.cols} × ${l.rows} sections`}${l.cap?`, ${l.cap} per ${single(l)?'case':l.mode=='units'?'shelf':'section'}`:''}</span></div><span class="tag no">Edit</span></button>`).join('')+
     `<button class="btn" id="addloc">Add storage location</button>
-    <label>Import collection (CSV)</label><p class="mute">Works with your Discogs export, or with a CSV exported from this app. Genre, Comment, Starred, Last played and Play next columns are read if present. Two copies of the same release are told apart by their Date Added. Records you have already set up keep their location, genre, comment and star when you import again.</p>
+    <label>Import collection (CSV)</label><p class="mute">Works with your Discogs export, or with a CSV exported from this app. Label, catalogue number, rating, folder, where and when you bought it, price, condition and Discogs notes are read too, along with Genre, Comment, Starred, Last played and Play next from this app's own export. A record without a genre gets one from its Discogs folder when the folder names a genre. Two copies of the same release are told apart by their Date Added. Records you have already set up keep their location, genre, comment and star when you import again.</p>
     <input type="file" id="file" accept=".csv,text/csv,text/plain" hidden><button class="btn pri" id="imp">Choose CSV file</button>
     <label>Album covers</label><p class="mute">Covers are looked up on MusicBrainz and the Cover Art Archive as records scroll into view, and saved on this phone. This sends a record's Discogs number, and sometimes its artist and title, to those sites.</p>
     <div class="chips" style="margin-top:0"><button class="chip${covOn()?' on':''}" id="cvt">${covOn()?'Covers on':'Covers off'}</button><button class="chip" id="cvd">Test lookup</button><button class="chip" id="cvc">Refetch all</button></div>
+    <label>Details from Discogs</label><p class="mute">Your Discogs export leaves out the speed. It's filled in where the format makes it clear (LP 33⅓, 7" 45, shellac 78). This looks up each release on Discogs for the exact speed, genres, styles and country; records with an unclear speed go first. Records without a genre get the first Discogs genre. It runs at about 24 records a minute, keeps going where it left off, and sends each record's Discogs number to Discogs.</p>
+    <p class="mute" id="dgprog">${dgText()}</p><button class="btn" id="dgb">${dgState.run?'Pause':'Fetch details from Discogs'}</button>
     <label>Original release year</label><p class="mute">The Released year from Discogs is the year of your pressing. This looks up the year each album first came out on MusicBrainz and shows it in bold on the cards. It takes a while (about one record every two seconds), keeps going where it left off, and sends a record's Discogs number, and sometimes its artist and title, to MusicBrainz.</p>
     <p class="mute" id="oyprog">${oyText()}</p><button class="btn" id="oyb">${oyState.run?'Pause':'Fetch original years'}</button>
     <label>Back up</label><p class="mute">Export a CSV with every record's location, genre, comment, star and played date. You can import it again later.</p>
@@ -757,6 +891,7 @@ function dataView(msg=''){
       staged=r;dataView()};
     $('#exp').onclick=exportCSV;
     $('#oyb').onclick=oyRun;
+    $('#dgb').onclick=dgRun;
     $('#upd').onclick=async()=>{$('#updmsg').textContent='Checking...';const m=await checkUpdate(true);if($('#updmsg'))$('#updmsg').textContent=m};
     $('#cvt').onclick=()=>{try{localStorage.setItem('vinylCoverOff',covOn()?'1':'0')}catch(e){}dataView()};
     $('#cvd').onclick=async()=>{$('#msg').textContent='Testing...';$('#msg').textContent=await covDiag()};
@@ -774,6 +909,24 @@ function dataView(msg=''){
 /* sheets */
 const genreList=()=>[...new Set([...GENRES,...recs.map(r=>r.genre).filter(Boolean)])].sort((a,b)=>a.localeCompare(b));
 function setNote(r,g,c){r.genre=(g||'').trim();r.comment=(c||'').trim();prep(r)}
+// record sheet: speed and format tags under the title, Discogs details below the comment
+function tagRowHTML(r){const v=rpmOf(r),t=[v?rpmTxt(v):'',...fmtTags(r.fmt)].filter(Boolean);
+  return t.length?`<div class="ftags">${t.map(x=>`<span class="tag">${esc(x)}</span>`).join('')}</div>`:''}
+function detailsHTML(r){
+  const rid=ridOf(r),v=rpmOf(r),bt=/^\d{4}/.test(r.bought||'')?r.bought:'';
+  const rows=[
+    ['Label',[uniqList(r.label),r.catno].filter(Boolean).join(' · ')],
+    ['Country',r.cty],
+    ['Speed',isVinyl(r)?(v?rpmTxt(v)+(r.rpmX?'':' (from the format)'):(r.dd?'Not listed on Discogs':'Not known yet. Data → Fetch details from Discogs')):''],
+    ['Genres',(r.dg||[]).join(', ')],['Styles',(r.ds||[]).join(', ')],
+    ['Rating',r.rating?'★'.repeat(r.rating)+'☆'.repeat(5-r.rating):''],
+    ['Condition',[r.mc?'Media '+cond(r.mc):'',r.sc?'Sleeve '+cond(r.sc):''].filter(Boolean).join(' · ')],
+    ['Bought',[r.shop,bt,r.price!==''&&r.price!=null?`${+r.price} ${r.cur||''}`.trim():''].filter(Boolean).join(' · ')],
+    ['Folder',r.folder&&!/^uncategori[sz]ed$/i.test(r.folder)?r.folder:''],
+    ['Discogs notes',r.dnote]].filter(x=>x[1]);
+  const link=/^\d+$/.test(rid)?`<a class="dlink" href="https://www.discogs.com/release/${rid}" target="_blank" rel="noopener">Open on Discogs ↗</a>`:'';
+  return rows.length||link?`<label>From Discogs</label><div class="dl">${rows.map(([k,x])=>`<div><span>${k}</span>${esc(x)}</div>`).join('')}</div>${link}`:'';
+}
 function openRecSheet(id){
   const r=recs.find(x=>x.id==id);if(!r)return;
   let lid=placed(r)?r.loc:defaultLoc(r)?.id,sec=placed(r)?r.section:null,cm=r.comment||'',gn=r.genre||'';
@@ -788,6 +941,7 @@ function openRecSheet(id){
       slots=`<label>${l.mode=='units'?'Shelf':'Section'}</label>`+diagramHTML(l,{size:'pick',attr:'data-s',hi:new Set(sec?[sec]:[]),sel:sec});
     }
     body.innerHTML=`<div class="sh"><div><b class="sht">${esc(r.title)}</b><div class="mute">${esc(r.artist)}</div><div class="mute">${[origY(r)?`<strong>${origY(r)}</strong>`+(r.year&&r.year!=origY(r)?` <span>(this edition ${esc(r.year)})</span>`:''):esc(r.year||''),esc((r.fmt||'').split(',')[0].trim())].filter(Boolean).join(' · ')}</div></div>${starBtn(r)}</div>
+    ${tagRowHTML(r)}
     ${locs.length>1?`<label>Location</label><div class="chips">${locs.map(x=>`<button class="chip${x.id==lid?' on':''}" data-pl="${esc(x.id)}">${esc(x.name)}</button>`).join('')}</div>`:''}
     ${slots}
     ${sec?`<label>Position${single(l)?'':' in '+esc(slotLabel(l,sec))}</label><input type="number" id="pos" min="1" max="${n+1}" inputmode="numeric" value="${placed(r)&&r.loc==lid&&r.section==sec?r.pos:n+1}">
@@ -797,6 +951,7 @@ function openRecSheet(id){
     <label for="gn">Genre</label><input type="text" id="gn" list="gl" value="${esc(gn)}" placeholder="e.g. Electronic" autocomplete="off">
     <datalist id="gl">${genreList().map(g=>`<option value="${esc(g)}">`).join('')}</datalist>
     <label for="cm">Comment</label><textarea id="cm" placeholder="Condition, notes, who has borrowed it...">${esc(cm)}</textarea>
+    ${detailsHTML(r)}
     <button class="btn pri" id="ok">${sec?'Save':placed(r)?'Save as not placed':'Save'}</button>
     ${placed(r)?'<button class="btn dng" id="rm">Remove from storage</button>':''}<button class="btn" id="cx">Cancel</button>`;
     body.querySelectorAll('[data-pl]').forEach(b=>b.onclick=()=>{lid=b.dataset.pl;sec=null;draw()});
