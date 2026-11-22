@@ -13,190 +13,165 @@
 <link rel="icon" href="icon-cyber-192.png">
 <link rel="apple-touch-icon" href="icon-cyber-192.png">
 <style>
-:root{color-scheme:dark;--font:Roboto,"Helvetica Neue",Arial,sans-serif;
---bg:#121212;--head:#222222;--card:#1e1e1e;--chip:#383838;--field:#121212;--thumb:#2c2c2c;
---ink:#f4f4f4;--mute:#a9a9a9;--line:#303030;--line2:#5a5a5a;
---wood:#5f4d38;--wood-d:#3d3123;--cell:#181818;--acc:#f4f4f4;--acc-ink:#121212;--hi:#f0b429;--red:#ff7a6b;
---ico-search:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d8d8d8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M20 20l-4-4'/%3E%3C/svg%3E");--ico-chev:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d8d8d8' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")}
-@media(prefers-color-scheme:light){:root{color-scheme:light;
---bg:#f2f2f2;--head:#ffffff;--card:#ffffff;--chip:#ececec;--field:#f6f6f6;--thumb:#e4e4e4;
---ink:#111111;--mute:#666666;--line:#e0e0e0;--line2:#b5b5b5;
---wood:#c9a574;--wood-d:#a98450;--cell:#f2f2f2;--acc:#111111;--acc-ink:#ffffff;--red:#c0392b;
---ico-search:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23444444' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M20 20l-4-4'/%3E%3C/svg%3E");--ico-chev:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23444444' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")}}
-.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}
-.tile{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 8px;text-align:center}
-.tile b{display:block;font-size:24px;font-weight:700;line-height:1.1}.tile span{font-size:12px;color:var(--mute)}
-.bars{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:6px 0 14px}
-.br{display:grid;grid-template-columns:minmax(70px,32%) 1fr 78px;gap:10px;align-items:center;padding:5px 0;font-size:14px}
-.bl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.bt{height:8px;border-radius:4px;background:var(--chip);overflow:hidden}.bt i{display:block;height:100%;background:var(--ink);border-radius:4px}
-.bv{color:var(--mute);font-variant-numeric:tabular-nums;text-align:right}
-.qact{display:flex;gap:8px;margin:-2px 0 12px}.qact .chip{min-height:36px;padding:6px 14px;font-size:14px}
-.played{color:var(--mute);font-size:13px}
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
-html{overscroll-behavior:none;-webkit-text-size-adjust:100%}
-button{-webkit-user-select:none;user-select:none;cursor:pointer}
-html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 var(--font)}
-body{max-width:560px;margin:0 auto;padding:0 14px calc(96px + env(safe-area-inset-bottom))}
-:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
-input:focus-visible,textarea:focus-visible{outline:none;border-color:var(--ink)}
-h1{margin:0 -14px;padding:calc(16px + env(safe-area-inset-top)) 16px 10px;background:var(--head);font-size:34px;font-weight:700;letter-spacing:-.02em;line-height:1.15}
-button,input,select,textarea{font:inherit;color:inherit}
-input[type=number],input[type=text],textarea{width:100%;min-height:50px;padding:12px 16px;border:1px solid var(--line2);border-radius:12px;background:var(--field)}
-input[type=search]{-webkit-appearance:none;appearance:none;width:100%;min-height:54px;padding:12px 18px 12px 56px;border:1.5px solid var(--line2);border-radius:999px;background:var(--field) var(--ico-search) no-repeat 18px center;background-size:24px}
-select{-webkit-appearance:none;appearance:none;min-height:46px;padding:8px 42px 8px 18px;border:0;border-radius:999px;background:var(--chip) var(--ico-chev) no-repeat right 14px center;background-size:20px;font-weight:500;text-overflow:ellipsis;width:100%}
-select option{background:var(--card);color:var(--ink)}
-nav{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:center;background:var(--head);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom);z-index:5}
-nav button{flex:1;max-width:140px;display:flex;flex-direction:column;align-items:center;gap:3px;padding:9px 0 8px;background:none;border:0;color:var(--mute);font-size:12px;font-weight:500}
-nav .ic{width:58px;height:30px;border-radius:999px;display:grid;place-items:center}
-nav .ic svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-nav button.on{color:var(--ink)}nav button.on .ic{background:var(--chip)}
-.chips{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
-.chip{min-height:42px;padding:8px 18px;border:0;border-radius:999px;background:var(--chip);color:var(--ink);font-weight:500;font-size:15px}
-.chip.on{background:var(--ink);color:var(--bg)}
-.stick{position:sticky;top:0;z-index:3;background:var(--head);margin:0 -14px 4px;padding:4px 16px 14px;border-bottom:1px solid var(--line)}
-.stick .chips{margin:12px 0 0}
-.sel2{display:flex;gap:8px;margin:12px 0 0}.sel2 select{flex:1;min-width:0}
-.count{display:flex;align-items:center;gap:16px;margin:20px 0 14px;font-size:18px;font-weight:600}
-.count::before,.count::after{content:"";flex:1;height:1px;background:var(--line2)}
-.rec{display:flex;gap:14px;align-items:center;width:100%;min-height:92px;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin:0 0 10px;cursor:pointer;-webkit-user-select:none;user-select:none}
-.rec .t{flex:1;min-width:0}
-button.t{display:flex;flex-direction:column;justify-content:center;align-self:stretch;margin:0;padding:0;border:0;background:none;text-align:left;font:inherit;color:inherit}
-button.t .tw{display:block}
-.rec b{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;font-size:18px;font-weight:500;line-height:1.25}
-.rec span.s{color:var(--mute);font-size:15px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.rec .note{font-style:italic}
-.thumb{flex:none;width:68px;height:68px;border-radius:6px;background:var(--thumb);display:grid;place-items:center;overflow:hidden}
-.thumb{position:relative}.thumb svg{width:52px;height:52px}.thumb .cv{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:inherit;background:var(--thumb)}
-.thumb.pos{background:var(--chip);font-size:22px;font-weight:700}
-.loc{display:inline-block;max-width:100%;margin-top:7px;padding:4px 12px;border-radius:14px;background:var(--chip);font-size:13px;line-height:1.3;font-weight:600;vertical-align:top}
-.loc.no{background:#f0b429;color:#000;font-weight:600}
-.tag{font-size:13px;font-weight:600;padding:5px 12px;border-radius:999px;background:var(--chip);color:var(--ink);flex:none}
-.star{flex:none;width:44px;height:44px;margin:0 -6px 0 0;padding:0;background:none;border:0;display:grid;place-items:center}
-.star svg{width:26px;height:26px;fill:none;stroke:var(--mute);stroke-width:1.7;stroke-linejoin:round}
-.star.on svg{fill:#f0b429;stroke:#d9a007}
-.fill{position:absolute;left:0;bottom:0;height:4px;background:var(--ink);opacity:.85}
-.locname{font-weight:600;margin-top:12px}
-.mute{color:var(--mute);font-size:14px}.empty{text-align:center;color:var(--mute);padding:34px 10px}
-.btn{min-height:50px;padding:12px 18px;border-radius:999px;border:0;background:var(--chip);font-weight:600;width:100%;margin:6px 0}
-.btn.pri{background:var(--acc);color:var(--acc-ink)}
-.btn.dng{color:var(--red)}
-#sheet{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:flex-end;z-index:10}
-#sheet.open{display:flex}
-#sheet>div{background:var(--head);width:100%;max-width:560px;margin:0 auto;border-radius:20px 20px 0 0;padding:20px 16px calc(18px + env(safe-area-inset-bottom));max-height:92vh;max-height:92dvh;overflow:auto;overscroll-behavior:contain}
-.sht{display:block;font-size:20px;font-weight:600;line-height:1.25}
-.sh{display:flex;align-items:flex-start;gap:8px}.sh>div{flex:1;min-width:0}
-.grid12{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:8px 0 14px}
-.grid12 button{min-height:50px;padding:12px 0;border:0;border-radius:10px;background:var(--chip);font:600 17px var(--font)}
-.grid12 button.on{background:var(--acc);color:var(--acc-ink)}
-textarea{min-height:96px;resize:vertical}
-label{display:block;font-weight:600;font-size:14px;color:var(--mute);margin:14px 0 6px}
-label.ck{font-weight:400;font-size:16px;color:var(--ink);display:flex;gap:10px;align-items:center;padding:8px 0;margin:0}
-label.ck input{width:20px;height:20px}
-
-/* cyberpunk brutalist skin: near-black, monospace, square, 2px rules, one acid accent (lime) and one signal colour (magenta).
+/* cyberpunk brutalist: near-black, monospace, square, 2px rules, one acid accent (lime) and one signal colour (magenta).
    Hard offset shadows only on the primary action and timeline years; a faint grid behind everything. */
-:root{--mono:ui-monospace,"SF Mono","JetBrains Mono","Cascadia Mono",Menlo,Consolas,"Roboto Mono",monospace;--font:var(--mono);
+:root{color-scheme:dark;
+  --mono:ui-monospace,"SF Mono","JetBrains Mono","Cascadia Mono",Menlo,Consolas,"Roboto Mono",monospace;--font:var(--mono);
   --y:#c6ff00;--p:#ff2e88;--az:#00e5ff;--az-glow:0 0 8px rgba(0,229,255,.5);
   --bg:#050505;--head:#050505;--card:#0c0c0c;--chip:#0c0c0c;--field:#000;--thumb:#151515;
   --ink:#ececec;--mute:#7d7d7d;--line:#1f1f1f;--line2:#3b3b3b;--bd:#ececec;--red:#ff2e88;
-  --hl:var(--y);--hl-t:var(--y);--on-bd:var(--y);--grid:rgba(255,255,255,.035);--glow:0 0 14px rgba(198,255,0,.55)}
-@media(prefers-color-scheme:light){:root{--p:#e0006e;--az:#0079b8;--az-glow:none;
+  --hl:var(--y);--hl-t:var(--y);--on-bd:var(--y);--grid:rgba(255,255,255,.035);--glow:0 0 14px rgba(198,255,0,.55);
+  --ico-search:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d8d8d8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M20 20l-4-4'/%3E%3C/svg%3E");--ico-chev:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d8d8d8' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")}
+@media(prefers-color-scheme:light){:root{color-scheme:light;--p:#e0006e;--az:#0079b8;--az-glow:none;
   --bg:#eeeee8;--head:#eeeee8;--card:#fafaf6;--chip:#fafaf6;--field:#fff;--thumb:#dfdfd8;
   --ink:#0a0a0a;--mute:#5a5a5a;--line:#d6d6ce;--line2:#a3a39b;--bd:#0a0a0a;--red:#d1005a;
-  --hl:var(--p);--hl-t:var(--ink);--on-bd:#0a0a0a;--grid:rgba(0,0,0,.05);--glow:none}}
+  --hl:var(--p);--hl-t:var(--ink);--on-bd:#0a0a0a;--grid:rgba(0,0,0,.05);--glow:none;
+  --ico-search:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23444444' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M20 20l-4-4'/%3E%3C/svg%3E");--ico-chev:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23444444' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")}}
+
+/* base */
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 *,*::before,*::after{border-radius:0!important}
+html{overscroll-behavior:none;-webkit-text-size-adjust:100%}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 var(--font)}
+body{max-width:560px;margin:0 auto;padding:0 14px calc(96px + env(safe-area-inset-bottom));
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:24px 24px}
+button{-webkit-user-select:none;user-select:none;cursor:pointer}
+button,input,select,textarea{font:inherit;color:inherit}
 ::selection{background:var(--y);color:#000}
-body{background:var(--bg);background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:24px 24px;font-size:15px}
-input,textarea{caret-color:var(--hl)}
-input[type=checkbox]{accent-color:var(--y)}
 :focus-visible{outline:2px solid var(--hl);outline-offset:2px}
 input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none;border-color:var(--hl)!important}
 
-/* header and sticky filters */
-h1{display:flex;align-items:center;gap:12px;background:var(--head);color:var(--ink);border-bottom:1px solid var(--line2);
-  padding:calc(18px + env(safe-area-inset-top)) 16px 14px;font:700 21px/1.1 var(--mono);text-transform:uppercase;letter-spacing:.14em}
+/* header */
+h1{display:flex;align-items:center;gap:12px;margin:0 -14px;padding:calc(18px + env(safe-area-inset-top)) 16px 14px;background:var(--head);color:var(--ink);border-bottom:1px solid var(--line2);
+  font:700 21px/1.1 var(--mono);text-transform:uppercase;letter-spacing:.14em}
 h1::before{content:"";flex:none;width:11px;height:11px;background:var(--y);box-shadow:var(--glow)}
 h1 .ja{font:700 22px/1.1 "Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic","Noto Sans JP",var(--mono);letter-spacing:.12em}
 h1 .en{margin-left:auto;font-size:10px;font-weight:500;letter-spacing:.24em;color:var(--hl-t);opacity:.85}
-.stick{background:var(--head);border-bottom:2px solid var(--bd);margin-bottom:12px;padding-top:12px}
+.stick{position:sticky;top:0;z-index:3;margin:0 -14px 12px;padding:12px 16px 14px;background:var(--head);border-bottom:2px solid var(--bd)}
+.stick .chips{margin:12px 0 0}
+.sel2{display:flex;gap:8px;margin:12px 0 0}.sel2 select{flex:1;min-width:0}
+.stick>.sel2:first-child{margin-top:0}
 
 /* fields */
-input[type=number],input[type=text],textarea,input[type=search],select{border:2px solid var(--line2);background-color:var(--field);box-shadow:none}
-input[type=search]{min-height:50px;border-width:2px}
+input[type=number],input[type=text],textarea{width:100%;min-height:50px;padding:12px 16px;border:2px solid var(--line2);background:var(--field)}
+textarea{min-height:96px;resize:vertical}
+input[type=search]{-webkit-appearance:none;appearance:none;width:100%;min-height:50px;padding:12px 18px 12px 56px;border:2px solid var(--line2);background:var(--field) var(--ico-search) no-repeat 18px center;background-size:24px}
+select{-webkit-appearance:none;appearance:none;width:100%;min-height:42px;padding:8px 42px 8px 18px;border:2px solid var(--line2);background:var(--chip) var(--ico-chev) no-repeat right 14px center;background-size:20px;
+  font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;text-overflow:ellipsis}
+select option{background:var(--card);color:var(--ink)}
 input::placeholder,textarea::placeholder{color:var(--mute);text-transform:uppercase;letter-spacing:.08em;font-size:13px}
-select{background-color:var(--chip);min-height:42px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.06em}
+input,textarea{caret-color:var(--hl)}
+input[type=checkbox]{accent-color:var(--y)}
 
 /* chips and buttons */
-.chips{gap:8px;margin:12px 0 14px}
-.chip{min-height:36px;padding:6px 13px;background:transparent;border:2px solid var(--line2);color:var(--ink);font:600 11px/1 var(--mono);text-transform:uppercase;letter-spacing:.08em;box-shadow:none}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 14px}
+.chip{min-height:36px;padding:6px 13px;background:transparent;border:2px solid var(--line2);color:var(--ink);font:600 11px/1 var(--mono);text-transform:uppercase;letter-spacing:.08em}
 .chip.on{background:var(--y);color:#000;border-color:var(--on-bd)}
-.btn{margin:10px 0;width:calc(100% - 4px);min-height:48px;background:transparent;border:2px solid var(--bd);color:var(--ink);font:700 12px/1 var(--mono);text-transform:uppercase;letter-spacing:.16em;box-shadow:none}
+.chip.sm{min-height:26px;margin-top:6px;padding:4px 9px;font-size:10px}
+.btn{width:calc(100% - 4px);min-height:48px;margin:10px 0;padding:12px 18px;background:transparent;border:2px solid var(--bd);color:var(--ink);font:700 12px/1 var(--mono);text-transform:uppercase;letter-spacing:.16em}
 .btn.pri{background:var(--y);color:#000;border-color:var(--on-bd);box-shadow:4px 4px 0 var(--p)}
 .btn.dng{color:var(--red);border-color:var(--red)}
 .btn:active,.chip:active{transform:translate(2px,2px)}.btn.pri:active{box-shadow:2px 2px 0 var(--p)}
-.qact .chip{min-height:34px;padding:6px 12px;font-size:11px}
+.qact{display:flex;flex-wrap:wrap;gap:8px;margin:-2px 0 12px}.qact .chip{min-height:34px;padding:6px 12px}
+/* sub-pages (Explore): one joined bar, so it doesn't read as a row of filters */
+.seg{display:flex;margin:14px 0 4px;border:2px solid var(--bd)}
+.seg button{flex:1;min-width:0;min-height:38px;padding:6px 2px;background:transparent;border:0;border-left:2px solid var(--bd);color:var(--mute);font:700 10px/1 var(--mono);text-transform:uppercase;letter-spacing:.06em}
+.seg button:first-child{border-left:0}
+.seg button.on{background:var(--y);color:#000;box-shadow:var(--glow)}
 
 /* record cards */
-.rec{gap:12px;min-height:76px;padding:10px;margin:0 0 10px;background:var(--card);border:2px solid var(--line2);box-shadow:none}
+.count{display:flex;align-items:center;gap:16px;margin:18px 0 12px;color:var(--mute);font:600 11px/1 var(--mono);text-transform:uppercase;letter-spacing:.22em}
+.count::before,.count::after{content:"";flex:1;height:1px;background:var(--line2)}
+.rec{display:flex;gap:12px;align-items:center;width:100%;min-height:76px;margin:0 0 10px;padding:10px;text-align:left;background:var(--card);border:2px solid var(--line2);
+  cursor:pointer;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .rec:active{transform:translate(1px,1px);border-color:var(--hl)}
 @media(hover:hover){.rec:hover{border-color:var(--ink)}}
-.rec b{font-size:14px;font-weight:700;line-height:1.3}
-.rec span.s{font-size:11px;color:var(--mute);letter-spacing:.02em}
-.rec b+span.s{font-size:13px;color:var(--ink);letter-spacing:0}
-.rec .note{font-style:normal;color:var(--ink);opacity:.8}
-.qact .chip:not(.on){background:transparent;color:var(--ink)}
+.rec.sel{border-left:6px solid var(--hl);padding-left:6px}
+.rec .t{flex:1;min-width:0}
+button.t{display:flex;flex-direction:column;justify-content:center;align-self:stretch;margin:0;padding:0;border:0;background:none;text-align:left}
+button.t .tw{display:block}
+.rec b{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;font-size:14px;font-weight:700;line-height:1.3}
+.rec span.s{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--mute);font-size:11px;letter-spacing:.02em}
+.rec b+span.s,.shd b+span.s{font-size:13px;color:var(--ink);letter-spacing:0}
+.rec .note{color:var(--ink);opacity:.8}
+.rec .oy,.shd .oy{font-weight:800;color:var(--hl-t)}
+.played{color:var(--mute);font-size:11px}
+.thumb{position:relative;flex:none;display:grid;place-items:center;width:56px;height:56px;overflow:hidden;background:var(--thumb);border:1px solid var(--line2)}
+.thumb svg{width:42px;height:42px}
+.thumb .cv{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:var(--thumb)}
+.thumb.big{width:100%;max-width:320px;height:auto;aspect-ratio:1;margin:0 auto 14px;border:2px solid var(--line2)}.thumb.big svg{width:56%;height:56%}
+.loc,.tag{display:inline-block;max-width:100%;margin-top:7px;padding:3px 8px;vertical-align:top;background:transparent;border:1px solid var(--line2);color:var(--ink);
+  font:600 10px/1.3 var(--mono);text-transform:uppercase;letter-spacing:.08em}
+.tag{flex:none;margin-top:0}
+/* "Not placed" is the normal state for most records, so it stays quiet; colour is kept for what you chose */
+.loc.no{color:var(--mute);border-style:dashed}
+.loc.live{margin-left:4px;color:var(--hl-t);border-color:var(--hl)}
+.rcol{flex:none;align-self:stretch;display:flex;flex-direction:column;align-items:flex-end;justify-content:space-between;gap:4px}
+.bpmc{display:inline-block;padding:3px 7px;border:1.5px solid var(--az);border-radius:7px!important;color:var(--az);font:700 11px/1.2 var(--mono);letter-spacing:.04em;white-space:nowrap;
+  box-shadow:var(--az-glow),inset var(--az-glow);text-shadow:var(--az-glow)}
+.bpmc.sug{border-style:dashed;opacity:.8;font-weight:600}
 .pnote{display:flex;align-items:center;gap:10px;margin:14px 0 0;padding:8px 10px;border:2px solid var(--hl);font:600 11px/1.4 var(--mono);text-transform:uppercase;letter-spacing:.06em}.pnote span{flex:1}
-.rec .oy,.sh strong{font-weight:800;color:var(--hl-t)}
-.thumb{width:56px;height:56px;border:1px solid var(--line2);background:var(--thumb)}.thumb svg{width:42px;height:42px}
-.thumb.big{display:grid;width:100%;max-width:320px;height:auto;aspect-ratio:1;margin:0 auto 14px;border:2px solid var(--line2)}.thumb.big svg{width:56%;height:56%}
-.shd b{display:block;font-size:14px;font-weight:700;line-height:1.3}
-.shd span.s{display:block;margin-top:2px;font-size:11px;color:var(--mute);letter-spacing:.02em}.shd b+span.s{font-size:13px;color:var(--ink);letter-spacing:0}
-.shd .oy{font-weight:800;color:var(--hl-t)}
-.loc,.tag{display:inline-block;margin-top:7px;padding:3px 8px;background:transparent;border:1px solid var(--line2);color:var(--ink);font:600 10px/1.3 var(--mono);text-transform:uppercase;letter-spacing:.08em}
-.tag{margin-top:0}
-.loc.no{color:var(--p);border-color:var(--p);background:transparent}
-.played{font-size:11px}
-.star svg{stroke:var(--mute);stroke-width:1.8}.star.on svg{fill:var(--y);stroke:var(--on-bd);filter:drop-shadow(var(--glow))}
-.count{margin:18px 0 12px;font:600 11px/1 var(--mono);text-transform:uppercase;letter-spacing:.22em;color:var(--mute)}
-.count::before,.count::after{height:1px;background:var(--line2)}
 
 /* bottom bar */
-nav{background:var(--head);border-top:2px solid var(--bd)}
-nav button{color:var(--mute);font:600 9px/1 var(--mono);text-transform:uppercase;letter-spacing:.14em;padding:9px 0 10px;gap:5px}
-nav .ic{width:52px;height:28px;border:0}
+nav{position:fixed;left:0;right:0;bottom:0;z-index:5;display:flex;justify-content:center;padding-bottom:env(safe-area-inset-bottom);background:var(--head);border-top:2px solid var(--bd)}
+nav button{flex:1;max-width:140px;display:flex;flex-direction:column;align-items:center;gap:5px;padding:9px 0 10px;background:none;border:0;color:var(--mute);
+  font:600 9px/1 var(--mono);text-transform:uppercase;letter-spacing:.14em}
+nav .ic{display:grid;place-items:center;width:52px;height:28px}
+nav .ic svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 nav button.on{color:var(--ink)}
 nav button.on .ic{background:var(--y);color:#000;box-shadow:var(--glow)}
-
-/* storage diagrams */
-.fill{height:4px;background:var(--p);opacity:1}
-.locname{font:600 11px/1 var(--mono);text-transform:uppercase;letter-spacing:.14em;margin-top:14px}
-
-/* stats */
-.tiles{gap:8px;margin:12px 0 16px}
-.tile{padding:12px 6px;background:var(--card);border:2px solid var(--line2);box-shadow:none}
-.tile b{font:700 24px/1.1 var(--mono);color:var(--hl-t);letter-spacing:-.02em}
-.tile span{color:var(--mute);font-weight:600;text-transform:uppercase;font-size:9px;letter-spacing:.16em}
-.bars{margin:6px 0 16px;background:var(--card);border:2px solid var(--line2);box-shadow:none}
-.br{font-size:12px}
-.bt{height:10px;border:1px solid var(--line2);background:transparent}.bt i{background:var(--y)}
-@media(prefers-color-scheme:light){.bt i{background:var(--ink)}h1::before{outline:1.5px solid var(--bd)}}
-.bv{color:var(--ink);font-weight:600}
 
 /* text */
 label{display:flex;align-items:center;gap:8px;margin:20px 0 8px;color:var(--mute);font:600 11px/1.2 var(--mono);text-transform:uppercase;letter-spacing:.16em}
 label::before{content:"";flex:none;width:6px;height:6px;background:var(--hl)}
 label.ck{gap:10px;margin:0;padding:8px 0;color:var(--ink);font:500 14px/1.3 var(--mono);text-transform:none;letter-spacing:0}
 label.ck::before{content:none}
+label.ck input{width:20px;height:20px}
 .mute{color:var(--mute);font-size:13px;line-height:1.5}
-.empty{color:var(--mute);font:600 12px/1.6 var(--mono);text-transform:uppercase;letter-spacing:.12em}
+.empty{padding:34px 10px;text-align:center;color:var(--mute);font:600 12px/1.6 var(--mono);text-transform:uppercase;letter-spacing:.12em}
+.err{color:var(--red)}
+/* Data tab: a heading per group, and the long explanations folded away */
+.dh{display:flex;align-items:center;gap:12px;margin:30px 0 0;color:var(--hl-t);font:700 12px/1 var(--mono);text-transform:uppercase;letter-spacing:.24em}
+.dh::after{content:"";flex:1;height:2px;background:var(--bd)}
+.more{margin:-2px 0 8px;color:var(--mute);font-size:13px;line-height:1.5}
+.more summary{display:inline-block;cursor:pointer;list-style:none;color:var(--hl-t);font:700 10px/1 var(--mono);text-transform:uppercase;letter-spacing:.14em;padding:4px 0}
+.more summary::-webkit-details-marker{display:none}
+.more summary::after{content:" +"}.more[open] summary::after{content:" −"}
+.more p{margin:6px 0 0}
+.ver{margin:28px 0 6px;text-align:center}
 
-/* sheet */
-#sheet{background:rgba(0,0,0,.78)}
-#sheet>div{background:var(--bg);border:2px solid var(--bd);border-top:2px solid var(--y);border-bottom:0;box-shadow:0 -1px 0 var(--y),var(--glow)}
-@media(prefers-color-scheme:light){#sheet>div{border-top-color:var(--bd);box-shadow:none}}
-.sht{font:700 17px/1.25 var(--mono);text-transform:uppercase;letter-spacing:.04em}
-.grid12 button{font-weight:700;border:1px solid var(--line2);box-shadow:none}.grid12 button.on{background:var(--y);color:#000}
+/* sheet and dialogs */
+#sheet{position:fixed;inset:0;z-index:10;display:none;align-items:flex-end;background:rgba(0,0,0,.78)}
+#sheet.open{display:flex}
+#sheet>div{width:100%;max-width:560px;max-height:92vh;max-height:92dvh;margin:0 auto;padding:20px 16px calc(18px + env(safe-area-inset-bottom));overflow:auto;overscroll-behavior:contain;
+  background:var(--bg);border:2px solid var(--bd);border-top-color:var(--y);border-bottom:0;box-shadow:0 -1px 0 var(--y),var(--glow)}
+.sht{display:block;font:700 17px/1.25 var(--mono);text-transform:uppercase;letter-spacing:.04em}
+.sh{display:flex;align-items:flex-start;gap:8px}.sh>div{flex:1;min-width:0}.sh>.rcol{flex:none;min-width:0}
+.shd b{display:block;font-size:14px;font-weight:700;line-height:1.3}
+.shd span.s{display:block;margin-top:2px;font-size:11px;color:var(--mute);letter-spacing:.02em}
+.shd .tw{display:block;margin-top:2px}
+.shd.sel{border-left:6px solid var(--hl);padding-left:10px}
+.chip.selc{min-height:30px;padding:5px 10px}
+#dlg{position:fixed;inset:0;z-index:20;display:grid;place-items:center;padding:20px;background:rgba(0,0,0,.78)}
+#dlg>div{width:100%;max-width:420px;padding:18px 16px 8px;background:var(--bg);border:2px solid var(--bd);border-top-color:var(--y);box-shadow:var(--glow)}
+#dlg p{margin:0 0 8px;font-size:14px;line-height:1.5}
+#dlg.dng>div{border-top-color:var(--red)}
+@media(prefers-color-scheme:light){#sheet>div,#dlg>div{border-top-color:var(--bd);box-shadow:none}#dlg.dng>div{border-top-color:var(--red)}h1::before{outline:1.5px solid var(--bd)}.bt i{background:var(--ink)}}
+.toast{position:fixed;left:16px;right:16px;bottom:84px;z-index:99;padding:12px 16px;background:var(--ink);color:var(--bg);font-weight:600;text-align:center}
+
+/* stats */
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0 16px}
+.tile{padding:12px 6px;text-align:center;background:var(--card);border:2px solid var(--line2)}
+.tile b{display:block;font:700 24px/1.1 var(--mono);color:var(--hl-t);letter-spacing:-.02em}
+.tile span{color:var(--mute);font-weight:600;text-transform:uppercase;font-size:9px;letter-spacing:.16em}
+.bars{margin:6px 0 16px;padding:10px 12px;background:var(--card);border:2px solid var(--line2)}
+.br{display:grid;grid-template-columns:minmax(70px,32%) 1fr 78px;gap:10px;align-items:center;padding:5px 0;font-size:12px}
+.bl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bt{height:10px;overflow:hidden;border:1px solid var(--line2);background:transparent}.bt i{display:block;height:100%;background:var(--y)}
+.bv{color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums;text-align:right}
+
+/* storage diagrams */
+.locname{margin-top:14px;font:600 11px/1 var(--mono);text-transform:uppercase;letter-spacing:.14em}
 
 /* timeline */
 .hcal{display:grid;grid-template-rows:repeat(7,1fr);grid-auto-flow:column;grid-auto-columns:1fr;gap:2px;margin:4px 0 4px}
@@ -227,7 +202,6 @@ label.ck::before{content:none}
 .dl{border:2px solid var(--line2);background:var(--card);font-size:13px}
 .dl div{display:grid;grid-template-columns:104px 1fr;gap:10px;padding:8px 12px;border-top:1px solid var(--line)}.dl div:first-child{border-top:0}
 .dl span{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.16em;color:var(--mute);padding-top:3px}
-.loc.live{margin-left:4px;color:var(--hl-t);border-color:var(--hl)}
 .hit{color:var(--hl-t);font-size:12px}
 .dlink.sm{margin:0 0 0 6px;font-size:9px}
 .gig{display:flex;flex-direction:column;gap:3px;width:100%;margin:0 0 10px;padding:10px 12px;text-align:left;background:var(--card);border:2px solid var(--line2);color:var(--ink);font:inherit}
@@ -246,16 +220,6 @@ label.ck::before{content:none}
 .lviz.on{display:grid}
 .lviz i{display:block;height:100%;background:var(--hl);transform-origin:50% 100%;transform:scaleY(.03);box-shadow:var(--glow);will-change:transform}
 .tks{margin-top:10px}.tks div{grid-template-columns:34px 1fr}.tks em{display:block;font-style:normal;font-size:11px;color:var(--mute)}
-.chip.sm{min-height:26px;margin-top:6px;padding:4px 9px;font-size:10px}
-.rcol{flex:none;align-self:stretch;display:flex;flex-direction:column;align-items:flex-end;justify-content:space-between;gap:4px}
-.rcol .star{margin-top:auto;margin-bottom:auto}.rcol .bpmc+.star{margin-top:0}
-.bpmc{display:inline-block;padding:3px 7px;border:1.5px solid var(--az);border-radius:7px;color:var(--az);font:700 11px/1.2 var(--mono);letter-spacing:.04em;white-space:nowrap;box-shadow:var(--az-glow),inset var(--az-glow);text-shadow:var(--az-glow)}
-.bpmc.sug{border-style:dashed;opacity:.8;font-weight:600}
-.shd .tw{display:block;margin-top:2px}
-.rec.sel{border-left:6px solid var(--hl);padding-left:6px}
-.shd.sel{border-left:6px solid var(--hl);padding-left:10px}
-.rec{-webkit-touch-callout:none}
-.chip.selc{min-height:30px;padding:5px 10px;font-size:11px}.chip.selc:not(.on){background:transparent}.sh>.rcol{flex:none;min-width:0}
 /* wireframe 3D storage */
 .s3{position:relative;margin:12px auto 18px}
 .s3.mini{margin:6px 0 12px}
@@ -283,17 +247,17 @@ label.ck::before{content:none}
 <body>
 <h1 id="h"></h1>
 <main id="app"></main>
-<nav><button data-v="rec"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.6"/><path d="M12 3a9 9 0 0 1 9 9" opacity=".5"/></svg></span>Records</button><button data-v="shelf"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="1.5"/><path d="M9 4v16M15 4v16M3 12h18"/></svg></span>Storage</button><button data-v="fav"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4" fill="currentColor" stroke="none"/></svg></span>Selected</button><button data-v="ex"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h4l10 10h4M3 17h4l2.5-2.5M13.5 9.5L17 7h4M18 4l3 3-3 3M18 14l3 3-3 3"/></svg></span>Explore</button><button data-v="data"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg></span>Data</button></nav>
+<nav><button data-v="rec"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.6"/><path d="M12 3a9 9 0 0 1 9 9" opacity=".5"/></svg></span>Records</button><button data-v="shelf"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="1.5"/><path d="M9 4v16M15 4v16M3 12h18"/></svg></span>Storage</button><button data-v="fav"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="14"/><rect x="3.5" y="5" width="3.6" height="14" fill="currentColor"/><path d="M10.5 10h6.5M10.5 14h4"/></svg></span>Selected</button><button data-v="ex"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h4l10 10h4M3 17h4l2.5-2.5M13.5 9.5L17 7h4M18 4l3 3-3 3M18 14l3 3-3 3"/></svg></span>Explore</button><button data-v="data"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg></span>Data</button></nav>
 <div id="sheet"><div id="sheetbody"></div></div>
 
 <script>
-const APP_VERSION=39,APP_DATE='21 Nov 2026';
+const APP_VERSION=40,APP_DATE='22 Nov 2026';
 const COVER_CACHE='vinyl-covers-2'; // must match COVERS in sw.js
 const DEFAULT_LOCS=[
  {id:'kallax',name:'Kallax shelf',mode:'grid',cols:3,rows:4,cap:0,formats:['lp']},
  {id:'case7',name:'7" case',mode:'grid',cols:1,rows:1,cap:200,formats:['s7']},
  {id:'string',name:'String Pocket',mode:'units',cols:1,stack:8,rows:3,w:78,h:20,d:15,cap:0,formats:['cd']}];
-let locs=[],recs=[],view='rec',q='',onlyUnplaced=false,catF='all',genF='all',selLoc=null,selSec=null,lim=100,staged=null,
+let locs=[],recs=[],view='rec',q='',onlyUnplaced=false,selLoc=null,selSec=null,lim=100,staged=null,
     sel={lp:1,s7:1,cd:1,shellac:0,cass:0,other:0};
 const CATS={lp:'LP, 12" and 10"',s7:'7"',shellac:'Shellac (78 rpm)',cd:'CD and MiniDisc',cass:'Cassette',other:'Other (boxes, etc.)'};
 const SHORT={lp:'LP / 12"',s7:'7"',shellac:'Shellac',cd:'CD',cass:'Cassette',other:'Other'};
@@ -332,6 +296,11 @@ const uniqList=s=>[...new Set(String(s||'').split(/\s*,\s*/).filter(Boolean))].j
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const fold=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/ł/gi,'l').replace(/ø/gi,'o').replace(/æ/gi,'ae').replace(/ß/g,'ss').replace(/đ/gi,'d').toLowerCase();
+// typing saves a moment after the last key; closing the sheet or leaving the app saves at once
+let saveT=0;
+const saveSoon=()=>{clearTimeout(saveT);saveT=setTimeout(()=>{saveT=0;save()},600)};
+const saveNow=()=>{if(saveT){clearTimeout(saveT);saveT=0;save()}};
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='hidden')saveNow()});
 function save(){try{localStorage.setItem('vinylRecs2',JSON.stringify(recs));localStorage.setItem('vinylLocs',JSON.stringify(locs))}catch(e){}}
 function load(){
   try{recs=JSON.parse(localStorage.getItem('vinylRecs2')||'[]')}catch(e){recs=[]}
@@ -601,11 +570,22 @@ function diagramHTML(l,o={}){
   });
   return t+'</div>';
 }
-const shelfHTML=(l,hi,mini,selN)=>diagramHTML(l,{hi,size:mini?'mini':'full',sel:selN});
 const gkey=r=>r.genre||'__none';
 // format filter: a format category, or a speed (rpm33, rpm45, rpm78)
 const fmtOK=(r,v)=>v=='all'||(v.startsWith('rpm')?rpmOf(r).split('/').includes(v.slice(3)):v.startsWith('bpm')?binOf(r)==+v.slice(3):r.cat==v);
 function fmtCount(cc,...rs){rs.forEach(r=>{cc[r.cat]=(cc[r.cat]||0)+1;const v=rpmOf(r);if(v)v.split('/').forEach(x=>cc['rpm'+x]=(cc['rpm'+x]||0)+1);const b=binOf(r);if(b>=0)cc['bpm'+b]=(cc['bpm'+b]||0)+1});return cc}
+// format and genre menus for Records, Pick and Timeline, with counts from the records that page draws from.
+// f is that page's filter ({cat, gen}); a choice that no longer matches anything goes back to "any".
+const rf={cat:'all',gen:'all'};
+function filterSel(idc,idg,f,base){
+  const cc={},gc={};base.forEach(r=>{fmtCount(cc,r);gc[gkey(r)]=(gc[gkey(r)]||0)+1});
+  if(f.cat!='all'&&!cc[f.cat])f.cat='all';
+  if(f.gen!='all'&&!gc[f.gen])f.gen='all';
+  const g=Object.keys(gc).sort((a,b)=>(a=='__none')-(b=='__none')||gc[b]-gc[a]||a.localeCompare(b))
+    .map(k=>`<option value="${esc(k)}"${f.gen==k?' selected':''}>${k=='__none'?'No genre':esc(k)} (${gc[k]})</option>`).join('');
+  return `<div class="sel2"><select id="${idc}" aria-label="Format"><option value="all">Any format</option>${fmtOpts(cc,f.cat,true)}</select>`+
+    `<select id="${idg}" aria-label="Genre"><option value="all">Any genre</option>${g}</select></div>`;
+}
 function fmtOpts(cc,cur,showN){
   const o=k=>`<option value="${k}"${cur==k?' selected':''}>${k.startsWith('rpm')?rpmTxt(k.slice(3)):k.startsWith('bpm')?binName(BPMBINS[+k.slice(3)])+' BPM':SHORT[k]}${showN?` (${cc[k]})`:''}</option>`;
   const a=Object.keys(SHORT).filter(k=>cc[k]).map(o).join(''),b=RPMS.map(x=>'rpm'+x).filter(k=>cc[k]).map(o).join('');
@@ -616,7 +596,7 @@ const oyOK=v=>/^\d{4}(-\d{2}(-\d{2})?)?$/.test(v||'');
 const origY=r=>oyOK(r.oy)?r.oy.slice(0,4):'';
 const effY=r=>parseInt(origY(r)||r.year);
 const effD=r=>oyOK(r.oy)?r.oy:String(r.year||'');
-// top-right column of a card: the BPM chip (dashed while it's only a suggestion), then the Selected circle
+// top-right corner of a card: the BPM chip, dashed while it's only a suggestion
 const bpmChip=r=>{const b=bpmOf(r);return b?`<span class="bpmc${b.sure?'':' sug'}" title="${b.sure?'Tempo':'Suggested tempo, may be half or double'}">${bpmTxt(b)}</span>`:''};
 const rcolHTML=r=>{const c=bpmChip(r);return c?`<div class="rcol">${c}</div>`:''};
 // the full card's Select chip: outlined when off, lime with a tick when on
@@ -661,22 +641,22 @@ let lastPlay=null;
 function markPlayed(r){if(r.played==today())return;syncPlays(r,today());r.nxWas=r.nx||0;r.nx=0;lastPlay=r.id;save()}
 function unPlay(r){r.plays=(r.plays||[]).slice(0,-1);r.played='';syncPlays(r);if(r.nxWas&&!r.nx)r.nx=r.nxWas;delete r.nxWas;if(lastPlay==r.id)lastPlay=null;save()}
 const playedToday=r=>r.played==today();
-// the same three buttons as on the record sheet: off = outlined, on = lime with a tick
-const playBtns=(r,label='Play this')=>`<div class="qact"><button class="chip${playedToday(r)?' on':''}" data-play="${esc(r.id)}" aria-pressed="${playedToday(r)}">${playedToday(r)?'✓ Played today':label}</button><button class="chip${r.nx?' on':''}" data-qt="${esc(r.id)}" aria-pressed="${!!r.nx}">${r.nx?'✓ In play next':'Add to play next'}</button>${r.played?`<button class="chip" data-unplay="${esc(r.id)}">Remove last play</button>`:''}</div>`;
+// the play buttons, the same on the record sheet, under Pick and in Play next: off = outlined, on = lime with a tick
+const playBtns=r=>`<div class="qact"><button class="chip${playedToday(r)?' on':''}" data-play="${esc(r.id)}" aria-pressed="${playedToday(r)}">${playedToday(r)?'✓ Played today':'Played today'}</button><button class="chip${r.nx?' on':''}" data-qt="${esc(r.id)}" aria-pressed="${!!r.nx}">${r.nx?'✓ In play next':'Add to play next'}</button>${r.played?`<button class="chip" data-unplay="${esc(r.id)}">Remove last play</button>`:''}</div>`;
 const nPlays=r=>(r.plays||[]).length;
 function recHTML(r,lead='',extra=''){
-  // the text area is a real button (keyboard and screen readers); the Selected circle sits beside it, not inside it
+  // the text area is a real button (keyboard and screen readers); a selected record gets the bar down its left edge
   return `<div class="rec${r.fav?' sel':''}" data-id="${esc(r.id)}">${lead||thumbHTML(r)}<button class="t" data-id="${esc(r.id)}"><b>${esc(r.title)}</b><span class="s">${esc(r.artist)}</span><span class="s">${metaHTML(r)}</span>${noteHTML(r)}${extra}${lead?'':`<span class="tw">${tagHTML(r)}${liveTag(r)}</span>`}</button>${rcolHTML(r)}</div>`;
 }
 function matches(){
   const w=fold(q).split(/\s+/).filter(Boolean),fo=view=='fav';
-  return recs.filter(r=>(fo?r.fav:(!onlyUnplaced||!placed(r)))&&fmtOK(r,catF)&&(genF=='all'||gkey(r)==genF)&&w.every(x=>r.k.includes(x))).sort((a,b)=>a.sk<b.sk?-1:a.sk>b.sk?1:0);
+  return recs.filter(r=>(fo?r.fav:(!onlyUnplaced||!placed(r)))&&fmtOK(r,rf.cat)&&(rf.gen=='all'||gkey(r)==rf.gen)&&w.every(x=>r.k.includes(x))).sort((a,b)=>a.sk<b.sk?-1:a.sk>b.sk?1:0);
 }
 function fillList(){
   const m=matches();let mini='';
   if(q.trim()&&m.length)locs.forEach(l=>{
     const s=new Set(m.filter(r=>placed(r)&&r.loc==l.id).map(r=>r.section));
-    if(s.size)mini+=`<div class="locname">${esc(l.name)}</div>`+shelfHTML(l,s,true);
+    if(s.size)mini+=`<div class="locname">${esc(l.name)}</div>`+diagramHTML(l,{hi:s,size:'mini'});
   });
   $('#mini').innerHTML=mini;
   $('#list').innerHTML=!recs.length?'<div class="empty">No records yet.<br>Open the Data tab to import your CSV.</div>':
@@ -701,21 +681,16 @@ function render(){
   if(view=='rec'||view=='fav'){
     const fo=view=='fav';
     setH(fo?'Selected':'Records');
-    const base=fo?recs.filter(r=>r.fav):recs,np=recs.filter(r=>!placed(r)).length,cc={},gc={};
-    base.forEach(r=>{fmtCount(cc,r);gc[gkey(r)]=(gc[gkey(r)]||0)+1});
-    if(catF!='all'&&!cc[catF])catF='all';
-    if(genF!='all'&&!gc[genF])genF='all';
-    const fopt=fmtOpts(cc,catF,true);
-    const gopt=Object.keys(gc).sort((a,b)=>(a=='__none')-(b=='__none')||gc[b]-gc[a]||a.localeCompare(b)).map(k=>`<option value="${esc(k)}"${genF==k?' selected':''}>${k=='__none'?'No genre':esc(k)} (${gc[k]})</option>`).join('');
+    const np=recs.filter(r=>!placed(r)).length;
     app.innerHTML=`<div class="stick"><input type="search" id="q" placeholder="Search" aria-label="Search artist, title, label or notes" value="${esc(q)}" autocomplete="off" autocapitalize="off" enterkeyhint="search">
     ${fo?'':`<div class="chips"><button class="chip${onlyUnplaced?'':' on'}" data-f="all">All ${recs.length}</button><button class="chip${onlyUnplaced?' on':''}" data-f="un">Not placed ${np}</button></div>`}
-    <div class="sel2"><select id="fc" aria-label="Format"><option value="all">Any format</option>${fopt}</select><select id="fg" aria-label="Genre"><option value="all">Any genre</option>${gopt}</select></div></div>
+    ${filterSel('fc','fg',rf,fo?recs.filter(r=>r.fav):recs)}</div>
     <div id="mini"></div><div id="list"></div>`;
     fillList();
     $('#q').oninput=e=>{q=e.target.value;lim=100;fillList()};
     $('#q').onkeydown=e=>{if(e.key=='Enter')e.target.blur()};
-    $('#fc').onchange=e=>{catF=e.target.value;lim=100;fillList()};
-    $('#fg').onchange=e=>{genF=e.target.value;lim=100;fillList()};
+    $('#fc').onchange=e=>{rf.cat=e.target.value;lim=100;fillList()};
+    $('#fg').onchange=e=>{rf.gen=e.target.value;lim=100;fillList()};
   }else if(view=='shelf'){
     setH('Storage');
     if(!L(selLoc))selLoc=locs[0]?.id;
@@ -723,7 +698,7 @@ function render(){
     if(locs.length>1)h+=`<div class="chips">${locs.map(x=>`<button class="chip${x.id==selLoc?' on':''}" data-l="${esc(x.id)}">${esc(x.name)}</button>`).join('')}</div>`;
     if(l){
       if(single(l))selSec=1;
-      h+=shelfHTML(l,new Set(),false,selSec);
+      h+=diagramHTML(l,{sel:selSec});
       if(selSec){const a=inSlot(l.id,selSec);
         h+=`<p class="mute">${esc(single(l)?l.name:slotLabel(l,selSec))}${single(l)?'':l.mode=='drawers'?', front to back':', left to right'}: ${a.length}${l.cap?' of '+l.cap:''} records</p>`+
         (a.length?a.slice(0,lim).map(r=>recHTML(r)).join('')+(a.length>lim?'<button class="btn" data-more="1">Show more</button>':''):'<div class="empty">Nothing here yet.</div>');
@@ -755,12 +730,22 @@ async function mb(path){
   if(!r.ok)throw 'busy';
   return r.json();
 }
+// the MusicBrainz release linked to a Discogs release. Covers, original years and tempos all start here, and MusicBrainz
+// allows about one request a second, so a found link is kept on this phone (a missing one only until the app is closed)
+let mbRel={};try{mbRel=JSON.parse(localStorage.getItem('vinylMbRel')||'{}')}catch(e){mbRel={}}
+const mbMiss=new Set();
+async function mbRelease(rid){
+  if(mbRel[rid])return mbRel[rid];if(mbMiss.has(rid))return null;
+  const j=await mb(`url?resource=${encodeURIComponent('https://www.discogs.com/release/'+rid)}&inc=release-rels`);
+  const m=(j.relations||[]).map(x=>x.release&&x.release.id).find(Boolean)||null;
+  if(m){mbRel[rid]=m;try{localStorage.setItem('vinylMbRel',JSON.stringify(mbRel))}catch(e){}}else mbMiss.add(rid);
+  return m;
+}
 const imgOK=u=>new Promise(res=>{const i=new Image();i.crossOrigin='anonymous';const t=setTimeout(()=>{i.src='';res(false)},12000);i.onload=()=>{clearTimeout(t);res(true)};i.onerror=()=>{clearTimeout(t);res(false)};i.src=u});
 async function findCover(r){
   const rid=ridOf(r);let m=null,m2=null,g=null;
   if(/^\d+$/.test(rid)){
-    const j=await mb(`url?resource=${encodeURIComponent('https://www.discogs.com/release/'+rid)}&inc=release-rels`);
-    m=(j.relations||[]).map(x=>x.release&&x.release.id).find(Boolean)||null;
+    m=await mbRelease(rid);
     if(m&&await imgOK(relURL(m)))return {u:relURL(m)};
   }
   const q=`artist:"${r.artist.replace(/"/g,' ')}" AND release:"${r.title.replace(/"/g,' ')}"`;
@@ -803,8 +788,8 @@ function covScan(){if(!covIO||!covOn())return;document.querySelectorAll('.thumb[
 async function covDiag(){
   const r=recs.find(x=>/^\d+$/.test(ridOf(x)));if(!r)return 'Import some records first.';
   const out=[];
-  try{const j=await mb(`url?resource=${encodeURIComponent('https://www.discogs.com/release/'+ridOf(r))}&inc=release-rels`);
-    const m=(j.relations||[]).map(x=>x.release&&x.release.id).find(Boolean);
+  // asks MusicBrainz again rather than trusting a saved link, so the test really reaches the site
+  try{const id=ridOf(r);delete mbRel[id];mbMiss.delete(id);const m=await mbRelease(id);
     out.push('MusicBrainz reachable'+(m?', release found':', release not linked to Discogs (will search by name)'));
     if(m)out.push('image '+(await imgOK(relURL(m))?'loaded':'not available for this release'));
   }catch(e){out.push(e=='net'?'MusicBrainz not reachable (offline or blocked)':'MusicBrainz is busy, try again in a minute')}
@@ -812,6 +797,39 @@ async function covDiag(){
   return `Test on "${r.title}": ${out.join('; ')}. Covers saved so far: ${n}.`;
 }
 new MutationObserver(()=>covScan()).observe(document.getElementById('app'),{childList:true,subtree:true});
+
+/* the three lookups (original years, Discogs details, tempos) share one runner: the button starts and pauses it; it waits and
+   retries when a service asks it to slow down, saves as it goes, and keeps the screen on while it works */
+function jobRunner(o){
+  const st=o.st;
+  const ui=()=>{const e=document.getElementById(o.prog);if(e)e.textContent=o.text();const b=document.getElementById(o.btn);if(b)b.textContent=st.run?'Pause':o.label};
+  const saveAll=()=>{save();if(o.saveMore)o.saveMore()};
+  async function run(){
+    if(st.run){st.stop=true;st.msg='Pausing...';ui();return}
+    const todo=o.todo();Object.assign(st,{run:true,stop:false,done:0,total:todo.length,found:0,msg:todo.length?'Keep the app open.':'Nothing left to look up.'});
+    let lock=null;try{lock=await navigator.wakeLock.request('screen')}catch(e){}
+    ui();let since=0;
+    for(const r of todo){
+      if(st.stop)break;
+      let res,ok=false,tries=0;
+      while(true){
+        try{res=await o.work(r);ok=true;break}
+        catch(e){
+          if((e=='rate'||e=='busy')&&++tries<o.tries){if(o.slowMsg){st.msg=o.slowMsg;ui()}await sleep(o.wait);if(o.slowMsg)st.msg='Keep the app open.';continue}
+          st.msg=e=='net'?o.netMsg:o.busyMsg;st.stop=true;break}
+      }
+      if(!ok)break;
+      if(o.apply(r,res))st.found++;
+      st.done++;if(++since>=o.every){saveAll();since=0}
+      ui();
+    }
+    saveAll();
+    if(!st.msg||st.msg=='Keep the app open.'||st.msg=='Pausing...')st.msg=st.stop?'Paused. Press the button to resume.':'Done.';
+    st.run=false;st.stop=false;try{lock&&lock.release()}catch(e){}
+    ui();o.after();
+  }
+  return run;
+}
 
 /* original release year: MusicBrainz release group, first release date */
 let oyNone={};try{oyNone=JSON.parse(localStorage.getItem('vinylOyNone')||'{}')}catch(e){oyNone={}}
@@ -825,8 +843,7 @@ async function findOrig(r){
   const rid=ridOf(r),yr=parseInt(r.year);let d='';
   const ok=v=>oyOK(v)&&!(yr>=1000&&+v.slice(0,4)>yr+1);
   if(/^\d+$/.test(rid)){
-    const j=await mb(`url?resource=${encodeURIComponent('https://www.discogs.com/release/'+rid)}&inc=release-rels`);
-    const m=(j.relations||[]).map(x=>x.release&&x.release.id).find(Boolean);
+    const m=await mbRelease(rid);
     if(m){const k=await mb(`release/${m}?inc=release-groups`);d=(k['release-group']||{})['first-release-date']||'';if(ok(d))return d}
   }
   const q=`artist:"${r.artist.replace(/"/g,' ')}" AND releasegroup:"${r.title.replace(/"/g,' ')}"`;
@@ -834,33 +851,13 @@ async function findOrig(r){
   const x=(j['release-groups']||[]).find(y=>(y.score||0)>=90&&ok(y['first-release-date']));
   return x?x['first-release-date']:'';
 }
-function oyUpdateUI(){const e=document.getElementById('oyprog');if(e)e.textContent=oyText();const b=document.getElementById('oyb');if(b)b.textContent=oyState.run?'Pause':'Fetch original years'}
 const oyText=()=>{const have=recs.filter(r=>oyOK(r.oy)).length;
   return `${have} of ${recs.length} records have an original year.`+(oyState.run?` Working: ${oyState.done} of ${oyState.total} looked up this run, ${oyState.found} found.`:'')+(oyState.msg?' '+oyState.msg:'')};
-async function oyRun(){
-  if(oyState.run){oyState.stop=true;oyState.msg='Pausing...';oyUpdateUI();return}
-  const todo=oyTodo();Object.assign(oyState,{run:true,stop:false,done:0,total:todo.length,found:0,msg:todo.length?'Keep the app open.':'Nothing left to look up.'});
-  let lock=null;try{lock=await navigator.wakeLock.request('screen')}catch(e){}
-  oyUpdateUI();let sinceSave=0;
-  for(const r of todo){
-    if(oyState.stop)break;
-    const rid=ridOf(r);let d,tries=0;
-    while(true){
-      try{d=await findOrig(r);break}
-      catch(e){
-        if(e=='busy'&&++tries<3){await sleep(15000);continue}
-        oyState.msg=e=='net'?'Could not reach MusicBrainz. Resume when you are online.':'MusicBrainz is busy. Resume in a few minutes.';oyState.stop=true;d=null;break}
-    }
-    if(d===null)break;
-    if(d){recs.forEach(x=>{if(ridOf(x)==rid)x.oy=d});oyState.found++;delete oyNone[rid]}else oyNone[rid]=Date.now();
-    oyState.done++;if(++sinceSave>=20){save();saveOyNone();sinceSave=0}
-    oyUpdateUI();
-  }
-  save();saveOyNone();
-  if(!oyState.msg||oyState.msg=='Keep the app open.'||oyState.msg=='Pausing...')oyState.msg=oyState.stop?'Paused. Press the button to resume.':'Done.';
-  oyState.run=false;oyState.stop=false;try{lock&&lock.release()}catch(e){}
-  oyUpdateUI();if(view=='rec'||view=='fav'||view=='ex')render();
-}
+const oyRun=jobRunner({st:oyState,todo:oyTodo,text:oyText,prog:'oyprog',btn:'oyb',label:'Fetch original years',
+  work:findOrig,tries:3,wait:15000,every:20,saveMore:saveOyNone,
+  netMsg:'Could not reach MusicBrainz. Resume when you are online.',busyMsg:'MusicBrainz is busy. Resume in a few minutes.',
+  apply:(r,d)=>{const rid=ridOf(r);if(d){recs.forEach(x=>{if(ridOf(x)==rid)x.oy=d});delete oyNone[rid];return true}oyNone[rid]=Date.now();return false},
+  after:()=>{if(view=='rec'||view=='fav'||view=='ex')render()}});
 
 /* details from Discogs: exact speed, genres, styles and country, from the public release API (no account needed, 25 requests a minute) */
 const dgState={run:false,stop:false,done:0,total:0,found:0,msg:''};
@@ -887,33 +884,12 @@ const dgText=()=>{
   const v=recs.filter(isVinyl),sure=v.filter(rpmOf).length,ex=v.filter(r=>r.rpmX).length,left=dgTodo().length;
   return `Speed known for ${sure} of ${v.length} vinyl records${ex?`, ${ex} of them checked on Discogs`:''}. ${left?`${left} release${left==1?'':'s'} not looked up yet (about ${Math.max(1,Math.round(left*2.5/60))} min).`:'Every release has been looked up.'}`+
     (dgState.run?` Working: ${dgState.done} of ${dgState.total} this run.`:'')+(dgState.msg?' '+dgState.msg:'')};
-function dgUpdateUI(){const e=document.getElementById('dgprog');if(e)e.textContent=dgText();const b=document.getElementById('dgb');if(b)b.textContent=dgState.run?'Pause':'Fetch details from Discogs'}
-async function dgRun(){
-  if(dgState.run){dgState.stop=true;dgState.msg='Pausing...';dgUpdateUI();return}
-  const todo=dgTodo();Object.assign(dgState,{run:true,stop:false,done:0,total:todo.length,found:0,msg:todo.length?'Keep the app open.':'Nothing left to look up.'});
-  let lock=null;try{lock=await navigator.wakeLock.request('screen')}catch(e){}
-  dgUpdateUI();let sinceSave=0;
-  for(const r of todo){
-    if(dgState.stop)break;
-    const rid=ridOf(r);let d,tries=0;
-    while(true){
-      try{d=await dgFetch(rid);break}
-      catch(e){
-        if((e=='rate'||e=='busy')&&++tries<4){dgState.msg='Discogs asked us to slow down, waiting a minute.';dgUpdateUI();await sleep(60000);dgState.msg='Keep the app open.';continue}
-        dgState.msg=e=='net'?'Could not reach Discogs. Resume when you are online.':'Discogs is busy. Resume in a few minutes.';dgState.stop=true;d=undefined;break}
-    }
-    if(d===undefined)break;
-    recs.forEach(x=>{if(ridOf(x)!=rid)return;x.dd=1;
-      if(d){x.rpmX=d.rpmX;x.dg=d.dg;x.ds=d.ds;if(!x.cty)x.cty=d.cty;if(!x.genre&&d.dg[0])x.genre=d.dg[0];prep(x)}});
-    if(d)dgState.found++;
-    dgState.done++;if(++sinceSave>=10){save();sinceSave=0}
-    dgUpdateUI();
-  }
-  save();
-  if(!dgState.msg||dgState.msg=='Keep the app open.'||dgState.msg=='Pausing...')dgState.msg=dgState.stop?'Paused. Press the button to resume.':'Done.';
-  dgState.run=false;dgState.stop=false;try{lock&&lock.release()}catch(e){}
-  dgUpdateUI();if(view!='data')render();
-}
+const dgRun=jobRunner({st:dgState,todo:dgTodo,text:dgText,prog:'dgprog',btn:'dgb',label:'Fetch details from Discogs',
+  work:r=>dgFetch(ridOf(r)),tries:4,wait:60000,every:10,slowMsg:'Discogs asked us to slow down, waiting a minute.',
+  netMsg:'Could not reach Discogs. Resume when you are online.',busyMsg:'Discogs is busy. Resume in a few minutes.',
+  apply:(r,d)=>{const rid=ridOf(r);recs.forEach(x=>{if(ridOf(x)!=rid)return;x.dd=1;
+    if(d){x.rpmX=d.rpmX;x.dg=d.dg;x.ds=d.ds;if(!x.cty)x.cty=d.cty;if(!x.genre&&d.dg[0])x.genre=d.dg[0];prep(x)}});return !!d},
+  after:()=>{if(view!='data')render()}});
 
 /* tempo (BPM) for 12" singles and EPs. For each release: Discogs track list → MusicBrainz recordings → AcousticBrainz BPM
    (measured from audio, frozen in 2022), and Deezer BPM searched by artist and title. Deezer allows no cross-site requests,
@@ -947,8 +923,7 @@ async function dzBpm(artist,title){
   return null;
 }
 async function mbRecs(rid){
-  const j=await mb(`url?resource=${encodeURIComponent('https://www.discogs.com/release/'+rid)}&inc=release-rels`);
-  const m=(j.relations||[]).map(x=>x.release&&x.release.id).find(Boolean);if(!m)return [];
+  const m=await mbRelease(rid);if(!m)return [];
   const k=await mb(`release/${m}?inc=recordings`);
   return (k.media||[]).flatMap(md=>(md.tracks||[]).map(t=>({p:t.number||'',t:t.title||'',id:t.recording&&t.recording.id}))).filter(x=>x.id);
 }
@@ -982,32 +957,11 @@ const bpText=()=>{
   const t=recs.filter(is12),have=t.filter(bpmOf).length,conf=t.filter(r=>r.bpm).length,left=bpmTodo().length;
   return `${have} of ${t.length} 12" singles and EPs have a tempo${conf?`, ${conf} confirmed`:''}. ${left?`${left} not looked up yet (about ${Math.max(1,Math.round(left*8/60))} min).`:'All have been looked up.'}`+
     (bpState.run?` Working: ${bpState.done} of ${bpState.total} this run, ${bpState.found} found.`:'')+(bpState.msg?' '+bpState.msg:'')};
-function bpUpdateUI(){const e=document.getElementById('bpprog');if(e)e.textContent=bpText();const b=document.getElementById('bpb');if(b)b.textContent=bpState.run?'Pause':'Fetch tempos'}
-async function bpmRun(){
-  if(bpState.run){bpState.stop=true;bpState.msg='Pausing...';bpUpdateUI();return}
-  const todo=bpmTodo();Object.assign(bpState,{run:true,stop:false,done:0,total:todo.length,found:0,msg:todo.length?'Keep the app open.':'Nothing left to look up.'});
-  let lock=null;try{lock=await navigator.wakeLock.request('screen')}catch(e){}
-  bpUpdateUI();let since=0;
-  for(const r of todo){
-    if(bpState.stop)break;
-    const rid=ridOf(r);let res,tries=0;
-    while(true){
-      try{res=await bpmLookup(r);break}
-      catch(e){
-        if((e=='rate'||e=='busy')&&++tries<4){bpState.msg='A lookup service asked us to slow down, waiting a minute.';bpUpdateUI();await sleep(60000);bpState.msg='Keep the app open.';continue}
-        bpState.msg=e=='net'?'Could not reach the lookup services. Resume when you are online.':'A lookup service is busy. Resume in a few minutes.';bpState.stop=true;res=undefined;break}
-    }
-    if(res===undefined)break;
-    recs.forEach(x=>{if(ridOf(x)!=rid)return;if(res.disc)Object.assign(x,res.disc);x.tl=res.tl;x.bpmT=res.T;x.bpmSug=res.sug;x.bpmD=1;prep(x)});
-    if(res.sug)bpState.found++;
-    bpState.done++;if(++since>=5){save();since=0}
-    bpUpdateUI();
-  }
-  save();
-  if(!bpState.msg||bpState.msg=='Keep the app open.'||bpState.msg=='Pausing...')bpState.msg=bpState.stop?'Paused. Press the button to resume.':'Done.';
-  bpState.run=false;bpState.stop=false;try{lock&&lock.release()}catch(e){}
-  bpUpdateUI();if(view!='data')render();
-}
+const bpmRun=jobRunner({st:bpState,todo:bpmTodo,text:bpText,prog:'bpprog',btn:'bpb',label:'Fetch tempos',
+  work:bpmLookup,tries:4,wait:60000,every:5,slowMsg:'A lookup service asked us to slow down, waiting a minute.',
+  netMsg:'Could not reach the lookup services. Resume when you are online.',busyMsg:'A lookup service is busy. Resume in a few minutes.',
+  apply:(r,res)=>{const rid=ridOf(r);recs.forEach(x=>{if(ridOf(x)!=rid)return;if(res.disc)Object.assign(x,res.disc);x.tl=res.tl;x.bpmT=res.T;x.bpmSug=res.sug;x.bpmD=1;prep(x)});return !!res.sug},
+  after:()=>{if(view!='data')render()}});
 
 /* concerts from setlist.fm. The setlist.fm API can't be called from a web page, so tools/setlistfm_export.py
    writes a CSV on a computer and this imports it. Stored apart from the collection; importing again replaces the list. */
@@ -1045,7 +999,6 @@ function liveHTML(){
   const ownN=g=>own.get(akey(g.a))||0;
   const by=f=>{const m={};gigs.forEach(g=>{const k=f(g);if(k)m[k]=(m[k]||0)+1});return m};
   const arts=new Set(gigs.map(g=>akey(g.a)));
-  const tile=(b,t)=>`<div class="tile"><b>${b}</b><span>${t}</span></div>`;
   let h=`<div class="tiles">${tile(gigs.length,'Concerts')}${tile(arts.size,'Artists')}${tile([...arts].filter(k=>own.get(k)).length,'On your shelves')}</div>`;
   h+='<label>Most seen</label>'+countBars(Object.fromEntries(Object.entries(by(g=>g.a)).sort((a,b)=>b[1]-a[1]).slice(0,10)));
   h+='<label>Venues</label>'+countBars(Object.fromEntries(Object.entries(by(gigPlace)).sort((a,b)=>b[1]-a[1]).slice(0,8)));
@@ -1067,12 +1020,11 @@ function doPick(){
   if(p.length>1)p=p.filter(r=>r.id!=pickId);
   pickId=p[Math.floor(Math.random()*p.length)].id;
 }
+const tile=(b,t)=>`<div class="tile"><b>${b}</b><span>${t}</span></div>`;
 const playedLine=r=>`<span class="s played">${ago(r.played)}</span>`;
 function pickHTML(){
-  const cats=[...new Set(recs.map(r=>r.cat))],gens=[...new Set(recs.map(gkey))].sort((a,b)=>(a=='__none')-(b=='__none')||a.localeCompare(b));
   const chip=(k,t)=>`<button class="chip${pf[k]?' on':''}" data-pf="${k}">${t}</button>`;
-  let h=`<div class="sel2"><select id="pc" aria-label="Format"><option value="all">Any format</option>${fmtOpts(fmtCount({},...recs),pf.cat,false)}</select>
-  <select id="pg" aria-label="Genre"><option value="all">Any genre</option>${gens.map(k=>`<option value="${esc(k)}"${pf.gen==k?' selected':''}>${k=='__none'?'No genre':esc(k)}</option>`).join('')}</select></div>
+  let h=`${filterSel('pc','pg',pf,recs)}
   <div class="chips">${chip('fresh','Favour unplayed')}${chip('fav','Selected only')}${chip('placed','Only placed')}</div>
   <button class="btn pri" data-dopick="1">${pickId?'Pick another':'Pick a record'}</button>`;
   const r=recs.find(x=>x.id==pickId);
@@ -1082,7 +1034,7 @@ function pickHTML(){
   // a record marked played leaves the queue, so say so with a way back
   const lp=recs.find(x=>x.id==lastPlay&&x.id!=pickId&&playedToday(x));
   if(lp)h+=`<div class="pnote"><span>✓ Played “${esc(lp.title)}” today${lp.nxWas?' and took it off play next':''}.</span><button class="chip" data-unplay="${esc(lp.id)}">Undo</button></div>`;
-  h+=`<label>Play next${qd.length?` (${qd.length})`:''}</label>`+(qd.length?qd.map(x=>`${recHTML(x,'',playedLine(x))}<div class="qact"><button class="chip" data-play="${esc(x.id)}">Mark played</button><button class="chip" data-qt="${esc(x.id)}">Remove from queue</button></div>`).join(''):'<p class="mute">Nothing queued. Add records from a pick, or from a record\'s sheet.</p>');
+  h+=`<label>Play next${qd.length?` (${qd.length})`:''}</label>`+(qd.length?qd.map(x=>recHTML(x,'',playedLine(x))+playBtns(x)).join(''):'<p class="mute">Nothing queued. Add records from a pick, or from a record\'s sheet.</p>');
   const unp=recs.filter(x=>!x.played).length,old=recs.slice().sort((a,b)=>(a.played||'')<(b.played||'')?-1:(a.played||'')>(b.played||'')?1:a.sk<b.sk?-1:1).slice(0,8);
   if(recs.length)h+=`<label>Not played for the longest</label><p class="mute">${unp} of ${recs.length} records have no played date yet.</p>`+old.map(x=>recHTML(x,'',playedLine(x))).join('');
   return h;
@@ -1096,7 +1048,6 @@ function countBars(map,limit=0,order){
 function statsHTML(){
   if(!recs.length)return '<div class="empty">No records yet.<br>Open the Data tab to import your CSV.</div>';
   const n=recs.length,pl=recs.filter(placed).length,pd=recs.filter(r=>r.played).length;
-  const tile=(b,t)=>`<div class="tile"><b>${b}</b><span>${t}</span></div>`;
   const by=(f)=>{const m={};recs.forEach(r=>{const k=f(r);m[k]=(m[k]||0)+1});return m};
   const cat=by(r=>SHORT[r.cat]),gen=by(r=>r.genre||'No genre'),dec=by(r=>{const y=effY(r);return y>=1900?Math.floor(y/10)*10+'s':'Unknown'}),
     yr=by(r=>(r.da||'').slice(0,4)||''),
@@ -1137,9 +1088,9 @@ function statsHTML(){
   return h;
 }
 function timelineHTML(){
-  const cur=new Date().getFullYear(),cats=[...new Set(recs.map(r=>r.cat))],gens=[...new Set(recs.map(gkey))].sort((a,b)=>(a=='__none')-(b=='__none')||a.localeCompare(b));
-  let h=`<div class="sel2"><select id="tc" aria-label="Format"><option value="all">Any format</option>${fmtOpts(fmtCount({},...recs),tf.cat,false)}</select>
-  <select id="tg" aria-label="Genre"><option value="all">Any genre</option>${gens.map(k=>`<option value="${esc(k)}"${tf.gen==k?' selected':''}>${k=='__none'?'No genre':esc(k)}</option>`).join('')}</select></div>`;
+  const cur=new Date().getFullYear();
+  // the filters stay at the top while you scroll through the years, as on Records
+  let h=`<div class="stick">${filterSel('tc','tg',tf,recs)}</div>`;
   const list=recs.filter(r=>fmtOK(r,tf.cat)&&(tf.gen=='all'||gkey(r)==tf.gen));
   const by=new Map(),unk=[];
   list.forEach(r=>{const y=effY(r);if(y>=1000&&y<=cur){(by.get(y)||by.set(y,[]).get(y)).push(r)}else unk.push(r)});
@@ -1168,12 +1119,11 @@ const dStr=t=>t.toISOString().slice(0,10);
 const dayName=ds=>{const t=dUTC(ds);return `${WD[t.getUTCDay()]} ${t.getUTCDate()} ${MON[t.getUTCMonth()]} ${t.getUTCFullYear()}`};
 function heardHTML(){
   const all=[];recs.forEach(r=>(r.plays||[]).forEach(d=>all.push([d,r])));
-  if(!all.length)return '<div class="empty">Nothing listened to yet.<br>Tap “Played today” on a record\'s sheet, or “Play this” under Pick, and it shows up here.</div>';
+  if(!all.length)return '<div class="empty">Nothing listened to yet.<br>Tap “Played today” on a record, under Pick or on its sheet, and it shows up here.</div>';
   const T=dUTC(today()),from=hPer=='30'?dStr(new Date(T-29*864e5)):hPer=='year'?dStr(new Date(T-364*864e5)):'';
   const ev=all.filter(([d])=>d>=from&&d<=today()).sort((a,b)=>a[0]<b[0]?1:a[0]>b[0]?-1:a[1].sk<b[1].sk?-1:1);
   const chip=(k,t)=>`<button class="chip${hPer==k?' on':''}" data-hp="${k}">${t}</button>`;
   let h=`<div class="chips">${chip('30','30 days')}${chip('year','12 months')}${chip('all','All time')}</div>`;
-  const tile=(b,t)=>`<div class="tile"><b>${b}</b><span>${t}</span></div>`;
   const byDay=new Map();ev.forEach(([d,r])=>(byDay.get(d)||byDay.set(d,[]).get(d)).push(r));
   const rs=new Set(ev.map(e=>e[1])),ar=new Set(ev.map(e=>akey(e[1].artist)));
   h+=`<div class="tiles">${tile(ev.length,'Plays')}${tile(rs.size,'Records')}${tile(ar.size,'Artists')}${tile(byDay.size,'Days')}${tile(streak(new Set(all.map(x=>x[0])),T),'Day streak')}${tile(recs.filter(r=>!r.played).length,'Never played')}</div>`;
@@ -1209,7 +1159,8 @@ function heardHTML(){
 function streak(byDay,T){let n=0,t=+T;if(!byDay.has(dStr(new Date(t))))t-=864e5;while(byDay.has(dStr(new Date(t)))){n++;t-=864e5}return n}
 function exploreView(){
   setH('Explore');
-  $('#app').innerHTML=`<div class="chips"><button class="chip${exTab=='pick'?' on':''}" data-ex="pick">Pick</button><button class="chip${exTab=='stats'?' on':''}" data-ex="stats">Stats</button><button class="chip${exTab=='timeline'?' on':''}" data-ex="timeline">Timeline</button><button class="chip${exTab=='live'?' on':''}" data-ex="live">Live</button><button class="chip${exTab=='heard'?' on':''}" data-ex="heard">Listened</button></div>`+(exTab=='heard'?heardHTML():exTab=='stats'?statsHTML():exTab=='timeline'?timelineHTML():exTab=='live'?liveHTML():pickHTML());
+  const tab=(k,t)=>`<button class="${exTab==k?'on':''}" data-ex="${k}" role="tab" aria-selected="${exTab==k}">${t}</button>`;
+  $('#app').innerHTML=`<div class="seg" role="tablist">${tab('pick','Pick')}${tab('heard','Listened')}${tab('stats','Stats')}${tab('timeline','Timeline')}${tab('live','Live')}</div>`+(exTab=='heard'?heardHTML():exTab=='stats'?statsHTML():exTab=='timeline'?timelineHTML():exTab=='live'?liveHTML():pickHTML());
   if($('#pc'))$('#pc').onchange=e=>{pf.cat=e.target.value;pickId=null;render()};
   if($('#pg'))$('#pg').onchange=e=>{pf.gen=e.target.value;pickId=null;render()};
   if($('#tc'))$('#tc').onchange=e=>{tf.cat=e.target.value;lim=100;render()};
@@ -1217,7 +1168,7 @@ function exploreView(){
 }
 function dataView(msg=''){
   setH('Data');
-  let h=`<p class="mute">${recs.length} records · ${recs.filter(placed).length} placed · ${recs.filter(r=>r.genre).length} with a genre · ${recs.filter(r=>r.fav).length} selected</p>`;
+  let h=`<p class="mute">${recs.length} records · ${recs.filter(placed).length} placed · ${recs.filter(r=>r.genre).length} with a genre · ${recs.filter(r=>r.fav).length} selected</p><!--msg-->`;
   const u=!staged&&getUndo();
   if(u)h+=`<div class="box"><b>${u.what=='clear'?'Records cleared':'Collection imported'} on ${when(u.at)}</b>${u.note?`<p>${esc(u.note)}</p>`:''}<p>Undo puts back the ${u.n} record${u.n==1?'':'s'} you had before${u.what=='clear'?'':' the import'}, with their locations, selections and notes.</p>
     <div class="chips" style="margin-bottom:0"><button class="chip on" id="und">Undo ${u.what=='clear'?'clear':'import'}</button><button class="chip" id="undx">Keep it</button></div></div>`;
@@ -1230,32 +1181,48 @@ function dataView(msg=''){
       return `<li><b>${esc(r.title)}</b> · ${esc(r.artist)}${bits.length?`<span>${esc(bits.join(' · '))}</span>`:''}</li>`};
     h+=`<label>What should be imported?</label><p class="mute">Found ${staged.length} rows. Pick the formats you want to keep track of.</p>`+
       Object.keys(CATS).filter(k=>c[k]).map(k=>`<label class="ck"><input type="checkbox" data-cat="${k}" ${sel[k]?'checked':''}> ${CATS[k]} <span class="mute">(${c[k]})</span></label>`).join('')+
-      `<label>Preview</label><div class="tiles">${[[n,'After import'],[p.added.length,'New'],[g.length,'Removed']].map(([b,t])=>`<div class="tile"><b>${b}</b><span>${t}</span></div>`).join('')}</div>`+
+      `<label>Preview</label><div class="tiles">${tile(n,'After import')+tile(p.added.length,'New')+tile(g.length,'Removed')}</div>`+
       (p.pair.size?`<p class="mute">${p.pair.size} record${pl(p.pair.size)} already in the app keep their location, genre, comment, selection and play history where the file leaves those empty.</p>`:'')+
       (g.length?`<div class="box warn"><b>${g.length} record${pl(g.length)} in the app ${g.length==1?'is':'are'} not in this import and will be removed${what.length?`: ${what.join(', ')}`:''}.</b>`+
         (p.unticked.length?`<p>${p.unticked.length} of them ${p.unticked.length==1?'is':'are'} in the file, in a format you have unticked.</p>`:'')+
         (gw.length?`<p>Records you have set up that will be removed:</p><ul class="gone">${gw.slice(0,25).map(line).join('')}</ul>${gw.length>25?`<p>And ${gw.length-25} more.</p>`:''}`:'')+
         `<p>You can undo the import afterwards in this tab.</p></div>`:'')+
       `<button class="btn pri" id="go">${g.length?`Import ${n} and remove ${g.length}`:`Import ${n} records`}</button><button class="btn" id="no">Cancel</button>`;
-  }else h+=`<label>Storage locations</label>`+
-    locs.map(l=>`<button class="rec" data-el="${esc(l.id)}"><div class="t"><b>${esc(l.name)}</b><span class="s">${single(l)?'One compartment':l.mode=='units'?`${l.cols*stk(l)} units × ${l.rows} shelves · ${l.w} × ${l.h} × ${l.d} cm`:l.mode=='drawers'?`${l.cols} × ${l.rows} drawers · ${l.w} × ${l.h} × ${l.d} cm`:`${l.cols} × ${l.rows} sections`}${l.cap?`, ${l.cap} per ${single(l)?'case':l.mode=='drawers'?'drawer':l.mode=='units'?'shelf':'section'}`:''}</span></div><span class="tag no">Edit</span></button>`).join('')+
-    `<button class="btn" id="addloc">Add storage location</button>
-    <label>Import collection (CSV)</label><p class="mute">Works with your Discogs export, or with a CSV exported from this app. Label, catalogue number, rating, folder, where and when you bought it, price, condition and Discogs notes are read too, along with Genre, Comment, Selected, Last played and Play next from this app's own export. A record without a genre gets one from its Discogs folder when the folder names a genre. Two copies of the same release are told apart by their Date Added. Records you have already set up keep their location, genre, comment and selection when you import again.</p>
+  }else{
+    const sec=t=>`<h2 class="dh">${t}</h2>`,more=t=>`<details class="more"><summary>More</summary><p>${t}</p></details>`;
+    h+=sec('Collection')+
+    `<label>Import (CSV)</label><p class="mute">Your Discogs export, or a CSV exported from this app. Records you have already set up keep their location, genre, comment and selection.</p>
+    ${more(`Label, catalogue number, rating, folder, where and when you bought it, price, condition and Discogs notes are read too, along with Genre, Comment, Selected, Last played, Plays and Play next from this app's own export. A record without a genre gets one from its Discogs folder when the folder names a genre. Two copies of the same release are told apart by their Date Added.`)}
     <input type="file" id="file" accept=".csv,text/csv,text/plain" hidden><button class="btn pri" id="imp">Choose CSV file</button>
-    <label>Album covers</label><p class="mute">Covers are looked up on MusicBrainz and the Cover Art Archive as records scroll into view, and saved on this phone. This sends a record's Discogs number, and sometimes its artist and title, to those sites.</p>
+    <label>Back up</label><p class="mute">A CSV with every record's location, genre, comment, selection and plays. You can import it again later.</p>
+    <button class="btn" id="exp">Export CSV</button><button class="btn dng" id="clr">Clear all records</button>`+
+    sec('Storage')+
+    locs.map(l=>`<button class="rec" data-el="${esc(l.id)}"><div class="t"><b>${esc(l.name)}</b><span class="s">${single(l)?'One compartment':l.mode=='units'?`${l.cols*stk(l)} units × ${l.rows} shelves · ${l.w} × ${l.h} × ${l.d} cm`:l.mode=='drawers'?`${l.cols} × ${l.rows} drawers · ${l.w} × ${l.h} × ${l.d} cm`:`${l.cols} × ${l.rows} sections`}${l.cap?`, ${l.cap} per ${single(l)?'case':unitOf(l)}`:''}</span></div><span class="tag">Edit</span></button>`).join('')+
+    `<button class="btn" id="addloc">Add storage location</button>`+
+    sec('Lookups')+
+    `<label>Album covers</label><p class="mute">Looked up as records scroll into view, and saved on this phone.</p>
+    ${more(`Covers come from MusicBrainz and the Cover Art Archive. This sends a record's Discogs number, and sometimes its artist and title, to those sites.`)}
     <div class="chips" style="margin-top:0"><button class="chip${covOn()?' on':''}" id="cvt">${covOn()?'Covers on':'Covers off'}</button><button class="chip" id="cvd">Test lookup</button><button class="chip" id="cvc">Refetch all</button></div>
-    <label>Details from Discogs</label><p class="mute">Your Discogs export leaves out the speed. It's filled in where the format makes it clear (LP 33⅓, 7" 45, shellac 78). This looks up each release on Discogs for the exact speed, genres, styles and country; records with an unclear speed go first. Records without a genre get the first Discogs genre. It runs at about 24 records a minute, keeps going where it left off, and sends each record's Discogs number to Discogs.</p>
+    <p class="mute" id="cvmsg"></p>
+    <label>Details from Discogs</label><p class="mute">The exact speed, genres, styles and country of each release.</p>
+    ${more(`Your Discogs export leaves out the speed. It's filled in where the format makes it clear (LP 33⅓, 7" 45, shellac 78); this looks up the rest, records with an unclear speed first. Records without a genre get the first Discogs genre. It runs at about 24 records a minute, keeps going where it left off, and sends each record's Discogs number to Discogs.`)}
     <p class="mute" id="dgprog">${dgText()}</p><button class="btn" id="dgb">${dgState.run?'Pause':'Fetch details from Discogs'}</button>
-    <label>Tempo (BPM) for 12" singles</label><p class="mute">Looks up a suggested tempo for each track on your 12" singles and EPs: measured BPM from AcousticBrainz (through MusicBrainz) and Deezer's BPM by artist and title. Expect about half of them to be found, and some to be half or double the real tempo or from another mix, so check them on the record sheet, where you can also tap along to measure a tempo yourself. It takes about 8 seconds a record, keeps going where it left off, and sends each record's Discogs number to Discogs and MusicBrainz and its artist and track titles to Deezer.</p>
+    <label>Tempo (BPM) for 12" singles</label><p class="mute">A suggested tempo for each track on your 12" singles and EPs.</p>
+    ${more(`Measured BPM from AcousticBrainz (through MusicBrainz) and Deezer's BPM by artist and title. Expect about half of them to be found, and some to be half or double the real tempo or from another mix, so check them on the record sheet, where you can also tap along or let it listen. It takes about 8 seconds a record, keeps going where it left off, and sends each record's Discogs number to Discogs and MusicBrainz and its artist and track titles to Deezer.`)}
     <p class="mute" id="bpprog">${bpText()}</p><button class="btn" id="bpb">${bpState.run?'Pause':'Fetch tempos'}</button>
-    <label>Original release year</label><p class="mute">The Released year from Discogs is the year of your pressing. This looks up the year each album first came out on MusicBrainz and shows it in bold on the cards. It takes a while (about one record every two seconds), keeps going where it left off, and sends a record's Discogs number, and sometimes its artist and title, to MusicBrainz.</p>
-    <p class="mute" id="oyprog">${oyText()}</p><button class="btn" id="oyb">${oyState.run?'Pause':'Fetch original years'}</button>
-    <label>Concerts (setlist.fm)</label><p class="mute">Brings in the concerts you've marked as attended on setlist.fm. They show as LIVE tags on records by those artists, on the record sheet, and in Explore → Live. setlist.fm doesn't let web apps fetch them, so run <b>tools/setlistfm_export.py</b> on a computer (see the README) and choose the CSV it writes. Importing again replaces the list.</p>
+    <label>Original release year</label><p class="mute">The year each album first came out, shown in bold on the cards.</p>
+    ${more(`The Released year from Discogs is the year of your pressing. This looks it up on MusicBrainz at about one record every two seconds, keeps going where it left off, and sends a record's Discogs number, and sometimes its artist and title, to MusicBrainz.`)}
+    <p class="mute" id="oyprog">${oyText()}</p><button class="btn" id="oyb">${oyState.run?'Pause':'Fetch original years'}</button>`+
+    sec('Concerts')+
+    `<p class="mute">The concerts you've marked as attended on setlist.fm, shown as LIVE tags, on the record sheet and in Explore → Live.</p>
+    ${more(`setlist.fm doesn't let web apps fetch them, so run <b>tools/setlistfm_export.py</b> on a computer (see the README) and choose the CSV it writes. Importing again replaces the list.`)}
     <p class="mute" id="gigmsg">${gigs.length?`${gigs.length} concerts imported. ${recs.filter(r=>gigsFor(r).length).length} of your records are by artists you've seen live.`:'No concerts imported yet.'}</p>
-    <input type="file" id="gfile" accept=".csv,text/csv,text/plain" hidden><div class="chips" style="margin-top:0"><button class="chip" id="gimp">Choose concerts CSV</button>${gigs.length?'<button class="chip" id="gclr">Remove concerts</button>':''}</div>
-    <label>Back up</label><p class="mute">Export a CSV with every record's location, genre, comment, selection and played date. You can import it again later.</p>
-    <button class="btn" id="exp">Export CSV</button><button class="btn dng" id="clr">Clear all records</button>`;
-  $('#app').innerHTML=h+`<p class="mute" id="msg">${esc(msg)}</p><p class="mute" style="text-align:center;margin-top:28px;margin-bottom:6px">Crate · version ${APP_VERSION} · ${APP_DATE}</p><div class="chips" style="justify-content:center;margin:0"><button class="chip" id="upd">Check for updates</button></div><p class="mute" id="updmsg" style="text-align:center;min-height:1.4em"></p>`;
+    <input type="file" id="gfile" accept=".csv,text/csv,text/plain" hidden><button class="btn" id="gimp">Choose concerts CSV</button>${gigs.length?'<button class="btn dng" id="gclr">Remove concerts</button>':''}`+
+    sec('App');
+  }
+  // messages from an import or a change show at the top of the tab
+  $('#app').innerHTML=h.replace('<!--msg-->',msg?`<div class="box">${esc(msg)}</div>`:'')+`<p class="mute ver">Crate · version ${APP_VERSION} · ${APP_DATE}</p><div class="chips" style="justify-content:center;margin:0"><button class="chip" id="upd">Check for updates</button></div><p class="mute" id="updmsg" style="text-align:center;min-height:1.4em"></p>`;
+  if(msg)window.scrollTo(0,0);
   if(staged){
     document.querySelectorAll('[data-cat]').forEach(i=>i.onchange=()=>{sel[i.dataset.cat]=i.checked?1:0;dataView()});
     // replacing a collection: the undo box at the top carries the summary; a first import shows it below
@@ -1276,20 +1243,20 @@ function dataView(msg=''){
       if(!g||!g.length)return dataView('No concerts found. Choose the CSV that tools/setlistfm_export.py writes.');
       gigs=g;saveGigs();const a=new Set(g.map(x=>akey(x.a))).size,m=recs.filter(r=>gigsFor(r).length).length;
       dataView(`Imported ${g.length} concerts by ${a} artists. ${m} of your records are by artists you've seen live.`)};
-    if($('#gclr'))$('#gclr').onclick=()=>{if(!confirm('Remove all imported concerts? Your records are not affected.'))return;gigs=[];saveGigs();dataView('Concerts removed.')};
+    if($('#gclr'))$('#gclr').onclick=async()=>{if(!await ask('Remove all imported concerts? Your records are not affected.','Remove concerts',true))return;gigs=[];saveGigs();dataView('Concerts removed.')};
     $('#oyb').onclick=oyRun;
     $('#dgb').onclick=dgRun;
     $('#bpb').onclick=bpmRun;
     $('#upd').onclick=async()=>{$('#updmsg').textContent='Checking...';const m=await checkUpdate(true);if($('#updmsg'))$('#updmsg').textContent=m};
     $('#cvt').onclick=()=>{try{localStorage.setItem('vinylCoverOff',covOn()?'1':'0')}catch(e){}dataView()};
-    $('#cvd').onclick=async()=>{$('#msg').textContent='Testing...';$('#msg').textContent=await covDiag()};
+    $('#cvd').onclick=async()=>{$('#cvmsg').textContent='Testing...';const m=await covDiag();if($('#cvmsg'))$('#cvmsg').textContent=m};
     $('#cvc').onclick=async()=>{cov={};saveCov();try{await caches.delete(COVER_CACHE)}catch(e){}dataView('Saved covers cleared. They will be fetched again as you browse.')};
     $('#addloc').onclick=()=>locSheet(null);
-    $('#clr').onclick=()=>{if(!recs.length||!confirm('Delete all records and placements? You can undo this in the Data tab.'))return;
+    $('#clr').onclick=async()=>{if(!recs.length||!await ask(`Delete all ${recs.length} records and their placements? You can undo this in the Data tab.`,'Clear all records',true))return;
       setUndo('clear',`Cleared ${recs.length} records.`);recs=[];save();render();window.scrollTo(0,0)};
   }
-  if($('#und'))$('#und').onclick=()=>{const u=getUndo();
-    if(!confirm(`Go back to the ${u.n} records you had before the ${u.what=='clear'?'clear':'import'} on ${when(u.at)}? Changes you made since then are lost.`))return;
+  if($('#und'))$('#und').onclick=async()=>{const u=getUndo();
+    if(!await ask(`Go back to the ${u.n} records you had before the ${u.what=='clear'?'clear':'import'} on ${when(u.at)}? Changes you made since then are lost.`,`Undo ${u.what=='clear'?'clear':'import'}`))return;
     dataView(restoreUndo());window.scrollTo(0,0)};
   if($('#undx'))$('#undx').onclick=()=>{dropUndo();dataView()};
 }
@@ -1297,9 +1264,9 @@ function dataView(msg=''){
 /* sheets */
 const genreList=()=>[...new Set([...GENRES,...recs.map(r=>r.genre).filter(Boolean)])].sort((a,b)=>a.localeCompare(b));
 function setNote(r,g,c){r.genre=(g||'').trim();r.comment=(c||'').trim();prep(r)}
-// record sheet: speed and format tags under the title, Discogs details below the comment
+// record sheet: format tags under the title (the speed is already in the line above), Discogs details below the comment
 const bigArtHTML=r=>thumbHTML(r).replace('class="thumb"','class="thumb big"').replace(/src="([^"]*)\/front-250"/,(m,u)=>`src="${u}/front-500" data-sm="${u}/front-250"`).replace('onerror="this.remove()"','onerror="if(this.dataset.sm){this.src=this.dataset.sm;delete this.dataset.sm}else this.remove()"');
-function tagRowHTML(r){const v=rpmOf(r),t=[v?rpmTxt(v):'',...fmtTags(r.fmt)].filter(Boolean);
+function tagRowHTML(r){const t=fmtTags(r.fmt);
   return t.length?`<div class="ftags">${t.map(x=>`<span class="tag">${esc(x)}</span>`).join('')}</div>`:''}
 function detailsHTML(r){
   const rid=ridOf(r),v=rpmOf(r),bt=/^\d{4}/.test(r.bought||'')?r.bought:'';
@@ -1319,8 +1286,8 @@ function detailsHTML(r){
 }
 /* listen: the tempo of what's playing, from the microphone. Nothing is recorded or kept.
    Onsets: energy jumps in three bands (kick, snare, hats), measured on exact 256-sample hops.
-   Tempo: autocorrelation of the onset curve, scored with its multiples (2, 3, 4 beats) and weighted towards 120 BPM,
-   then refined to a fraction of a hop. The 12-band visualizer reads an analyser on each screen frame. */
+   Tempo: the onsets are folded onto each candidate beat length (weighted towards 120 BPM) to pick the beat, then
+   autocorrelation over many beats refines it to a fraction of a hop. The 12-band visualizer reads an analyser on each screen frame. */
 const LB=12,LS={on:false};
 async function listenStart(cb,srcFn){
   if(LS.on)return;
@@ -1416,11 +1383,10 @@ function tempoHTML(r){
 function openRecSheet(id){
   const r=recs.find(x=>x.id==id);if(!r)return;
   let lid=placed(r)?r.loc:defaultLoc(r)?.id,sec=placed(r)?r.section:null,cm=r.comment||'',gn=r.genre||'';
-  let taps=[],tapT=0,changed=false; // tap tempo state lives across redraws of the sheet
-  const setBpm=v=>{r.bpm=v?Math.round(v*10)/10:0;changed=true;save();draw()};
+  let taps=[],tapT=0; // tap tempo state lives across redraws of the sheet
+  const setBpm=v=>{r.bpm=v?Math.round(v*10)/10:0;sheetDirty=true;save();draw()};
   const body=$('#sheetbody');body.innerHTML='';
-  const draw=()=>{
-    if($('#cm'))cm=$('#cm').value;if($('#gn'))gn=$('#gn').value;
+  const draw=sheetDraw=()=>{
     const l=L(lid);if(!l){body.innerHTML='<p>Add a storage location in the Data tab first.</p><button class="btn" id="cx">Close</button>';$('#cx').onclick=closeSheet;return}
     if(single(l))sec=1;
     const n=sec?inSlot(l.id,sec).filter(x=>x.id!=r.id).length:0;
@@ -1432,7 +1398,7 @@ function openRecSheet(id){
     ${tagRowHTML(r)}
     ${tempoHTML(r)}
     <label>Listening</label><p class="mute" style="margin:0 0 8px">${ago(r.played)}${nPlays(r)>1?` · ${nPlays(r)} plays in all`:''}${r.nx?' · In play next':''}</p>
-    <div class="qact" style="margin:0"><button class="chip${playedToday(r)?' on':''}" id="pl" aria-pressed="${playedToday(r)}">${playedToday(r)?'✓ Played today':'Played today'}</button><button class="chip${r.nx?' on':''}" id="pq" aria-pressed="${!!r.nx}">${r.nx?'✓ In play next':'Add to play next'}</button>${r.played?'<button class="chip" id="pc0">Remove last play</button>':''}</div>
+    ${playBtns(r)}
     <label for="gn">Genre</label><input type="text" id="gn" list="gl" value="${esc(gn)}" placeholder="e.g. Electronic" autocomplete="off">
     <datalist id="gl">${genreList().map(g=>`<option value="${esc(g)}">`).join('')}</datalist>
     <label for="cm">Comment</label><textarea id="cm" placeholder="Condition, notes, who has borrowed it...">${esc(cm)}</textarea>
@@ -1442,14 +1408,14 @@ function openRecSheet(id){
     ${slots}
     ${sec?`<label>Position${single(l)?'':' in '+esc(slotLabel(l,sec))}</label><input type="number" id="pos" min="1" max="${n+1}" inputmode="numeric" value="${placed(r)&&r.loc==lid&&r.section==sec?r.pos:n+1}">
     <p class="mute">Holds ${n} other record${n==1?'':'s'}${l.cap?` of ${l.cap}`:''}. ${l.mode=='drawers'?'#1 is at the front of the drawer. Records at or behind this position move one place back.':'Records at or after this position shift one place along.'}${l.cap&&n>=l.cap?' This one is already full.':''}</p>`:''}
-    <button class="btn pri" id="ok">${sec?'Save':placed(r)?'Save as not placed':'Save'}</button>
-    ${placed(r)?'<button class="btn dng" id="rm">Remove from storage</button>':''}<button class="btn" id="cx">Cancel</button>`;
+    ${sec||placed(r)?`<button class="btn pri" id="ok">${sec?'Save location':'Save as not placed'}</button>`:''}
+    ${placed(r)?'<button class="btn dng" id="rm">Remove from storage</button>':''}<button class="btn" id="cx">Close</button>`;
     body.querySelectorAll('[data-pl]').forEach(b=>b.onclick=()=>{lid=b.dataset.pl;sec=null;draw()});
     body.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{sec=sec==+b.dataset.s?null:+b.dataset.s;draw()});
     covScan();
-    $('#pl').onclick=()=>{playedToday(r)?unPlay(r):markPlayed(r);draw()};
-    $('#pq').onclick=()=>{r.nx=r.nx?0:Date.now();save();draw()};
-    if($('#pc0'))$('#pc0').onclick=()=>{unPlay(r);draw()};
+    // genre and comment are kept as you type
+    const note=()=>{gn=$('#gn').value;cm=$('#cm').value;setNote(r,gn,cm);sheetDirty=true;saveSoon()};
+    $('#gn').oninput=note;$('#cm').oninput=note;
     // tap tempo: the average of the last taps; saved by itself 2.5 s after the last tap, once there are 5 or more
     $('#tap').onpointerdown=e=>{e.preventDefault();const now=performance.now();
       if(taps.length&&now-taps[taps.length-1]>2500)taps=[];taps.push(now);if(taps.length>12)taps.shift();
@@ -1480,13 +1446,14 @@ function openRecSheet(id){
       }catch(err){draw();say(err&&err.name=='NotAllowedError'?'Microphone not allowed. Allow it in the browser settings':(err&&err.message)||'Could not start the microphone')}
     };
     body.querySelectorAll('[data-bu]').forEach(b=>b.onclick=()=>setBpm(+b.dataset.bu));
-    $('#cx').onclick=()=>{clearTimeout(tapT);closeSheet();if(changed)render()};
-    $('#ok').onclick=()=>{setNote(r,$('#gn').value,$('#cm').value);place(r,sec?lid:null,sec,sec?parseInt($('#pos').value)||null:null);closeSheet();render()};
-    if($('#rm'))$('#rm').onclick=()=>{setNote(r,$('#gn').value,$('#cm').value);place(r,null,null);closeSheet();render()};
+    $('#cx').onclick=()=>{clearTimeout(tapT);closeSheet()};
+    if($('#ok'))$('#ok').onclick=()=>{place(r,sec?lid:null,sec,sec?parseInt($('#pos').value)||null:null);sheetDirty=true;closeSheet()};
+    if($('#rm'))$('#rm').onclick=()=>{place(r,null,null);sheetDirty=true;closeSheet()};
   };
   draw();showSheet();
 }
 function locSheet(id){
+  sheetDraw=null;
   const o=id?L(id):null;
   const l=o?{...o,formats:[...(o.formats||[])]}:{id:'l'+Date.now().toString(36),name:'',mode:'grid',cols:3,rows:4,stack:1,w:78,h:20,d:30,cap:0,formats:[]};
   // sizes remembered per layout while you switch between them in the editor
@@ -1506,7 +1473,7 @@ function locSheet(id){
   <label>Usually holds</label>${Object.keys(CATS).map(k=>`<label class="ck"><input type="checkbox" data-lf="${k}" ${l.formats.includes(k)?'checked':''}> ${CATS[k]}</label>`).join('')}
   <label>Preview</label><div id="lprev"></div>
   ${nPlaced?`<p class="mute">${nPlaced} placed record${nPlaced==1?'':'s'} keep their section, shelf or drawer numbers when you change the layout. A change that would remove a numbered one that holds records is not allowed.</p>`:''}
-  <p class="mute" id="lmsg" style="color:var(--red)"></p>
+  <p class="mute err" id="lmsg"></p>
   <button class="btn pri" id="ok">Save</button>${o?'<button class="btn dng" id="del">Delete location</button>':''}<button class="btn" id="cx">Cancel</button>`;
   const num=(id,lo,hi,def)=>{const v=parseFloat($(id).value);return Math.max(lo,Math.min(hi,isFinite(v)?v:def))};
   const form=()=>{const m=$('#lm').value,u=m=='units',sz=m!='grid',df=dims[m]||{};return {id:l.id,name:$('#ln').value.trim()||'Storage',mode:m,
@@ -1534,18 +1501,31 @@ function locSheet(id){
     if(o)locs[locs.indexOf(o)]=n;else locs.push(n);
     save();closeSheet();render();
   };
-  if($('#del'))$('#del').onclick=()=>{
+  if($('#del'))$('#del').onclick=async()=>{
     const k=recs.filter(r=>r.loc===l.id&&r.section).length;
-    if(!confirm(`Delete ${o.name}?${k?` ${k} placed records will become not placed.`:''}`))return;
+    if(!await ask(`Delete ${o.name}?${k?` ${k} placed records will become not placed.`:''}`,'Delete location',true))return;
     recs.forEach(r=>{if(r.loc===l.id){r.loc=null;r.section=null;r.pos=null}});
     locs=locs.filter(x=>x.id!==l.id);save();closeSheet();render();
   };
   showSheet();
 }
+// confirmations in the app's own style rather than the browser's pop-up; resolves true for the first button
+function ask(text,ok,danger=false){return new Promise(res=>{
+  const d=document.createElement('div');d.id='dlg';if(danger)d.className='dng';d.setAttribute('role','alertdialog');d.setAttribute('aria-modal','true');
+  d.innerHTML=`<div><p>${esc(text)}</p><button class="btn ${danger?'dng':'pri'}" data-a="1">${esc(ok)}</button><button class="btn" data-a="0">Cancel</button></div>`;
+  const key=e=>{if(e.key=='Escape')end(false)};
+  const end=v=>{d.remove();document.removeEventListener('keydown',key);res(v)};
+  d.onclick=e=>{e.stopPropagation();const b=e.target.closest('[data-a]');if(b)end(b.dataset.a=='1');else if(e.target==d)end(false)};
+  document.addEventListener('keydown',key);document.body.appendChild(d);d.querySelector('[data-a="1"]').focus()})}
 let sheetOpen=false;
+// a change made on the record sheet redraws the sheet straight away, and the page behind it once the sheet closes
+let sheetDraw=null,sheetDirty=false;
+const refresh=()=>{if(sheetOpen&&sheetDraw){sheetDirty=true;sheetDraw()}else render()};
 function showSheet(){$('#sheet').classList.add('open');if(!sheetOpen)try{history.pushState({sheet:1},'')}catch(e){}sheetOpen=true}
-function closeSheet(){listenStop();if(!sheetOpen)return;sheetOpen=false;$('#sheet').classList.remove('open');try{if(history.state&&history.state.sheet)history.back()}catch(e){}}
-window.addEventListener('popstate',()=>{listenStop();if(sheetOpen){sheetOpen=false;$('#sheet').classList.remove('open')}});
+function sheetGone(){listenStop();saveNow();if(!sheetOpen)return false;sheetOpen=false;sheetDraw=null;$('#sheet').classList.remove('open');
+  if(sheetDirty){sheetDirty=false;render()}return true}
+function closeSheet(){if(sheetGone())try{if(history.state&&history.state.sheet)history.back()}catch(e){}}
+window.addEventListener('popstate',sheetGone);
 $('#sheet').onclick=e=>{if(e.target.id=='sheet')closeSheet()};
 
 let lp=null,lpDone=false;
@@ -1571,10 +1551,10 @@ document.addEventListener('click',e=>{
   else if(d.hp){hPer=d.hp;lim=100;render()}
   else if(d.pf){pf[d.pf]=!pf[d.pf];pickId=null;render()}
   else if(d.dopick){doPick();render()}
-  else if(d.play){const r=recs.find(x=>x.id==d.play);if(r){playedToday(r)?unPlay(r):markPlayed(r);render()}}
-  else if(d.unplay){const r=recs.find(x=>x.id==d.unplay);if(r){unPlay(r);render()}}
-  else if(d.qt){const r=recs.find(x=>x.id==d.qt);if(r){r.nx=r.nx?0:Date.now();save();render()}}
-  else if(d.gq){q=d.gq;view='rec';catF='all';genF='all';onlyUnplaced=false;lim=100;render();window.scrollTo(0,0)}
+  else if(d.play){const r=recs.find(x=>x.id==d.play);if(r){playedToday(r)?unPlay(r):markPlayed(r);refresh()}}
+  else if(d.unplay){const r=recs.find(x=>x.id==d.unplay);if(r){unPlay(r);refresh()}}
+  else if(d.qt){const r=recs.find(x=>x.id==d.qt);if(r){r.nx=r.nx?0:Date.now();save();refresh()}}
+  else if(d.gq){q=d.gq;view='rec';rf.cat='all';rf.gen='all';onlyUnplaced=false;lim=100;render();window.scrollTo(0,0)}
   else if(d.el){locSheet(d.el)}
   else if(d.id){openRecSheet(d.id)}
 });
@@ -1586,8 +1566,7 @@ async function remoteVersion(){
   const m=(await r.text()).match(/APP_VERSION=(\d+)/);return m?+m[1]:0;
 }
 async function applyUpdate(v){
-  const t=document.createElement('div');t.textContent='Updating to version '+v+'...';
-  t.style.cssText='position:fixed;left:16px;right:16px;bottom:84px;z-index:99;padding:12px 16px;border-radius:12px;background:var(--ink);color:var(--bg);font-weight:600;text-align:center';
+  const t=document.createElement('div');t.className='toast';t.textContent='Updating to version '+v+'...';
   document.body.appendChild(t);
   try{(await navigator.serviceWorker.getRegistrations()).forEach(r=>r.unregister())}catch(e){}
   try{(await caches.keys()).filter(k=>k!==COVER_CACHE).forEach(k=>caches.delete(k))}catch(e){}
