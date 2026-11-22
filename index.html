@@ -160,6 +160,10 @@ label::before{content:"";flex:none;width:6px;height:6px;background:var(--hl)}
 label.ck{gap:10px;margin:0;padding:8px 0;color:var(--ink);font:500 14px/1.3 var(--mono);text-transform:none;letter-spacing:0}
 label.ck::before{content:none}
 label.ck input{width:20px;height:20px}
+/* sharing a record */
+.chip.shr{min-height:30px;padding:5px 10px}
+.shtx{margin:10px 0 0;padding:10px 12px;border:1px solid var(--line2);background:var(--card);font:500 12px/1.5 var(--mono);white-space:pre-wrap;word-break:break-word}
+.shimg{display:block;width:150px;margin:10px 0 0;border:1px solid var(--line2)}
 .mute{color:var(--mute);font-size:13px;line-height:1.5}
 .empty{padding:34px 10px;text-align:center;color:var(--mute);font:600 12px/1.6 var(--mono);text-transform:uppercase;letter-spacing:.12em}
 .err{color:var(--red)}
@@ -296,7 +300,7 @@ label.ck input{width:20px;height:20px}
 <div id="sheet"><div id="sheetbody"></div></div>
 
 <script>
-const APP_VERSION=49,APP_DATE='22 Nov 2026';
+const APP_VERSION=50,APP_DATE='22 Nov 2026';
 const COVER_CACHE='vinyl-covers-2'; // must match COVERS in sw.js
 const DEFAULT_LOCS=[
  {id:'kallax',name:'Kallax shelf',mode:'grid',cols:3,rows:4,cap:0,formats:['lp']},
@@ -1511,6 +1515,78 @@ function tempoHTML(r){
   ${b?`<div class="qact" style="margin:10px 0 0"><button class="chip" id="bh">×½</button><button class="chip" id="bd">×2</button>${b.sure?'<button class="chip" id="bclr">Clear</button>':'<button class="chip on" id="bok">Confirm</button>'}</div>`:''}
   ${T.length?`<div class="dl tks">${T.map(t=>`<div><span>${esc(t.p||'·')}</span><p class="gv">${esc(t.t)}<em>${esc(src(t))}</em><button class="chip sm" data-bu="${trackBpm(t)}">Use ${trackBpm(t)}</button></p></div>`).join('')}</div>`:''}`;
 }
+/* sharing a record: plain text that works in any app, plus an optional picture card with the cover.
+   Where the record is stored is never shared. The choices are remembered on this phone */
+let shareOpt={cov:1,disc:1,gb:1,cm:0,pl:0};try{Object.assign(shareOpt,JSON.parse(localStorage.getItem('vinylShare')||'{}'))}catch(e){}
+function shareText(r){
+  const o=shareOpt,f=(r.fmt||'').split(',')[0].trim(),oy=origY(r),b=bpmOf(r);
+  const yr=r.year&&oy&&oy!=String(r.year)?`${r.year} (first released ${oy})`:(r.year||oy||'');
+  const lines=[`${r.title} — ${r.artist}`,[f,yr,o.disc?[r.label,r.catno].filter(Boolean).join(' '):''].filter(Boolean).join(' · ')];
+  if(o.gb){const g=[r.genre,b?bpmTxt(b):''].filter(Boolean).join(' · ');if(g)lines.push(g)}
+  if(o.cm&&r.comment)lines.push(r.comment.trim());
+  if(o.pl&&nPlays(r))lines.push(`Played ${nPlays(r)} time${nPlays(r)==1?'':'s'}, last on ${r.played}`);
+  lines.push('https://www.discogs.com/release/'+ridOf(r));
+  return lines.filter(Boolean).join('\n');
+}
+// the picture card: 1080 × 1350, Crate's colours, the cover when one is saved
+async function shareImage(r){
+  const W=1080,H=1350,c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d');
+  const MONO='"SF Mono",ui-monospace,Menlo,Consolas,monospace';
+  x.fillStyle='#050505';x.fillRect(0,0,W,H);x.strokeStyle='#c6ff00';x.lineWidth=8;x.strokeRect(4,4,W-8,H-8);
+  const A=80,S=W-2*A;let img=null;const cv=cov[ridOf(r)];
+  if(cv&&cv.u&&covOn())for(const u of [cv.u.replace(/\/front-250$/,'/front-500'),cv.u]){
+    try{const res=await fetch(u,{mode:'cors'});if(res.ok){img=await createImageBitmap(await res.blob());break}}catch(e){}}
+  if(img){const k=Math.max(S/img.width,S/img.height),w=img.width*k,h=img.height*k;
+    x.save();x.beginPath();x.rect(A,A,S,S);x.clip();x.drawImage(img,A+(S-w)/2,A+(S-h)/2,w,h);x.restore()}
+  else{x.fillStyle='#151515';x.fillRect(A,A,S,S);const m=A+S/2;
+    x.fillStyle='#0e0e0e';x.strokeStyle='#3f3f3f';x.lineWidth=3;x.beginPath();x.arc(m,m,S*.4,0,7);x.fill();x.stroke();
+    x.fillStyle='#c6ff00';x.beginPath();x.arc(m,m,S*.14,0,7);x.fill();x.fillStyle='#050505';x.beginPath();x.arc(m,m,S*.015,0,7);x.fill()}
+  const fit=(t,max)=>{if(x.measureText(t).width<=max)return t;while(t.length&&x.measureText(t+'…').width>max)t=t.slice(0,-1);return t+'…'};
+  let y=A+S+80;x.textBaseline='alphabetic';
+  x.fillStyle='#ececec';x.font=`700 54px ${MONO}`;x.fillText(fit(r.title,S),A,y);
+  y+=58;x.fillStyle='#b5b5b5';x.font=`500 40px ${MONO}`;x.fillText(fit(r.artist,S),A,y);
+  const f=(r.fmt||'').split(',')[0].trim(),meta=[origY(r)||r.year,f,shareOpt.disc?r.label:''].filter(Boolean).join(' · ');
+  y+=52;x.fillStyle='#7d7d7d';x.font=`500 32px ${MONO}`;x.fillText(fit(meta,S),A,y);
+  const b=bpmOf(r),tags=shareOpt.gb?[r.genre,b?bpmTxt(b):''].filter(Boolean):[];
+  y+=40;let tx=A;x.font=`500 28px ${MONO}`;
+  for(const t of tags){const w=x.measureText(t).width+32;x.strokeStyle='#3b3b3b';x.lineWidth=2;x.strokeRect(tx,y,w,48);x.fillStyle='#b5b5b5';x.fillText(t,tx+16,y+34);tx+=w+14}
+  x.fillStyle='#c6ff00';x.font=`700 30px ${MONO}`;const brand='CRATE';x.fillText(brand,W-A-x.measureText(brand).width,H-56);
+  return new Promise(res=>c.toBlob(res,'image/png'));
+}
+function shareSheet(id){
+  const r=recs.find(x=>x.id==id);if(!r)return;
+  sheetDraw=null;const body=$('#sheetbody');let blob=null,url='',gen=0;
+  const ck=(k,t)=>`<label class="ck"><input type="checkbox" data-so="${k}" ${shareOpt[k]?'checked':''}> ${t}</label>`;
+  const pic=async()=>{const n=++gen;if(url){URL.revokeObjectURL(url);url=''}blob=null;const im=$('#shimg');if(im)im.hidden=true;
+    if(!shareOpt.cov)return;const b=await shareImage(r);if(n!=gen||!b)return;blob=b;url=URL.createObjectURL(b);
+    const e=$('#shimg');if(e){e.src=url;e.hidden=false}};
+  const done=()=>{if(url)URL.revokeObjectURL(url)};
+  body.innerHTML=`<b class="sht">Share ${esc(r.title)}</b>
+    <p class="mute" style="margin:4px 0 6px">Always: title, artist, year, format and the Discogs link. Where it's stored is never shared.</p>
+    ${ck('cov','Picture card with the album cover')}${ck('disc','Label, catalogue number and original year')}${ck('gb','Genre and tempo')}${ck('cm','My comment')}${ck('pl','Plays and last played')}
+    <img class="shimg" id="shimg" alt="Picture card preview" hidden>
+    <div class="shtx" id="shtx"></div>
+    <button class="btn pri" id="sgo">Share…</button>
+    <button class="btn" id="scp">Copy text</button>
+    <button class="btn" id="sbk">Back</button>`;
+  const txt=()=>{$('#shtx').textContent=shareText(r)};txt();pic();
+  body.querySelectorAll('[data-so]').forEach(i=>i.onchange=()=>{shareOpt[i.dataset.so]=i.checked?1:0;
+    try{localStorage.setItem('vinylShare',JSON.stringify(shareOpt))}catch(e){}txt();if(i.dataset.so!='cm'&&i.dataset.so!='pl')pic()});
+  const copy=async()=>{try{await navigator.clipboard.writeText(shareText(r));toast('Copied.')}catch(e){toast("Couldn't copy the text.",true)}};
+  $('#scp').onclick=copy;
+  $('#sbk').onclick=()=>{done();openRecSheet(id)};
+  $('#sgo').onclick=async()=>{
+    const text=shareText(r),title=`${r.title} — ${r.artist}`;
+    if(!navigator.share){copy();return}
+    try{
+      if(shareOpt.cov&&!blob)await pic();
+      const file=blob&&new File([blob],(r.artist+' - '+r.title).replace(/[^\w\- ]+/g,'').trim().slice(0,60)+'.png',{type:'image/png'});
+      if(file&&navigator.canShare&&navigator.canShare({files:[file]}))await navigator.share({files:[file],title,text});
+      else await navigator.share({title,text});
+    }catch(e){if(e&&e.name!='AbortError')copy()}
+  };
+  showSheet();
+}
 function openRecSheet(id){
   const r=recs.find(x=>x.id==id);if(!r)return;
   let lid=placed(r)?r.loc:defaultLoc(r)?.id,sec=placed(r)?r.section:null,cm=r.comment||'',gn=r.genre||'';
@@ -1525,7 +1601,7 @@ function openRecSheet(id){
     if(!single(l)){
       slots=`<label>${unitOf(l)[0].toUpperCase()+unitOf(l).slice(1)}</label>`+diagramHTML(l,{size:'pick',attr:'data-s',hi:new Set(sec?[sec]:[]),sel:sec});
     }
-    body.innerHTML=`${bigArtHTML(r)}<div class="sh shd"><div><b>${esc(r.title)}</b><span class="s">${esc(r.artist)}</span><span class="s">${metaHTML(r)}</span><span class="tw">${tagHTML(r)}${liveTag(r)}</span></div><div class="rcol">${bpmChip(r)}</div></div>
+    body.innerHTML=`${bigArtHTML(r)}<div class="sh shd"><div><b>${esc(r.title)}</b><span class="s">${esc(r.artist)}</span><span class="s">${metaHTML(r)}</span><span class="tw">${tagHTML(r)}${liveTag(r)}</span></div><div class="rcol">${bpmChip(r)}<button class="chip shr" data-share="${esc(r.id)}">Share</button></div></div>
     ${tagRowHTML(r)}
     <label>Selection</label>${selSegHTML(r)}
     ${tempoHTML(r)}
@@ -1724,6 +1800,7 @@ document.addEventListener('click',e=>{
   else if(d.v){if(d.v!='fav')qOrder=[];selKeep.clear();view=d.v;render();window.scrollTo(0,0)}
   else if(d.qclr){qOrder=[];fillList()}
   else if(d.qplace){placeSheet()}
+  else if(d.share){shareSheet(d.share)}
   else if(d.f){onlyUnplaced=d.f=='un';lim=100;render()}
   else if(d.l){selLoc=d.l;selSec=null;lim=100;render()}
   else if(d.more){lim+=100;view=='rec'||view=='fav'?fillList():render()}
