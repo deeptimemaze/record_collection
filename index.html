@@ -304,7 +304,7 @@ label.ck input{width:20px;height:20px}
 <div id="sheet"><div id="sheetbody"></div></div>
 
 <script>
-const APP_VERSION=51,APP_DATE='22 Nov 2026';
+const APP_VERSION=52,APP_DATE='22 Nov 2026';
 const COVER_CACHE='vinyl-covers-2'; // must match COVERS in sw.js
 const DEFAULT_LOCS=[
  {id:'kallax',name:'Kallax shelf',mode:'grid',cols:3,rows:4,cap:0,formats:['lp']},
@@ -1780,6 +1780,27 @@ function sheetGone(){listenStop();saveNow();if(!sheetOpen)return false;sheetOpen
 function closeSheet(){if(sheetGone())try{if(history.state&&history.state.sheet)history.back()}catch(e){}}
 window.addEventListener('popstate',sheetGone);
 $('#sheet').onclick=e=>{if(e.target.id=='sheet')closeSheet()};
+
+/* full card: swipe left for the next record and right for the previous one, in the order of the list behind the card
+   (arrow keys do the same on a keyboard). Only on a record's own card, not on the share or placing sheets */
+function sheetStep(dir){
+  const sb=$('#sheetbody'),cur=sheetOpen&&sb.querySelector('.shb')?.dataset.share;if(!cur)return;
+  const ids=[...new Set([...document.querySelectorAll('#app .rec[data-id]')].map(e=>e.dataset.id))],i=ids.indexOf(cur),nx=i<0?null:ids[i+dir];
+  if(!nx){try{sb.animate([{transform:'none'},{transform:`translateX(${-dir*18}px)`},{transform:'none'}],{duration:220,easing:'ease-out'})}catch(e){}return}
+  listenStop();saveNow();openRecSheet(nx);sb.scrollTop=0;
+  try{sb.animate([{transform:`translateX(${dir*48}px)`,opacity:0},{transform:'none',opacity:1}],{duration:190,easing:'ease-out'})}catch(e){}
+}
+{
+  let sw=null;const sb=$('#sheetbody');
+  // not from fields, or from anything that scrolls sideways itself
+  const skip=t=>t.closest('input,textarea,select,[contenteditable]')||(()=>{for(let e=t;e&&e!==sb;e=e.parentElement)if(e.scrollWidth>e.clientWidth+2&&/(auto|scroll)/.test(getComputedStyle(e).overflowX))return true;return false})();
+  sb.addEventListener('touchstart',e=>{sw=e.touches.length==1&&!skip(e.target)?{x:e.touches[0].clientX,y:e.touches[0].clientY,t:Date.now()}:null},{passive:true});
+  sb.addEventListener('touchend',e=>{if(!sw)return;const t=e.changedTouches[0],dx=t.clientX-sw.x,dy=t.clientY-sw.y,ms=Date.now()-sw.t;sw=null;
+    if(Math.abs(dx)>60&&Math.abs(dx)>1.6*Math.abs(dy)&&ms<700)sheetStep(dx<0?1:-1)},{passive:true});
+  sb.addEventListener('touchcancel',()=>{sw=null},{passive:true});
+  document.addEventListener('keydown',e=>{const t=e.target instanceof Element?e.target:null;if(!sheetOpen||(t&&t.closest('input,textarea,select,[contenteditable]'))||document.getElementById('dlg'))return;
+    if(e.key=='ArrowRight')sheetStep(1);else if(e.key=='ArrowLeft')sheetStep(-1)});
+}
 
 let lp=null,lpDone=false;
 document.addEventListener('pointerdown',e=>{
