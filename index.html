@@ -90,12 +90,12 @@ input[type=checkbox]{accent-color:var(--y)}
 /* selected: fine 135° hatching behind the album art, from the card's left edge to the art's right edge, with a line along
    its right side; the card's outline and the art's border take the same colour.
    ::after, because the timeline uses ::before for its connector lines; the art sits above it */
-.rec.sel{--sc:var(--s1)}.rec.sel.s2{--sc:var(--s2)}.rec.sel.s3{--sc:var(--s3)}
+.rec.sel{--sc:var(--s1)}.rec.sel.sl2{--sc:var(--s2)}.rec.sel.sl3{--sc:var(--s3)}
 .rec.sel,.rec.sel .thumb{border-color:var(--sc)}
 .rec.sel::after{content:"";position:absolute;left:0;top:0;bottom:0;width:66px;z-index:0;pointer-events:none;
   background:repeating-linear-gradient(135deg,var(--sc) 0 1px,transparent 1px 8.4px);border-right:1px solid var(--sc)}
-.rec.sel.s2::after{background:repeating-linear-gradient(45deg,var(--sc) 0 1px,transparent 1px 8.4px)}
-.rec.sel.s3::after{background:repeating-linear-gradient(135deg,var(--sc) 0 1px,transparent 1px 10px),repeating-linear-gradient(45deg,var(--sc) 0 1px,transparent 1px 10px)}
+.rec.sel.sl2::after{background:repeating-linear-gradient(45deg,var(--sc) 0 1px,transparent 1px 8.4px)}
+.rec.sel.sl3::after{background:repeating-linear-gradient(135deg,var(--sc) 0 1px,transparent 1px 10px),repeating-linear-gradient(45deg,var(--sc) 0 1px,transparent 1px 10px)}
 /* a record moved to another selection while a selection tab is open stays in view, faded, until you change tab */
 .rec.gone{opacity:.5}
 /* hatch swatches for the selection tabs and the full card's selection control */
@@ -296,7 +296,7 @@ label.ck input{width:20px;height:20px}
 <div id="sheet"><div id="sheetbody"></div></div>
 
 <script>
-const APP_VERSION=48,APP_DATE='22 Nov 2026';
+const APP_VERSION=49,APP_DATE='22 Nov 2026';
 const COVER_CACHE='vinyl-covers-2'; // must match COVERS in sw.js
 const DEFAULT_LOCS=[
  {id:'kallax',name:'Kallax shelf',mode:'grid',cols:3,rows:4,cap:0,formats:['lp']},
@@ -747,7 +747,7 @@ function recHTML(r,lead='',extra=''){
   const n=view=='fav'?qOrder.indexOf(r.id)+1:0;
   const art=n?`<span class="thumb qn" role="button" aria-label="Number ${n} to place. Tap to take it out">${n}</span>`:thumbHTML(r);
   const gone=view=='fav'&&selTab&&r.fav!=selTab;
-  return `<div class="rec${r.fav?' sel':''}${r.fav>1?' s'+r.fav:''}${n?' q':''}${gone?' gone':''}" data-id="${esc(r.id)}">${lead||art}<button class="t" data-id="${esc(r.id)}"><b>${esc(r.title)}</b><span class="s">${esc(r.artist)}</span><span class="s">${metaHTML(r)}</span>${noteHTML(r)}${extra}${lead?'':`<span class="tw">${tagHTML(r)}${liveTag(r)}</span>`}</button>${rcolHTML(r)}</div>`;
+  return `<div class="rec${r.fav?' sel':''}${r.fav>1?' sl'+r.fav:''}${n?' q':''}${gone?' gone':''}" data-id="${esc(r.id)}">${lead||art}<button class="t" data-id="${esc(r.id)}"><b>${esc(r.title)}</b><span class="s">${esc(r.artist)}</span><span class="s">${metaHTML(r)}</span>${noteHTML(r)}${extra}${lead?'':`<span class="tw">${tagHTML(r)}${liveTag(r)}</span>`}</button>${rcolHTML(r)}</div>`;
 }
 function matches(){
   const w=fold(q).split(/\s+/).filter(Boolean),fo=view=='fav';
@@ -790,7 +790,7 @@ function toggleFav(id,to){
   const was=r.fav;r.fav=to==null?(r.fav+1)%4:to;if(r.fav==was)return;save();
   document.querySelectorAll('[data-fav]').forEach(b=>{if(b.dataset.fav==id){const on=+b.dataset.fs==r.fav;b.classList.toggle('on',on);b.setAttribute('aria-checked',String(on))}});
   // on the full card the selection control is the only sign
-  document.querySelectorAll('.rec[data-id]').forEach(c=>{if(c.dataset.id!=id)return;c.classList.toggle('sel',!!r.fav);c.classList.remove('s2','s3');if(r.fav>1)c.classList.add('s'+r.fav)});
+  document.querySelectorAll('.rec[data-id]').forEach(c=>{if(c.dataset.id!=id)return;c.classList.toggle('sel',!!r.fav);c.classList.remove('sl2','sl3');if(r.fav>1)c.classList.add('sl'+r.fav)});
   if(view=='fav'&&$('#list')){if(selTab&&was==selTab)selKeep.add(id);if(selTab||!r.fav||qOrder.includes(id))fillList()}
 }
 // after a long-press: a short note and one to three pulses (a longer buzz for none) say where it landed
@@ -1617,7 +1617,9 @@ function placeSheet(){
       const p=Math.min(Math.max(parseInt($('#pos').value)||1,1),n+1);
       rs.forEach(r=>place(r,null,null));
       rs.forEach((r,i)=>place(r,lid,sec,p+i));
-      qOrder=[];sheetDirty=true;closeSheet()};
+      // placed, so they leave their selection and drop out of the list
+      rs.forEach(r=>r.fav=0);save();
+      qOrder=[];sheetDirty=true;closeSheet();toast(`Placed ${rs.length} record${rs.length==1?'':'s'} and took ${rs.length==1?'it':'them'} out of the selection.`)};
   };
   draw();showSheet();
 }
