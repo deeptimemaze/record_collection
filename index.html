@@ -176,6 +176,18 @@ label.ck input{width:20px;height:20px}
 #dlg.dng>div{border-top-color:var(--red)}
 @media(prefers-color-scheme:light){#sheet>div,#dlg>div{border-top-color:var(--bd);box-shadow:none}#dlg.dng>div{border-top-color:var(--red)}h1::before{outline:1.5px solid var(--bd)}.bt i{background:var(--ink)}}
 .toast{position:fixed;left:16px;right:16px;bottom:84px;z-index:99;padding:12px 16px;background:var(--ink);color:var(--bg);font-weight:600;text-align:center}
+.toast.err{background:var(--red);color:#000}
+/* phone storage overview (Data → App) */
+.stot{display:flex;align-items:baseline;gap:8px;margin:0}
+.stot b{font:700 28px/1.1 var(--mono);color:var(--hl-t)}
+.stot span{color:var(--mute);font-size:11px;letter-spacing:.1em;text-transform:uppercase}
+.sbar{display:flex;height:16px;margin:10px 0 6px;border:1px solid var(--line2)}.sbar i{display:block;height:100%}
+.srow{display:grid;grid-template-columns:12px 1fr auto;gap:8px;align-items:center;padding:7px 0;border-top:1px solid var(--line);font-size:12px}
+.srow:first-of-type{border-top:0}.srow .sw{width:10px;height:10px;border:1px solid var(--line2)}
+.srow em{display:block;font-style:normal;color:var(--mute);font-size:11px}.srow b{font-variant-numeric:tabular-nums}
+.smeter{height:10px;margin:8px 0 4px;border:1px solid var(--line2)}.smeter i{display:block;height:100%;background:var(--y)}
+.smeter.hi i{background:var(--p)}
+.smk{display:flex;justify-content:space-between;color:var(--mute);font-size:11px}
 
 /* stats */
 .tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0 16px}
@@ -269,7 +281,7 @@ label.ck input{width:20px;height:20px}
 <div id="sheet"><div id="sheetbody"></div></div>
 
 <script>
-const APP_VERSION=44,APP_DATE='22 Nov 2026';
+const APP_VERSION=45,APP_DATE='22 Nov 2026';
 const COVER_CACHE='vinyl-covers-2'; // must match COVERS in sw.js
 const DEFAULT_LOCS=[
  {id:'kallax',name:'Kallax shelf',mode:'grid',cols:3,rows:4,cap:0,formats:['lp']},
@@ -319,7 +331,53 @@ let saveT=0;
 const saveSoon=()=>{clearTimeout(saveT);saveT=setTimeout(()=>{saveT=0;save()},600)};
 const saveNow=()=>{if(saveT){clearTimeout(saveT);saveT=0;save()}};
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='hidden')saveNow()});
-function save(){try{localStorage.setItem('vinylRecs2',JSON.stringify(recs));localStorage.setItem('vinylLocs',JSON.stringify(locs))}catch(e){}}
+// a save that doesn't fit used to fail silently; now it says so (once per session)
+let saveWarned=false;
+function save(){try{localStorage.setItem('vinylRecs2',JSON.stringify(recs));localStorage.setItem('vinylLocs',JSON.stringify(locs))}
+  catch(e){if(!saveWarned){saveWarned=true;toast("Couldn't save your changes: Crate's storage on this phone is full. See Data → Phone storage.",true)}}}
+function toast(text,err=false){const t=document.createElement('div');t.className='toast'+(err?' err':'');t.setAttribute('role','alert');t.textContent=text;
+  document.body.appendChild(t);setTimeout(()=>t.remove(),err?9000:4000)}
+
+/* phone storage: what the app keeps on this phone, measured each time the Data tab opens.
+   Text storage (records, undo, lookups, concerts) is limited to about 5 million characters per site; covers and app files
+   live in the much larger cache storage. Sizes of text storage are counted in characters, about a byte each here. */
+const fmtB=b=>b>=1e9?(b/1e9).toFixed(1)+' GB':b>=1e6?(b/1e6).toFixed(1)+' MB':b>=1e3?Math.round(b/1e3)+' KB':Math.round(b)+' B';
+const LS_LIMIT=5e6;
+async function cacheSize(name){let n=0,b=0;try{const c=await caches.open(name);for(const k of await c.keys()){const r=await c.match(k);if(r){n++;b+=(await r.blob()).size}}}catch(e){}return {n,b}}
+async function storageHTML(){
+  const ls={};let lsTot=0;
+  try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i),v=localStorage.getItem(k)||'';ls[k]=k.length+v.length;lsTot+=ls[k]}}catch(e){}
+  const g=(...ks)=>ks.reduce((t,k)=>t+(ls[k]||0),0);
+  const cv='caches' in window?await cacheSize(COVER_CACHE):{n:0,b:0};
+  let app=0;try{for(const k of await caches.keys())if(k!==COVER_CACHE)app+=(await cacheSize(k)).b}catch(e){}
+  let est=null,pers=null;try{est=await navigator.storage.estimate()}catch(e){}try{pers=await navigator.storage.persisted()}catch(e){}
+  const u=getUndo(),undoB=g('vinylUndo'),lk=['vinylCov','vinylMbRel','vinylOyNone'];
+  const parts=[
+    ['Album covers',`${cv.n} image${cv.n==1?'':'s'}`,cv.b,'var(--az)'],
+    ['Records',`${recs.length.toLocaleString('en')} records, places, plays, tempos`,g('vinylRecs2'),'var(--y)'],
+    ['Undo copy',!u?'None at the moment':undoB?`From the ${u.what=='clear'?'clear':'import'} on ${when(u.at)}`:'Too big to keep; lost when the app closes',undoB,'var(--mute)'],
+    ['Lookups','Cover links, MusicBrainz links, original years',g(...lk),'var(--p)'],
+    ['App files','The saved copy for offline use',app,'var(--ink)'],
+    ['Concerts and settings',`${gigs.length} concert${gigs.length==1?'':'s'}, ${locs.length} storage location${locs.length==1?'':'s'}`,lsTot-g('vinylRecs2','vinylUndo',...lk),'var(--line2)']];
+  const sum=parts.reduce((t,x)=>t+x[2],0),tot=est&&est.usage>sum?est.usage:sum,pct=lsTot/LS_LIMIT;
+  let h=`<div class="stot"><b>${fmtB(tot)}</b><span>used by Crate</span></div>`+
+    `<p class="mute" style="margin:2px 0 0">${est&&est.quota?`Of about ${fmtB(est.quota)} this browser allows. `:''}${pers===true?'Kept permanently.':pers===false?'The browser may clear it when the phone runs low on space.':''}</p>`+
+    `<div class="sbar">${parts.filter(x=>x[2]>0).map(x=>`<i style="width:${(x[2]/sum*100).toFixed(2)}%;background:${x[3]}" title="${esc(x[0])}"></i>`).join('')}</div>`+
+    parts.map(([t,d,b,c])=>`<div class="srow"><span class="sw" style="background:${c}"></span><span>${esc(t)}<em>${esc(d)}</em></span><b>${fmtB(b)}</b></div>`).join('')+
+    `<label>Text storage limit</label><p class="mute" style="margin:0">Records, the undo copy, lookups and concerts share one space of about 5 MB. Album covers and app files are kept apart and don't count.</p>`+
+    `<div class="smeter${pct>=.8?' hi':''}"><i style="width:${Math.min(100,pct*100).toFixed(1)}%"></i></div><div class="smk"><span>${fmtB(lsTot)} used</span><span>about 5 MB</span></div>`;
+  if(u&&!undoB)h+=`<div class="box warn">The undo copy didn't fit, so it's only kept until the app closes.</div>`;
+  if(pct>=.8)h+=`<div class="box warn"><b>${pct>=.95?'Almost full':'Getting full'}.</b>${undoB?` Dropping the undo copy frees ${fmtB(undoB)}.`:''} When it's full, changes can't be saved.</div>`;
+  h+=`<div class="chips">${u?'<button class="chip" id="sdu">Drop undo copy</button>':''}${cv.n?'<button class="chip" id="scc">Clear saved covers</button>':''}</div>`;
+  return h;
+}
+let storRun=0;
+async function fillStorage(){
+  const n=++storRun,h=await storageHTML(),el=$('#stor');if(!el||n!=storRun)return;el.innerHTML=h;
+  if($('#sdu'))$('#sdu').onclick=async()=>{if(!await ask('Drop the undo copy? You can no longer undo the last import or clear.','Drop undo copy',true))return;dropUndo();dataView('Undo copy dropped.')};
+  if($('#scc'))$('#scc').onclick=clearCovers;
+}
+async function clearCovers(){cov={};saveCov();try{await caches.delete(COVER_CACHE)}catch(e){}dataView('Saved covers cleared. They will be fetched again as you browse.')}
 function load(){
   try{recs=JSON.parse(localStorage.getItem('vinylRecs2')||'[]')}catch(e){recs=[]}
   try{locs=JSON.parse(localStorage.getItem('vinylLocs')||'null')}catch(e){locs=null}
@@ -1253,11 +1311,12 @@ function dataView(msg=''){
     ${more(`setlist.fm doesn't let web apps fetch them, so run <b>tools/setlistfm_export.py</b> on a computer (see the README) and choose the CSV it writes. Importing again replaces the list.`)}
     <p class="mute" id="gigmsg">${gigs.length?`${gigs.length} concerts imported. ${recs.filter(r=>gigsFor(r).length).length} of your records are by artists you've seen live.`:'No concerts imported yet.'}</p>
     <input type="file" id="gfile" accept=".csv,text/csv,text/plain" hidden><button class="btn" id="gimp">Choose concerts CSV</button>${gigs.length?'<button class="btn dng" id="gclr">Remove concerts</button>':''}`+
-    sec('App');
+    sec('App')+`<label>Phone storage</label><div id="stor"><p class="mute">Measuring…</p></div>`;
   }
   // messages from an import or a change show at the top of the tab
   $('#app').innerHTML=h.replace('<!--msg-->',msg?`<div class="box">${esc(msg)}</div>`:'')+`<p class="mute ver">Crate · version ${APP_VERSION} · ${APP_DATE}</p><div class="chips" style="justify-content:center;margin:0"><button class="chip" id="upd">Check for updates</button></div><p class="mute" id="updmsg" style="text-align:center;min-height:1.4em"></p>`;
   if(msg)window.scrollTo(0,0);
+  if($('#stor'))fillStorage();
   if(staged){
     document.querySelectorAll('[data-cat]').forEach(i=>i.onchange=()=>{sel[i.dataset.cat]=i.checked?1:0;dataView()});
     // replacing a collection: the undo box at the top carries the summary; a first import shows it below
@@ -1285,7 +1344,7 @@ function dataView(msg=''){
     $('#upd').onclick=async()=>{$('#updmsg').textContent='Checking...';const m=await checkUpdate(true);if($('#updmsg'))$('#updmsg').textContent=m};
     $('#cvt').onclick=()=>{try{localStorage.setItem('vinylCoverOff',covOn()?'1':'0')}catch(e){}dataView()};
     $('#cvd').onclick=async()=>{$('#cvmsg').textContent='Testing...';const m=await covDiag();if($('#cvmsg'))$('#cvmsg').textContent=m};
-    $('#cvc').onclick=async()=>{cov={};saveCov();try{await caches.delete(COVER_CACHE)}catch(e){}dataView('Saved covers cleared. They will be fetched again as you browse.')};
+    $('#cvc').onclick=clearCovers;
     $('#addloc').onclick=()=>locSheet(null);
     $('#clr').onclick=async()=>{if(!recs.length||!await ask(`Delete all ${recs.length} records and their placements? You can undo this in the Data tab.`,'Clear all records',true))return;
       setUndo('clear',`Cleared ${recs.length} records.`);recs=[];save();render();window.scrollTo(0,0)};
