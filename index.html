@@ -87,10 +87,12 @@ input[type=checkbox]{accent-color:var(--y)}
 .rec:active{transform:translate(1px,1px);border-color:var(--hl)}
 @media(hover:hover){.rec:hover{border-color:var(--ink)}}
 .rec{position:relative}
-/* selected: fine 135° hatching behind the album art, from the card's left edge to the art's right edge.
+/* selected: fine 135° hatching behind the album art, from the card's left edge to the art's right edge, with a line along
+   its right side; the card's outline and the art's border take the same colour.
    ::after, because the timeline uses ::before for its connector lines; the art sits above it */
-.rec.sel::after,.art.sel::after{content:"";position:absolute;left:0;top:0;bottom:0;width:66px;z-index:0;pointer-events:none;
-  background:repeating-linear-gradient(135deg,var(--hl) 0 1px,transparent 1px 8.4px)}
+.rec.sel,.rec.sel .thumb{border-color:var(--hl)}
+.rec.sel::after{content:"";position:absolute;left:0;top:0;bottom:0;width:66px;z-index:0;pointer-events:none;
+  background:repeating-linear-gradient(135deg,var(--hl) 0 1px,transparent 1px 8.4px);border-right:1px solid var(--hl)}
 .rec .thumb{z-index:1}
 .rec .t{flex:1;min-width:0}
 button.t{display:flex;flex-direction:column;justify-content:center;align-self:stretch;margin:0;padding:0;border:0;background:none;text-align:left}
@@ -104,10 +106,7 @@ button.t .tw{display:block}
 .thumb{position:relative;flex:none;display:grid;place-items:center;width:56px;height:56px;overflow:hidden;background:var(--thumb);border:1px solid var(--line2)}
 .thumb svg{width:42px;height:42px}
 .thumb .cv{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:var(--thumb)}
-.thumb.big{z-index:1;width:100%;max-width:320px;height:auto;aspect-ratio:1;margin:0 auto;border:2px solid var(--line2)}
-/* the full card's cover: the same hatching, from the sheet's edge to the cover's right edge, 10px above and below it */
-.art{position:relative;margin:-4px -16px 14px;padding:10px 16px}
-.art.sel::after{width:calc(50% + min(160px,50% - 16px))}.thumb.big svg{width:56%;height:56%}
+.thumb.big{width:100%;max-width:320px;height:auto;aspect-ratio:1;margin:0 auto 14px;border:2px solid var(--line2)}.thumb.big svg{width:56%;height:56%}
 .loc,.tag{display:inline-block;max-width:100%;margin-top:7px;padding:3px 8px;vertical-align:top;background:transparent;border:1px solid var(--line2);color:var(--ink);
   font:600 10px/1.3 var(--mono);text-transform:uppercase;letter-spacing:.08em}
 .tag{flex:none;margin-top:0}
@@ -258,7 +257,7 @@ label.ck input{width:20px;height:20px}
 <div id="sheet"><div id="sheetbody"></div></div>
 
 <script>
-const APP_VERSION=42,APP_DATE='22 Nov 2026';
+const APP_VERSION=43,APP_DATE='22 Nov 2026';
 const COVER_CACHE='vinyl-covers-2'; // must match COVERS in sw.js
 const DEFAULT_LOCS=[
  {id:'kallax',name:'Kallax shelf',mode:'grid',cols:3,rows:4,cap:0,formats:['lp']},
@@ -652,7 +651,7 @@ const playedToday=r=>r.played==today();
 const playBtns=r=>`<div class="qact"><button class="chip${playedToday(r)?' on':''}" data-play="${esc(r.id)}" aria-pressed="${playedToday(r)}">${playedToday(r)?'✓ Played today':'Played today'}</button><button class="chip${r.nx?' on':''}" data-qt="${esc(r.id)}" aria-pressed="${!!r.nx}">${r.nx?'✓ In play next':'Add to play next'}</button>${r.played?`<button class="chip" data-unplay="${esc(r.id)}">Remove last play</button>`:''}</div>`;
 const nPlays=r=>(r.plays||[]).length;
 function recHTML(r,lead='',extra=''){
-  // the text area is a real button (keyboard and screen readers); a selected record gets hatching behind its album art
+  // the text area is a real button (keyboard and screen readers); a selected record gets hatching behind its album art and coloured outlines
   return `<div class="rec${r.fav?' sel':''}" data-id="${esc(r.id)}">${lead||thumbHTML(r)}<button class="t" data-id="${esc(r.id)}"><b>${esc(r.title)}</b><span class="s">${esc(r.artist)}</span><span class="s">${metaHTML(r)}</span>${noteHTML(r)}${extra}${lead?'':`<span class="tw">${tagHTML(r)}${liveTag(r)}</span>`}</button>${rcolHTML(r)}</div>`;
 }
 function matches(){
@@ -675,7 +674,8 @@ function toggleFav(id){
   const r=recs.find(x=>x.id==id);if(!r)return;
   r.fav=!r.fav;save();
   document.querySelectorAll('[data-fav]').forEach(b=>{if(b.dataset.fav==id){b.classList.toggle('on',r.fav);b.setAttribute('aria-pressed',String(r.fav));if(b.classList.contains('selc'))b.textContent=r.fav?'✓ Selected':'Select'}});
-  document.querySelectorAll('.rec[data-id],.art[data-sel]').forEach(c=>{if((c.dataset.id||c.dataset.sel)==id)c.classList.toggle('sel',r.fav)});
+  // on the full card the Select chip is the only sign
+  document.querySelectorAll('.rec[data-id]').forEach(c=>{if(c.dataset.id==id)c.classList.toggle('sel',r.fav)});
   if(view=='fav'&&!r.fav&&$('#list'))fillList();
 }
 
@@ -1401,7 +1401,7 @@ function openRecSheet(id){
     if(!single(l)){
       slots=`<label>${unitOf(l)[0].toUpperCase()+unitOf(l).slice(1)}</label>`+diagramHTML(l,{size:'pick',attr:'data-s',hi:new Set(sec?[sec]:[]),sel:sec});
     }
-    body.innerHTML=`<div class="art${r.fav?' sel':''}" data-sel="${esc(r.id)}">${bigArtHTML(r)}</div><div class="sh shd"><div><b>${esc(r.title)}</b><span class="s">${esc(r.artist)}</span><span class="s">${metaHTML(r)}</span><span class="tw">${tagHTML(r)}${liveTag(r)}</span></div><div class="rcol">${bpmChip(r)}${selChip(r)}</div></div>
+    body.innerHTML=`${bigArtHTML(r)}<div class="sh shd"><div><b>${esc(r.title)}</b><span class="s">${esc(r.artist)}</span><span class="s">${metaHTML(r)}</span><span class="tw">${tagHTML(r)}${liveTag(r)}</span></div><div class="rcol">${bpmChip(r)}${selChip(r)}</div></div>
     ${tagRowHTML(r)}
     ${tempoHTML(r)}
     <label>Listening</label><p class="mute" style="margin:0 0 8px">${ago(r.played)}${nPlays(r)>1?` · ${nPlays(r)} plays in all`:''}${r.nx?' · In play next':''}</p>
