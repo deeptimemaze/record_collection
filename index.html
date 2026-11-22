@@ -17,12 +17,12 @@
    Hard offset shadows only on the primary action and timeline years; a faint grid behind everything. */
 :root{color-scheme:dark;
   --mono:ui-monospace,"SF Mono","JetBrains Mono","Cascadia Mono",Menlo,Consolas,"Roboto Mono",monospace;--font:var(--mono);
-  --y:#c6ff00;--p:#ff2e88;--az:#00e5ff;--az-glow:0 0 8px rgba(0,229,255,.5);
+  --y:#c6ff00;--p:#ff2e88;--az:#00e5ff;--s1:#c6ff00;--s2:#ff6a2b;--s3:#a560ff;--on-s:#000;--az-glow:0 0 8px rgba(0,229,255,.5);
   --bg:#050505;--head:#050505;--card:#0c0c0c;--chip:#0c0c0c;--field:#000;--thumb:#151515;
   --ink:#ececec;--mute:#7d7d7d;--line:#1f1f1f;--line2:#3b3b3b;--bd:#ececec;--red:#ff2e88;
   --hl:var(--y);--hl-t:var(--y);--on-bd:var(--y);--grid:rgba(255,255,255,.035);--glow:0 0 14px rgba(198,255,0,.55);
   --ico-search:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d8d8d8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M20 20l-4-4'/%3E%3C/svg%3E");--ico-chev:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d8d8d8' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")}
-@media(prefers-color-scheme:light){:root{color-scheme:light;--p:#e0006e;--az:#0079b8;--az-glow:none;
+@media(prefers-color-scheme:light){:root{color-scheme:light;--p:#e0006e;--az:#0079b8;--az-glow:none;--s1:#4f7a00;--s2:#c23d0a;--s3:#6a2fd0;--on-s:#fff;
   --bg:#eeeee8;--head:#eeeee8;--card:#fafaf6;--chip:#fafaf6;--field:#fff;--thumb:#dfdfd8;
   --ink:#0a0a0a;--mute:#5a5a5a;--line:#d6d6ce;--line2:#a3a39b;--bd:#0a0a0a;--red:#d1005a;
   --hl:var(--p);--hl-t:var(--ink);--on-bd:#0a0a0a;--grid:rgba(0,0,0,.05);--glow:none;
@@ -90,10 +90,24 @@ input[type=checkbox]{accent-color:var(--y)}
 /* selected: fine 135° hatching behind the album art, from the card's left edge to the art's right edge, with a line along
    its right side; the card's outline and the art's border take the same colour.
    ::after, because the timeline uses ::before for its connector lines; the art sits above it */
-.rec.sel{--sc:var(--hl)}
+.rec.sel{--sc:var(--s1)}.rec.sel.s2{--sc:var(--s2)}.rec.sel.s3{--sc:var(--s3)}
 .rec.sel,.rec.sel .thumb{border-color:var(--sc)}
 .rec.sel::after{content:"";position:absolute;left:0;top:0;bottom:0;width:66px;z-index:0;pointer-events:none;
   background:repeating-linear-gradient(135deg,var(--sc) 0 1px,transparent 1px 8.4px);border-right:1px solid var(--sc)}
+.rec.sel.s2::after{background:repeating-linear-gradient(45deg,var(--sc) 0 1px,transparent 1px 8.4px)}
+.rec.sel.s3::after{background:repeating-linear-gradient(135deg,var(--sc) 0 1px,transparent 1px 10px),repeating-linear-gradient(45deg,var(--sc) 0 1px,transparent 1px 10px)}
+/* a record moved to another selection while a selection tab is open stays in view, faded, until you change tab */
+.rec.gone{opacity:.5}
+/* hatch swatches for the selection tabs and the full card's selection control */
+.hs{display:inline-block;width:12px;height:12px;border:1px solid currentColor;vertical-align:-2px;flex:none}
+.hs.h1{background:repeating-linear-gradient(135deg,currentColor 0 1px,transparent 1px 4px)}
+.hs.h2{background:repeating-linear-gradient(45deg,currentColor 0 1px,transparent 1px 4px)}
+.hs.h3{background:repeating-linear-gradient(135deg,currentColor 0 1px,transparent 1px 4.5px),repeating-linear-gradient(45deg,currentColor 0 1px,transparent 1px 4.5px)}
+.seg button .hs{margin-right:5px}
+.seg button.c1{color:var(--s1)}.seg button.c2{color:var(--s2)}.seg button.c3{color:var(--s3)}
+.seg button.c1.on{background:var(--s1)}.seg button.c2.on{background:var(--s2)}.seg button.c3.on{background:var(--s3)}
+.seg button.c1.on,.seg button.c2.on,.seg button.c3.on{color:var(--on-s);box-shadow:none}
+.seg.sseg{margin:6px 0 4px}
 /* Selected page: records numbered for placing turn azure and show their number in place of the art */
 .rec.sel.q{--sc:var(--az)}
 .thumb.qn{background:color-mix(in srgb,var(--az) 12%,var(--thumb));color:var(--az);font:700 24px/1 var(--mono);text-shadow:var(--az-glow)}
@@ -177,6 +191,7 @@ label.ck input{width:20px;height:20px}
 @media(prefers-color-scheme:light){#sheet>div,#dlg>div{border-top-color:var(--bd);box-shadow:none}#dlg.dng>div{border-top-color:var(--red)}h1::before{outline:1.5px solid var(--bd)}.bt i{background:var(--ink)}}
 .toast{position:fixed;left:16px;right:16px;bottom:84px;z-index:99;padding:12px 16px;background:var(--ink);color:var(--bg);font-weight:600;text-align:center}
 .toast.err{background:var(--red);color:#000}
+.toast.st{padding:9px 14px}
 /* phone storage overview (Data → App) */
 .stot{display:flex;align-items:baseline;gap:8px;margin:0}
 .stot b{font:700 28px/1.1 var(--mono);color:var(--hl-t)}
@@ -281,7 +296,7 @@ label.ck input{width:20px;height:20px}
 <div id="sheet"><div id="sheetbody"></div></div>
 
 <script>
-const APP_VERSION=45,APP_DATE='22 Nov 2026';
+const APP_VERSION=47,APP_DATE='22 Nov 2026';
 const COVER_CACHE='vinyl-covers-2'; // must match COVERS in sw.js
 const DEFAULT_LOCS=[
  {id:'kallax',name:'Kallax shelf',mode:'grid',cols:3,rows:4,cap:0,formats:['lp']},
@@ -387,7 +402,7 @@ function load(){
   locs.forEach(l=>{if(l.mode=='units'){l.w=+l.w||78;l.h=+l.h||20;l.d=+l.d||(l.id=='string'?15:30)}
     if(l.mode=='drawers'){l.w=+l.w||40;l.h=+l.h||15;l.d=+l.d||50}});
 }
-function norm(r){r.fav=!!r.fav;r.nx=+r.nx||0;r.played=r.played||'';syncPlays(r);r.da=r.da||'';r.oy=oyOK(r.oy)?r.oy:'';
+function norm(r){r.fav=Math.min(3,Math.max(0,Math.round(+r.fav)||0));r.nx=+r.nx||0;r.played=r.played||'';syncPlays(r);r.da=r.da||'';r.oy=oyOK(r.oy)?r.oy:'';
   XF.forEach(([k])=>r[k]=r[k]||'');r.rating=+r.rating||0;r.price=r.price===''||r.price==null?'':+r.price;r.cur=r.cur||'';r.rpmX=r.rpmX||'';
   r.dg=Array.isArray(r.dg)?r.dg:[];r.ds=Array.isArray(r.ds)?r.ds:[];
   r.bpm=+r.bpm||0;r.bpmSug=+r.bpmSug||0;r.bpmT=Array.isArray(r.bpmT)?r.bpmT:[];prep(r)}
@@ -476,7 +491,7 @@ function stage(text){
     const lc=locs.find(l=>l.id===lo||l.name.toLowerCase()===lo.toLowerCase()),ok=il>=0&&lc&&s>=1&&s<=nSlots(lc);
     out.push({id:rid+'#'+seen[rid],artist,title,year:g(r,iy).replace(/^0$/,''),fmt,cat:ifm>=0?catOf(fmt):'lp',
       loc:ok?lc.id:null,section:ok?s:null,pos:ok&&p>0?p:null,
-      genre:g(r,ig),comment:g(r,ic),fav:/^(yes|y|1|true|x|★|●)$/i.test(g(r,ifv)),
+      genre:g(r,ig),comment:g(r,ic),fav:favOf(g(r,ifv)),
       da:g(r,ida),played:(g(r,ipl).match(/^\d{4}-\d{2}-\d{2}/)||[''])[0],nx:/^(yes|y|1|true|x)$/i.test(g(r,iq))?Date.now()+n:0,oy:(g(r,ioy).match(/^\d{4}(-\d{2}(-\d{2})?)?/)||[''])[0]});
     // price: "25", "12,50", "94 SEK (1430 JPY)" or "€33.00"; a symbol or code in the cell beats the column's currency
     const pm=g(r,ipr).match(/^([€£$])?\s*(\d+(?:[.,]\d+)?)\s*([A-Z]{3})?\b/),rt=parseInt(g(r,irt));
@@ -534,13 +549,15 @@ function restoreUndo(){
 }
 const when=t=>{const d=new Date(t);return `${d.getDate()} ${MON[d.getMonth()]} at ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`};
 
+// the Selected column: 1, 2 or 3 for the three selections; Yes (and the like) from older exports is selection 1
+const favOf=v=>/^[123]$/.test(v=String(v||'').trim())?+v:/^(yes|y|true|x|★|●)$/i.test(v)?1:0;
 function finishImport(){
   const {pick,pair}=planImport();
   pick.forEach(r=>{const o=pair.get(r);if(!o)return;
     if(!placed(r)&&placed(o)){r.loc=o.loc;r.section=o.section;r.pos=o.pos}
     if(!r.genre&&o.genre)r.genre=o.genre;
     if(!r.comment&&o.comment)r.comment=o.comment;
-    if(!r.fav&&o.fav)r.fav=true;
+    if(!r.fav&&o.fav)r.fav=o.fav;
     syncPlays(r,o.plays||[],o.played||'');
     if(!oyOK(r.oy)&&oyOK(o.oy))r.oy=o.oy;
     if(!r.nx&&o.nx)r.nx=o.nx;
@@ -563,7 +580,7 @@ function exportCSV(){
   // the Discogs columns keep Discogs' own names, so a Discogs export and this one read the same way
   const cur=(Object.entries(recs.reduce((m,r)=>{if(r.cur)m[r.cur]=(m[r.cur]||0)+1;return m},{})).sort((a,b)=>b[1]-a[1])[0]||['SEK'])[0];
   const lines=['Artist,Title,Released,Format,release_id,location,section,position,Genre,Comment,Selected,Date Added,Last played,Play next,Original release,'+XF.map(x=>x[2]).join(',')+`,Rating,Collection Price (${cur}),RPM,Discogs genres,Discogs styles,BPM,BPM (suggested),Plays`,
-    ...recs.map(r=>[r.artist,r.title,r.year,r.fmt,r.id.split('#')[0],placed(r)?L(r.loc).name:'',placed(r)?r.section:'',placed(r)?r.pos:'',r.genre||'',r.comment||'',r.fav?'Yes':'',r.da||'',r.played||'',r.nx?'Yes':'',oyOK(r.oy)?r.oy:'',
+    ...recs.map(r=>[r.artist,r.title,r.year,r.fmt,r.id.split('#')[0],placed(r)?L(r.loc).name:'',placed(r)?r.section:'',placed(r)?r.pos:'',r.genre||'',r.comment||'',r.fav?String(r.fav):'',r.da||'',r.played||'',r.nx?'Yes':'',oyOK(r.oy)?r.oy:'',
       ...XF.map(x=>r[x[0]]||''),r.rating||'',r.price!==''&&r.cur&&r.cur!==cur?`${r.price} ${r.cur}`:r.price,r.rpmX||'',(r.dg||[]).join('; '),(r.ds||[]).join('; '),r.bpm?Math.round(r.bpm*10)/10:'',r.bpmSug?Math.round(r.bpmSug*10)/10:'',(r.plays||[]).join('; ')].map(q).join(','))];
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob(['\uFEFF'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'}));
@@ -676,7 +693,11 @@ const effD=r=>oyOK(r.oy)?r.oy:String(r.year||'');
 const bpmChip=r=>{const b=bpmOf(r);return b?`<span class="bpmc${b.sure?'':' sug'}" title="${b.sure?'Tempo':'Suggested tempo, may be half or double'}">${bpmTxt(b)}</span>`:''};
 const rcolHTML=r=>{const c=bpmChip(r);return c?`<div class="rcol">${c}</div>`:''};
 // the full card's Select chip: outlined when off, lime with a tick when on
-const selChip=r=>`<button class="chip selc${r.fav?' on':''}" data-fav="${esc(r.id)}" aria-pressed="${!!r.fav}">${r.fav?'✓ Selected':'Select'}</button>`;
+// the three selections: long-press a card to step through them (and back to none); the full card picks one directly
+const SELN=['Not selected','135°','45°','Cross'];
+const selName=n=>n?`Selection ${n} · ${SELN[n]}`:'Not selected';
+const selSegHTML=r=>`<div class="seg sseg" role="radiogroup" aria-label="Selection">${[0,1,2,3].map(n=>
+  `<button class="${r.fav==n?'on':''}${n?' c'+n:''}" data-fav="${esc(r.id)}" data-fs="${n}" role="radio" aria-checked="${r.fav==n}">${n?`<span class="hs h${n}"></span>`:''}${n?SELN[n]:'None'}</button>`).join('')}</div>`;
 function metaHTML(r){const f=(r.fmt||'').split(',')[0].trim(),o=origY(r);
   return [o?`<strong class="oy" title="Original release year">${o}</strong>`:esc(r.year||''),esc(f),rpmOf(r)?rpmTxt(rpmOf(r)):'',esc(r.genre||'')].filter(Boolean).join(' · ')}
 function thumbHTML(r){
@@ -725,11 +746,12 @@ function recHTML(r,lead='',extra=''){
   // On the Selected page, a record numbered for placing shows its number instead of the art
   const n=view=='fav'?qOrder.indexOf(r.id)+1:0;
   const art=n?`<span class="thumb qn" role="button" aria-label="Number ${n} to place. Tap to take it out">${n}</span>`:thumbHTML(r);
-  return `<div class="rec${r.fav?' sel':''}${n?' q':''}" data-id="${esc(r.id)}">${lead||art}<button class="t" data-id="${esc(r.id)}"><b>${esc(r.title)}</b><span class="s">${esc(r.artist)}</span><span class="s">${metaHTML(r)}</span>${noteHTML(r)}${extra}${lead?'':`<span class="tw">${tagHTML(r)}${liveTag(r)}</span>`}</button>${rcolHTML(r)}</div>`;
+  const gone=view=='fav'&&selTab&&r.fav!=selTab;
+  return `<div class="rec${r.fav?' sel':''}${r.fav>1?' s'+r.fav:''}${n?' q':''}${gone?' gone':''}" data-id="${esc(r.id)}">${lead||art}<button class="t" data-id="${esc(r.id)}"><b>${esc(r.title)}</b><span class="s">${esc(r.artist)}</span><span class="s">${metaHTML(r)}</span>${noteHTML(r)}${extra}${lead?'':`<span class="tw">${tagHTML(r)}${liveTag(r)}</span>`}</button>${rcolHTML(r)}</div>`;
 }
 function matches(){
   const w=fold(q).split(/\s+/).filter(Boolean),fo=view=='fav';
-  const m=recs.filter(r=>(fo?r.fav:(!onlyUnplaced||!placed(r)))&&fmtOK(r,rf.cat)&&(rf.gen=='all'||gkey(r)==rf.gen)&&w.every(x=>r.k.includes(x))).sort((a,b)=>a.sk<b.sk?-1:a.sk>b.sk?1:0);
+  const m=recs.filter(r=>(fo?inSelTab(r):(!onlyUnplaced||!placed(r)))&&fmtOK(r,rf.cat)&&(rf.gen=='all'||gkey(r)==rf.gen)&&w.every(x=>r.k.includes(x))).sort((a,b)=>a.sk<b.sk?-1:a.sk>b.sk?1:0);
   // on the Selected page, the records numbered for placing come first, 1, 2, 3...
   if(!fo||!qOrder.length)return m;
   const k=r=>{const i=qOrder.indexOf(r.id);return i<0?1e9:i};
@@ -738,6 +760,11 @@ function matches(){
 /* placing several selected records at once: tap their art on the Selected page in the order they should stand,
    then choose where number 1 goes. The numbers last until you leave the Selected page. */
 let qOrder=[];
+// which selection the Selected page shows (0 is all of them); records moved out of the open selection stay listed until the tab changes
+let selTab=0;const selKeep=new Set();
+const inSelTab=r=>selTab?r.fav==selTab||selKeep.has(r.id):!!r.fav;
+const selTabsHTML=()=>{const c=n=>recs.filter(r=>n?r.fav==n:r.fav).length;
+  return `<div class="seg" role="tablist">${[0,1,2,3].map(n=>`<button class="${selTab==n?'on':''}${n?' c'+n:''}" data-st="${n}" role="tab" aria-selected="${selTab==n}" aria-label="${n?selName(n):'All selected'}, ${c(n)}">${n?`<span class="hs h${n}"></span>`:'All '}${c(n)}</button>`).join('')}</div>`};
 function toggleQ(id){const i=qOrder.indexOf(id);if(i<0)qOrder.push(id);else qOrder.splice(i,1);fillList()}
 function qbarHTML(){
   const n=qOrder.length;if(!n)return '';
@@ -750,19 +777,29 @@ function fillList(){
     if(s.size)mini+=`<div class="locname">${esc(l.name)}</div>`+diagramHTML(l,{hi:s,size:'mini'});
   });
   $('#mini').innerHTML=mini;
-  if(view=='fav'){qOrder=qOrder.filter(id=>recs.some(r=>r.id==id&&r.fav));$('#qbar').innerHTML=qbarHTML();$('#list').classList.toggle('qpad',qOrder.length>0)}
+  if(view=='fav'){qOrder=qOrder.filter(id=>recs.some(r=>r.id==id&&r.fav&&(!selTab||r.fav==selTab)));if($('#stabs'))$('#stabs').innerHTML=selTabsHTML();$('#qbar').innerHTML=qbarHTML();$('#list').classList.toggle('qpad',qOrder.length>0)}
   $('#list').innerHTML=!recs.length?'<div class="empty">No records yet.<br>Open the Data tab to import your CSV.</div>':
-    (view=='fav'&&!recs.some(r=>r.fav))?'<div class="empty">Nothing selected yet.<br>Long-press a record, or tap Select on its card, to add it here.</div>':
+    (view=='fav'&&!recs.some(r=>r.fav))?'<div class="empty">Nothing selected yet.<br>Long-press a record, or choose a selection on its card, to add it here.</div>':
+    (view=='fav'&&!recs.some(inSelTab))?`<div class="empty">Nothing in ${esc(selName(selTab))} yet.<br>Long-press a record until it shows this hatching.</div>`:
     !m.length?'<div class="empty">No matches.</div>':
     `<div class="count">${m.length} ${view=='fav'?'selected':'record'}${view=='fav'||m.length==1?'':'s'}</div>`+m.slice(0,lim).map(r=>recHTML(r)).join('')+(m.length>lim?`<button class="btn" data-more="1">Show more</button>`:'');
 }
-function toggleFav(id){
+// to: a selection (0-3) from the full card; left out, a long-press steps to the next one, after Cross back to none
+function toggleFav(id,to){
   const r=recs.find(x=>x.id==id);if(!r)return;
-  r.fav=!r.fav;save();
-  document.querySelectorAll('[data-fav]').forEach(b=>{if(b.dataset.fav==id){b.classList.toggle('on',r.fav);b.setAttribute('aria-pressed',String(r.fav));if(b.classList.contains('selc'))b.textContent=r.fav?'✓ Selected':'Select'}});
-  // on the full card the Select chip is the only sign
-  document.querySelectorAll('.rec[data-id]').forEach(c=>{if(c.dataset.id==id)c.classList.toggle('sel',r.fav)});
-  if(view=='fav'&&$('#list')&&(!r.fav||qOrder.includes(id)))fillList();
+  const was=r.fav;r.fav=to==null?(r.fav+1)%4:to;if(r.fav==was)return;save();
+  document.querySelectorAll('[data-fav]').forEach(b=>{if(b.dataset.fav==id){const on=+b.dataset.fs==r.fav;b.classList.toggle('on',on);b.setAttribute('aria-checked',String(on))}});
+  // on the full card the selection control is the only sign
+  document.querySelectorAll('.rec[data-id]').forEach(c=>{if(c.dataset.id!=id)return;c.classList.toggle('sel',!!r.fav);c.classList.remove('s2','s3');if(r.fav>1)c.classList.add('s'+r.fav)});
+  if(view=='fav'&&$('#list')){if(selTab&&was==selTab)selKeep.add(id);if(selTab||!r.fav||qOrder.includes(id))fillList()}
+}
+// after a long-press: a short note and one to three pulses (a longer buzz for none) say where it landed
+function selNote(id){
+  const r=recs.find(x=>x.id==id);if(!r)return;
+  try{navigator.vibrate&&navigator.vibrate([[60],[15],[15,70,15],[15,70,15,70,15]][r.fav])}catch(e){}
+  document.querySelectorAll('.toast.st').forEach(t=>t.remove());
+  const t=document.createElement('div');t.className='toast st';t.setAttribute('role','status');t.textContent=selName(r.fav);
+  document.body.appendChild(t);setTimeout(()=>t.remove(),1500);
 }
 
 // page headings in Japanese, with the English name as a small tag on the right; the bottom tabs stay in English
@@ -777,7 +814,7 @@ function render(){
     const np=recs.filter(r=>!placed(r)).length;
     app.innerHTML=`<div class="stick"><input type="search" id="q" placeholder="Search" aria-label="Search artist, title, label or notes" value="${esc(q)}" autocomplete="off" autocapitalize="off" enterkeyhint="search">
     ${fo?'':`<div class="chips"><button class="chip${onlyUnplaced?'':' on'}" data-f="all">All ${recs.length}</button><button class="chip${onlyUnplaced?' on':''}" data-f="un">Not placed ${np}</button></div>`}
-    ${filterSel('fc','fg',rf,fo?recs.filter(r=>r.fav):recs)}</div>
+    ${fo?'<div id="stabs"></div>':''}${filterSel('fc','fg',rf,fo?recs.filter(inSelTab):recs)}</div>
     <div id="mini"></div><div id="list"></div>${fo?'<div class="qbar" id="qbar"></div>':''}`;
     fillList();
     $('#q').oninput=e=>{q=e.target.value;lim=100;fillList()};
@@ -1488,8 +1525,9 @@ function openRecSheet(id){
     if(!single(l)){
       slots=`<label>${unitOf(l)[0].toUpperCase()+unitOf(l).slice(1)}</label>`+diagramHTML(l,{size:'pick',attr:'data-s',hi:new Set(sec?[sec]:[]),sel:sec});
     }
-    body.innerHTML=`${bigArtHTML(r)}<div class="sh shd"><div><b>${esc(r.title)}</b><span class="s">${esc(r.artist)}</span><span class="s">${metaHTML(r)}</span><span class="tw">${tagHTML(r)}${liveTag(r)}</span></div><div class="rcol">${bpmChip(r)}${selChip(r)}</div></div>
+    body.innerHTML=`${bigArtHTML(r)}<div class="sh shd"><div><b>${esc(r.title)}</b><span class="s">${esc(r.artist)}</span><span class="s">${metaHTML(r)}</span><span class="tw">${tagHTML(r)}${liveTag(r)}</span></div><div class="rcol">${bpmChip(r)}</div></div>
     ${tagRowHTML(r)}
+    <label>Selection</label>${selSegHTML(r)}
     ${tempoHTML(r)}
     <label>Listening</label><p class="mute" style="margin:0 0 8px">${ago(r.played)}${nPlays(r)>1?` · ${nPlays(r)} plays in all`:''}${r.nx?' · In play next':''}</p>
     ${playBtns(r)}
@@ -1662,7 +1700,7 @@ $('#sheet').onclick=e=>{if(e.target.id=='sheet')closeSheet()};
 let lp=null,lpDone=false;
 document.addEventListener('pointerdown',e=>{
   const c=e.target.closest('.rec[data-id]');if(!c||e.button>0||e.target.closest('[data-fav],.qact'))return;
-  lp={x:e.clientX,y:e.clientY,t:setTimeout(()=>{lp=null;lpDone=true;toggleFav(c.dataset.id);try{navigator.vibrate&&navigator.vibrate(15)}catch(err){}},500)};
+  lp={x:e.clientX,y:e.clientY,t:setTimeout(()=>{lp=null;lpDone=true;toggleFav(c.dataset.id);selNote(c.dataset.id)},500)};
 });
 const lpCancel=()=>{if(lp){clearTimeout(lp.t);lp=null}};
 document.addEventListener('pointermove',e=>{if(lp&&Math.hypot(e.clientX-lp.x,e.clientY-lp.y)>10)lpCancel()});
@@ -1670,12 +1708,13 @@ document.addEventListener('pointermove',e=>{if(lp&&Math.hypot(e.clientX-lp.x,e.c
 document.addEventListener('click',e=>{if(lpDone){lpDone=false;e.preventDefault();e.stopPropagation()}},true);
 document.addEventListener('contextmenu',e=>{if(e.target.closest('.rec[data-id]'))e.preventDefault()});
 document.addEventListener('click',e=>{
-  const fv=e.target.closest('[data-fav]');if(fv){toggleFav(fv.dataset.fav);return}
+  const fv=e.target.closest('[data-fav]');if(fv){toggleFav(fv.dataset.fav,fv.dataset.fs==null?null:+fv.dataset.fs);return}
   // Selected page: tapping a record's art numbers it for placing (or takes the number away)
   const art=view=='fav'&&!sheetOpen&&e.target.closest('.rec[data-id] .thumb');if(art){toggleQ(art.closest('.rec').dataset.id);return}
   const t=e.target.closest('button,.rec[data-id]');if(!t)return;
   const d=t.dataset;
-  if(d.v){if(d.v!='fav')qOrder=[];view=d.v;render();window.scrollTo(0,0)}
+  if(d.st!=null){selTab=+d.st;selKeep.clear();qOrder=[];lim=100;fillList();window.scrollTo(0,0)}
+  else if(d.v){if(d.v!='fav')qOrder=[];selKeep.clear();view=d.v;render();window.scrollTo(0,0)}
   else if(d.qclr){qOrder=[];fillList()}
   else if(d.qplace){placeSheet()}
   else if(d.f){onlyUnplaced=d.f=='un';lim=100;render()}
