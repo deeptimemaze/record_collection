@@ -296,7 +296,7 @@ label.ck input{width:20px;height:20px}
 <div id="sheet"><div id="sheetbody"></div></div>
 
 <script>
-const APP_VERSION=47,APP_DATE='22 Nov 2026';
+const APP_VERSION=48,APP_DATE='22 Nov 2026';
 const COVER_CACHE='vinyl-covers-2'; // must match COVERS in sw.js
 const DEFAULT_LOCS=[
  {id:'kallax',name:'Kallax shelf',mode:'grid',cols:3,rows:4,cap:0,formats:['lp']},
@@ -1700,9 +1700,14 @@ $('#sheet').onclick=e=>{if(e.target.id=='sheet')closeSheet()};
 let lp=null,lpDone=false;
 document.addEventListener('pointerdown',e=>{
   const c=e.target.closest('.rec[data-id]');if(!c||e.button>0||e.target.closest('[data-fav],.qact'))return;
-  lp={x:e.clientX,y:e.clientY,t:setTimeout(()=>{lp=null;lpDone=true;toggleFav(c.dataset.id);selNote(c.dataset.id)},500)};
+  // hold to step through the selections: the first step after half a second, then one every 0.8 s until you let go.
+  // It stops if the card leaves the list (on the All tab, a record that reaches none drops out)
+  const id=c.dataset.id;
+  const step=()=>{if(!lp)return;lpDone=true;toggleFav(id);selNote(id);
+    if(!document.querySelector(`.rec[data-id="${CSS.escape(id)}"]`))lpCancel()};
+  lp={x:e.clientX,y:e.clientY,t:setTimeout(()=>{step();if(lp)lp.i=setInterval(step,800)},500)};
 });
-const lpCancel=()=>{if(lp){clearTimeout(lp.t);lp=null}};
+const lpCancel=()=>{if(lp){clearTimeout(lp.t);clearInterval(lp.i);lp=null}};
 document.addEventListener('pointermove',e=>{if(lp&&Math.hypot(e.clientX-lp.x,e.clientY-lp.y)>10)lpCancel()});
 ['pointerup','pointercancel','scroll'].forEach(t=>document.addEventListener(t,lpCancel,true));
 document.addEventListener('click',e=>{if(lpDone){lpDone=false;e.preventDefault();e.stopPropagation()}},true);
