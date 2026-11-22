@@ -161,7 +161,11 @@ label.ck{gap:10px;margin:0;padding:8px 0;color:var(--ink);font:500 14px/1.3 var(
 label.ck::before{content:none}
 label.ck input{width:20px;height:20px}
 /* sharing a record */
-.chip.shr{min-height:30px;padding:5px 10px}
+/* share: a quiet square in the album art's top-right corner, so it never moves with the BPM chip */
+.thumb .shb{position:absolute;top:0;right:0;z-index:2;width:44px;height:44px;display:grid;place-items:center;padding:0;
+  background:rgba(5,5,5,.75);border:0;border-left:1px solid var(--line2);border-bottom:1px solid var(--line2);color:#ececec}
+.thumb.big .shb svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.thumb .shb:active{background:rgba(5,5,5,.95)}
 .shtx{margin:10px 0 0;padding:10px 12px;border:1px solid var(--line2);background:var(--card);font:500 12px/1.5 var(--mono);white-space:pre-wrap;word-break:break-word}
 .shimg{display:block;width:150px;margin:10px 0 0;border:1px solid var(--line2)}
 .mute{color:var(--mute);font-size:13px;line-height:1.5}
@@ -300,7 +304,7 @@ label.ck input{width:20px;height:20px}
 <div id="sheet"><div id="sheetbody"></div></div>
 
 <script>
-const APP_VERSION=50,APP_DATE='22 Nov 2026';
+const APP_VERSION=51,APP_DATE='22 Nov 2026';
 const COVER_CACHE='vinyl-covers-2'; // must match COVERS in sw.js
 const DEFAULT_LOCS=[
  {id:'kallax',name:'Kallax shelf',mode:'grid',cols:3,rows:4,cap:0,formats:['lp']},
@@ -1587,6 +1591,8 @@ function shareSheet(id){
   };
   showSheet();
 }
+// the big album art on the record sheet, with the share button in its top-right corner
+const shareArtHTML=r=>bigArtHTML(r).replace(/<\/span>$/,`<button class="shb" data-share="${esc(r.id)}" aria-label="Share this record"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="5.5" r="2.6"/><circle cx="18" cy="18.5" r="2.6"/><path d="M8.3 10.8l7.4-4M8.3 13.2l7.4 4"/></svg></button></span>`);
 function openRecSheet(id){
   const r=recs.find(x=>x.id==id);if(!r)return;
   let lid=placed(r)?r.loc:defaultLoc(r)?.id,sec=placed(r)?r.section:null,cm=r.comment||'',gn=r.genre||'';
@@ -1601,7 +1607,7 @@ function openRecSheet(id){
     if(!single(l)){
       slots=`<label>${unitOf(l)[0].toUpperCase()+unitOf(l).slice(1)}</label>`+diagramHTML(l,{size:'pick',attr:'data-s',hi:new Set(sec?[sec]:[]),sel:sec});
     }
-    body.innerHTML=`${bigArtHTML(r)}<div class="sh shd"><div><b>${esc(r.title)}</b><span class="s">${esc(r.artist)}</span><span class="s">${metaHTML(r)}</span><span class="tw">${tagHTML(r)}${liveTag(r)}</span></div><div class="rcol">${bpmChip(r)}<button class="chip shr" data-share="${esc(r.id)}">Share</button></div></div>
+    body.innerHTML=`${shareArtHTML(r)}<div class="sh shd"><div><b>${esc(r.title)}</b><span class="s">${esc(r.artist)}</span><span class="s">${metaHTML(r)}</span><span class="tw">${tagHTML(r)}${liveTag(r)}</span></div><div class="rcol">${bpmChip(r)}</div></div>
     ${tagRowHTML(r)}
     <label>Selection</label>${selSegHTML(r)}
     ${tempoHTML(r)}
