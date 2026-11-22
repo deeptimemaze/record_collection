@@ -90,9 +90,21 @@ input[type=checkbox]{accent-color:var(--y)}
 /* selected: fine 135° hatching behind the album art, from the card's left edge to the art's right edge, with a line along
    its right side; the card's outline and the art's border take the same colour.
    ::after, because the timeline uses ::before for its connector lines; the art sits above it */
-.rec.sel,.rec.sel .thumb{border-color:var(--hl)}
+.rec.sel{--sc:var(--hl)}
+.rec.sel,.rec.sel .thumb{border-color:var(--sc)}
 .rec.sel::after{content:"";position:absolute;left:0;top:0;bottom:0;width:66px;z-index:0;pointer-events:none;
-  background:repeating-linear-gradient(135deg,var(--hl) 0 1px,transparent 1px 8.4px);border-right:1px solid var(--hl)}
+  background:repeating-linear-gradient(135deg,var(--sc) 0 1px,transparent 1px 8.4px);border-right:1px solid var(--sc)}
+/* Selected page: records numbered for placing turn azure and show their number in place of the art */
+.rec.sel.q{--sc:var(--az)}
+.thumb.qn{background:color-mix(in srgb,var(--az) 12%,var(--thumb));color:var(--az);font:700 24px/1 var(--mono);text-shadow:var(--az-glow)}
+.qbar{position:fixed;left:0;right:0;bottom:calc(64px + env(safe-area-inset-bottom));z-index:4;max-width:560px;margin:0 auto;padding:0 14px}
+.qbar>div{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg);border:2px solid var(--az);box-shadow:var(--az-glow);
+  color:var(--az);font:700 11px/1.2 var(--mono);text-transform:uppercase;letter-spacing:.1em}
+.qbar span{flex:1}.qbar .chip{min-height:34px}
+.qbar .chip.qp{background:var(--az);border-color:var(--az);color:#000}
+#list.qpad{padding-bottom:64px}
+.qlist{margin:8px 0 0;padding:0;list-style:none;font-size:13px;line-height:1.7}.qlist b{color:var(--az);margin-right:6px}.qlist span{color:var(--mute)}
+.btn.az{background:var(--az);color:#000;border-color:var(--az);box-shadow:4px 4px 0 var(--p)}
 .rec .thumb{z-index:1}
 .rec .t{flex:1;min-width:0}
 button.t{display:flex;flex-direction:column;justify-content:center;align-self:stretch;margin:0;padding:0;border:0;background:none;text-align:left}
@@ -257,7 +269,7 @@ label.ck input{width:20px;height:20px}
 <div id="sheet"><div id="sheetbody"></div></div>
 
 <script>
-const APP_VERSION=43,APP_DATE='22 Nov 2026';
+const APP_VERSION=44,APP_DATE='22 Nov 2026';
 const COVER_CACHE='vinyl-covers-2'; // must match COVERS in sw.js
 const DEFAULT_LOCS=[
  {id:'kallax',name:'Kallax shelf',mode:'grid',cols:3,rows:4,cap:0,formats:['lp']},
@@ -651,12 +663,27 @@ const playedToday=r=>r.played==today();
 const playBtns=r=>`<div class="qact"><button class="chip${playedToday(r)?' on':''}" data-play="${esc(r.id)}" aria-pressed="${playedToday(r)}">${playedToday(r)?'✓ Played today':'Played today'}</button><button class="chip${r.nx?' on':''}" data-qt="${esc(r.id)}" aria-pressed="${!!r.nx}">${r.nx?'✓ In play next':'Add to play next'}</button>${r.played?`<button class="chip" data-unplay="${esc(r.id)}">Remove last play</button>`:''}</div>`;
 const nPlays=r=>(r.plays||[]).length;
 function recHTML(r,lead='',extra=''){
-  // the text area is a real button (keyboard and screen readers); a selected record gets hatching behind its album art and coloured outlines
-  return `<div class="rec${r.fav?' sel':''}" data-id="${esc(r.id)}">${lead||thumbHTML(r)}<button class="t" data-id="${esc(r.id)}"><b>${esc(r.title)}</b><span class="s">${esc(r.artist)}</span><span class="s">${metaHTML(r)}</span>${noteHTML(r)}${extra}${lead?'':`<span class="tw">${tagHTML(r)}${liveTag(r)}</span>`}</button>${rcolHTML(r)}</div>`;
+  // the text area is a real button (keyboard and screen readers); a selected record gets hatching behind its album art and coloured outlines.
+  // On the Selected page, a record numbered for placing shows its number instead of the art
+  const n=view=='fav'?qOrder.indexOf(r.id)+1:0;
+  const art=n?`<span class="thumb qn" role="button" aria-label="Number ${n} to place. Tap to take it out">${n}</span>`:thumbHTML(r);
+  return `<div class="rec${r.fav?' sel':''}${n?' q':''}" data-id="${esc(r.id)}">${lead||art}<button class="t" data-id="${esc(r.id)}"><b>${esc(r.title)}</b><span class="s">${esc(r.artist)}</span><span class="s">${metaHTML(r)}</span>${noteHTML(r)}${extra}${lead?'':`<span class="tw">${tagHTML(r)}${liveTag(r)}</span>`}</button>${rcolHTML(r)}</div>`;
 }
 function matches(){
   const w=fold(q).split(/\s+/).filter(Boolean),fo=view=='fav';
-  return recs.filter(r=>(fo?r.fav:(!onlyUnplaced||!placed(r)))&&fmtOK(r,rf.cat)&&(rf.gen=='all'||gkey(r)==rf.gen)&&w.every(x=>r.k.includes(x))).sort((a,b)=>a.sk<b.sk?-1:a.sk>b.sk?1:0);
+  const m=recs.filter(r=>(fo?r.fav:(!onlyUnplaced||!placed(r)))&&fmtOK(r,rf.cat)&&(rf.gen=='all'||gkey(r)==rf.gen)&&w.every(x=>r.k.includes(x))).sort((a,b)=>a.sk<b.sk?-1:a.sk>b.sk?1:0);
+  // on the Selected page, the records numbered for placing come first, 1, 2, 3...
+  if(!fo||!qOrder.length)return m;
+  const k=r=>{const i=qOrder.indexOf(r.id);return i<0?1e9:i};
+  return m.map((r,i)=>[r,i]).sort((a,b)=>k(a[0])-k(b[0])||a[1]-b[1]).map(x=>x[0]);
+}
+/* placing several selected records at once: tap their art on the Selected page in the order they should stand,
+   then choose where number 1 goes. The numbers last until you leave the Selected page. */
+let qOrder=[];
+function toggleQ(id){const i=qOrder.indexOf(id);if(i<0)qOrder.push(id);else qOrder.splice(i,1);fillList()}
+function qbarHTML(){
+  const n=qOrder.length;if(!n)return '';
+  return `<div><span>${n} to place</span><button class="chip" data-qclr="1">Clear</button><button class="chip qp" data-qplace="1">Place</button></div>`;
 }
 function fillList(){
   const m=matches();let mini='';
@@ -665,6 +692,7 @@ function fillList(){
     if(s.size)mini+=`<div class="locname">${esc(l.name)}</div>`+diagramHTML(l,{hi:s,size:'mini'});
   });
   $('#mini').innerHTML=mini;
+  if(view=='fav'){qOrder=qOrder.filter(id=>recs.some(r=>r.id==id&&r.fav));$('#qbar').innerHTML=qbarHTML();$('#list').classList.toggle('qpad',qOrder.length>0)}
   $('#list').innerHTML=!recs.length?'<div class="empty">No records yet.<br>Open the Data tab to import your CSV.</div>':
     (view=='fav'&&!recs.some(r=>r.fav))?'<div class="empty">Nothing selected yet.<br>Long-press a record, or tap Select on its card, to add it here.</div>':
     !m.length?'<div class="empty">No matches.</div>':
@@ -676,7 +704,7 @@ function toggleFav(id){
   document.querySelectorAll('[data-fav]').forEach(b=>{if(b.dataset.fav==id){b.classList.toggle('on',r.fav);b.setAttribute('aria-pressed',String(r.fav));if(b.classList.contains('selc'))b.textContent=r.fav?'✓ Selected':'Select'}});
   // on the full card the Select chip is the only sign
   document.querySelectorAll('.rec[data-id]').forEach(c=>{if(c.dataset.id==id)c.classList.toggle('sel',r.fav)});
-  if(view=='fav'&&!r.fav&&$('#list'))fillList();
+  if(view=='fav'&&$('#list')&&(!r.fav||qOrder.includes(id)))fillList();
 }
 
 // page headings in Japanese, with the English name as a small tag on the right; the bottom tabs stay in English
@@ -692,7 +720,7 @@ function render(){
     app.innerHTML=`<div class="stick"><input type="search" id="q" placeholder="Search" aria-label="Search artist, title, label or notes" value="${esc(q)}" autocomplete="off" autocapitalize="off" enterkeyhint="search">
     ${fo?'':`<div class="chips"><button class="chip${onlyUnplaced?'':' on'}" data-f="all">All ${recs.length}</button><button class="chip${onlyUnplaced?' on':''}" data-f="un">Not placed ${np}</button></div>`}
     ${filterSel('fc','fg',rf,fo?recs.filter(r=>r.fav):recs)}</div>
-    <div id="mini"></div><div id="list"></div>`;
+    <div id="mini"></div><div id="list"></div>${fo?'<div class="qbar" id="qbar"></div>':''}`;
     fillList();
     $('#q').oninput=e=>{q=e.target.value;lim=100;fillList()};
     $('#q').onkeydown=e=>{if(e.key=='Enter')e.target.blur()};
@@ -1459,6 +1487,43 @@ function openRecSheet(id){
   };
   draw();showSheet();
 }
+function placeSheet(){
+  sheetDraw=null;
+  const rs=qOrder.map(id=>recs.find(r=>r.id==id)).filter(Boolean);if(!rs.length)return;
+  const ids=new Set(rs.map(r=>r.id)),f=rs[0];
+  let lid=placed(f)?f.loc:defaultLoc(f)?.id,sec=placed(f)?f.section:null,pos=null;
+  const body=$('#sheetbody');
+  const draw=()=>{
+    const l=L(lid);if(!l){body.innerHTML='<p>Add a storage location in the Data tab first.</p><button class="btn" id="cx">Close</button>';$('#cx').onclick=closeSheet;return}
+    if(single(l))sec=1;
+    // positions count only the records that stay where they are; the numbered ones are taken out first
+    const others=sec?inSlot(l.id,sec).filter(x=>!ids.has(x.id)):[],n=others.length;
+    if(pos==null||pos>n+1)pos=n+1;
+    const full=l.cap&&n+rs.length>l.cap;
+    body.innerHTML=`<b class="sht">Place ${rs.length} record${rs.length==1?'':'s'}</b>
+    ${locs.length>1?`<label>Location</label><div class="chips">${locs.map(x=>`<button class="chip${x.id==lid?' on':''}" data-pl="${esc(x.id)}">${esc(x.name)}</button>`).join('')}</div>`:''}
+    ${single(l)?'':`<label>${unitOf(l)[0].toUpperCase()+unitOf(l).slice(1)}</label>`+diagramHTML(l,{size:'pick',attr:'data-s',hi:new Set(sec?[sec]:[]),sel:sec})}
+    ${sec?`<label for="pos">Number 1 goes at</label><input type="number" id="pos" min="1" max="${n+1}" inputmode="numeric" value="${pos}">
+    <p class="mute">${single(l)?esc(l.name):esc(slotLabel(l,sec))} holds ${n} other record${n==1?'':'s'}${l.cap?` of ${l.cap}`:''}. ${l.mode=='drawers'?'#1 is at the front of the drawer. Records at or behind this position move back to make room.':'Records at or after this position move along to make room.'}</p>
+    ${full?`<div class="box warn">That makes ${n+rs.length} records, more than the ${l.cap} it holds.</div>`:''}
+    <ol class="qlist" id="qprev"></ol>
+    <button class="btn az" id="ok">Place ${rs.length} record${rs.length==1?'':'s'}</button>`:`<p class="mute">Choose a ${unitOf(l)} for number 1.</p>`}
+    <button class="btn" id="cx">Cancel</button>`;
+    const prev=()=>{const e=$('#qprev');if(!e)return;const p=Math.min(Math.max(parseInt($('#pos').value)||1,1),n+1);
+      e.innerHTML=rs.map((r,i)=>`<li><b>${i+1}</b>${esc(r.title)} <span>→ #${p+i}</span></li>`).join('')};
+    prev();
+    if($('#pos'))$('#pos').oninput=()=>{pos=parseInt($('#pos').value)||1;prev()};
+    body.querySelectorAll('[data-pl]').forEach(b=>b.onclick=()=>{lid=b.dataset.pl;sec=null;pos=null;draw()});
+    body.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{sec=sec==+b.dataset.s?null:+b.dataset.s;pos=null;draw()});
+    $('#cx').onclick=closeSheet;
+    if($('#ok'))$('#ok').onclick=()=>{
+      const p=Math.min(Math.max(parseInt($('#pos').value)||1,1),n+1);
+      rs.forEach(r=>place(r,null,null));
+      rs.forEach((r,i)=>place(r,lid,sec,p+i));
+      qOrder=[];sheetDirty=true;closeSheet()};
+  };
+  draw();showSheet();
+}
 function locSheet(id){
   sheetDraw=null;
   const o=id?L(id):null;
@@ -1547,9 +1612,13 @@ document.addEventListener('click',e=>{if(lpDone){lpDone=false;e.preventDefault()
 document.addEventListener('contextmenu',e=>{if(e.target.closest('.rec[data-id]'))e.preventDefault()});
 document.addEventListener('click',e=>{
   const fv=e.target.closest('[data-fav]');if(fv){toggleFav(fv.dataset.fav);return}
+  // Selected page: tapping a record's art numbers it for placing (or takes the number away)
+  const art=view=='fav'&&!sheetOpen&&e.target.closest('.rec[data-id] .thumb');if(art){toggleQ(art.closest('.rec').dataset.id);return}
   const t=e.target.closest('button,.rec[data-id]');if(!t)return;
   const d=t.dataset;
-  if(d.v){view=d.v;render();window.scrollTo(0,0)}
+  if(d.v){if(d.v!='fav')qOrder=[];view=d.v;render();window.scrollTo(0,0)}
+  else if(d.qclr){qOrder=[];fillList()}
+  else if(d.qplace){placeSheet()}
   else if(d.f){onlyUnplaced=d.f=='un';lim=100;render()}
   else if(d.l){selLoc=d.l;selSec=null;lim=100;render()}
   else if(d.more){lim+=100;view=='rec'||view=='fav'?fillList():render()}
@@ -1561,7 +1630,7 @@ document.addEventListener('click',e=>{
   else if(d.play){const r=recs.find(x=>x.id==d.play);if(r){playedToday(r)?unPlay(r):markPlayed(r);refresh()}}
   else if(d.unplay){const r=recs.find(x=>x.id==d.unplay);if(r){unPlay(r);refresh()}}
   else if(d.qt){const r=recs.find(x=>x.id==d.qt);if(r){r.nx=r.nx?0:Date.now();save();refresh()}}
-  else if(d.gq){q=d.gq;view='rec';rf.cat='all';rf.gen='all';onlyUnplaced=false;lim=100;render();window.scrollTo(0,0)}
+  else if(d.gq){q=d.gq;view='rec';qOrder=[];rf.cat='all';rf.gen='all';onlyUnplaced=false;lim=100;render();window.scrollTo(0,0)}
   else if(d.el){locSheet(d.el)}
   else if(d.id){openRecSheet(d.id)}
 });
