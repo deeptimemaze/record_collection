@@ -195,6 +195,27 @@ label.ck input{width:20px;height:20px}
 .shd span.s{display:block;margin-top:2px;font-size:11px;color:var(--mute);letter-spacing:.02em}
 .shd .tw{display:block;margin-top:2px}
 .chip.selc{min-height:30px;padding:5px 10px}
+/* Records filters: a Filter button beside the search, the filters in use as chips under it, and a full-screen filter page */
+.frow{display:flex;gap:8px}.frow input{flex:1;min-width:0}
+.chip.fbtn{flex:none;min-height:50px;padding:6px 14px}
+.fbtn i{margin-left:7px;padding:2px 5px;background:#000;color:var(--y);font-style:normal}
+.stick .chips.fact{margin:10px 0 0;gap:6px}.fact .chip{min-height:32px;padding:5px 9px}.fact .fca{border-style:dashed;color:var(--mute)}
+#sheet.full>div{max-height:none;height:100%;padding-top:0;padding-bottom:0}
+.fpt{position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:10px;margin:0 -16px;padding:calc(12px + env(safe-area-inset-top)) 16px 12px;background:var(--bg);border-bottom:2px solid var(--bd)}
+.fpt .sht{flex:1}
+.fx{flex:none;width:44px;height:44px;display:grid;place-items:center;padding:0;background:transparent;border:2px solid var(--bd);color:var(--ink);font:700 18px/1 var(--mono)}
+.fpf{position:sticky;bottom:0;z-index:2;display:flex;gap:10px;margin:22px -16px 0;padding:10px 16px calc(10px + env(safe-area-inset-bottom));background:var(--bg);border-top:2px solid var(--bd)}
+.fpf .btn{flex:1;width:auto;margin:0}.fpf .btn.pri{flex:1.6;box-shadow:none}
+.chips.fgr{margin:0 0 4px}
+.chip .fn{margin-left:7px;opacity:.6;font-weight:500}
+.chip.z,.flab.z{opacity:.35}
+.fyr{display:flex;margin-left:auto;border:2px solid var(--line2)}
+.fyr button{min-height:28px;padding:4px 8px;background:transparent;border:0;color:var(--mute);font:600 10px/1 var(--mono);text-transform:uppercase;letter-spacing:.06em}
+.fyr button.on{background:var(--ink);color:var(--bg)}
+.flab{display:flex;align-items:center;gap:12px;width:100%;min-height:46px;padding:8px 2px;background:transparent;border:0;border-bottom:1px solid var(--line);color:var(--ink);font:500 13px/1.3 var(--mono);text-align:left}
+.flab .fl{flex:1;min-width:0}.flab .fn{color:var(--mute)}
+.fbox{flex:none;width:20px;height:20px;display:grid;place-items:center;border:2px solid var(--line2);font-size:12px;font-weight:700}
+.flab.on .fbox{background:var(--y);border-color:var(--on-bd);color:#000}
 #dlg{position:fixed;inset:0;z-index:20;display:grid;place-items:center;padding:20px;background:rgba(0,0,0,.78)}
 #dlg>div{width:100%;max-width:420px;padding:18px 16px 8px;background:var(--bg);border:2px solid var(--bd);border-top-color:var(--y);box-shadow:var(--glow)}
 #dlg p{margin:0 0 8px;font-size:14px;line-height:1.5}
@@ -308,13 +329,13 @@ label.ck input{width:20px;height:20px}
 <div id="sheet"><div id="sheetbody"></div></div>
 
 <script>
-const APP_VERSION=55,APP_DATE='23 Nov 2026';
+const APP_VERSION=56,APP_DATE='23 Nov 2026';
 const COVER_CACHE='vinyl-covers-2'; // must match COVERS in sw.js
 const DEFAULT_LOCS=[
  {id:'kallax',name:'Kallax shelf',mode:'grid',cols:3,rows:4,cap:0,formats:['lp']},
  {id:'case7',name:'7" case',mode:'grid',cols:1,rows:1,cap:200,formats:['s7']},
  {id:'string',name:'String Pocket',mode:'units',cols:1,stack:8,rows:3,w:78,h:20,d:15,cap:0,formats:['cd']}];
-let locs=[],recs=[],view='rec',q='',onlyUnplaced=false,selLoc=null,selSec=null,lim=100,staged=null,
+let locs=[],recs=[],view='rec',q='',selLoc=null,selSec=null,lim=100,staged=null,
     sel={lp:1,s7:1,cd:1,shellac:0,cass:0,other:0};
 const CATS={lp:'LP, 12" and 10"',s7:'7"',shellac:'Shellac (78 rpm)',cd:'CD and MiniDisc',cass:'Cassette',other:'Other (boxes, etc.)'};
 const SHORT={lp:'LP / 12"',s7:'7"',shellac:'Shellac',cd:'CD',cass:'Cassette',other:'Other'};
@@ -762,12 +783,94 @@ function recHTML(r,lead='',extra=''){
   return `<div class="rec${r.fav?' sel':''}${r.fav>1?' sl'+r.fav:''}${n?' q':''}${gone?' gone':''}" data-id="${esc(r.id)}">${lead||art}<button class="t" data-id="${esc(r.id)}"><b>${esc(r.title)}</b><span class="s">${esc(r.artist)}</span><span class="s">${metaHTML(r)}</span>${noteHTML(r)}${extra}${lead?'':`<span class="tw">${tagHTML(r)}${liveTag(r)}</span>`}</button>${rcolHTML(r)}</div>`;
 }
 function matches(){
-  const w=fold(q).split(/\s+/).filter(Boolean),fo=view=='fav';
-  const m=recs.filter(r=>(fo?inSelTab(r):(!onlyUnplaced||!placed(r)))&&fmtOK(r,rf.cat)&&(rf.gen=='all'||gkey(r)==rf.gen)&&w.every(x=>r.k.includes(x))).sort((a,b)=>a.sk<b.sk?-1:a.sk>b.sk?1:0);
+  const w=qWords(),fo=view=='fav';
+  const m=recs.filter(r=>(fo?inSelTab(r)&&fmtOK(r,rf.cat)&&(rf.gen=='all'||gkey(r)==rf.gen):fMatch(r))&&w.every(x=>r.k.includes(x))).sort((a,b)=>a.sk<b.sk?-1:a.sk>b.sk?1:0);
   // on the Selected page, the records numbered for placing come first, 1, 2, 3...
   if(!fo||!qOrder.length)return m;
   const k=r=>{const i=qOrder.indexOf(r.id);return i<0?1e9:i};
   return m.map((r,i)=>[r,i]).sort((a,b)=>k(a[0])-k(b[0])||a[1]-b[1]).map(x=>x[0]);
+}
+/* Records filters: a full-screen page of chip groups. Several chips in one group mean either (LP or 7");
+   the groups narrow each other down (LP and Jazz). The list behind follows every tap. Search works on top */
+const FG=['pl','cat','rpm','gen','bpm','dec','lab'],FGN={pl:'Placement',cat:'Format',rpm:'Speed',gen:'Genre',bpm:'Tempo',dec:'Decade',lab:'Label'};
+const ff={yr:'first'};FG.forEach(g=>ff[g]=new Set());
+const fOn=()=>FG.reduce((n,g)=>n+ff[g].size,0);
+const fClear=()=>FG.forEach(g=>ff[g].clear());
+const fChanged=()=>{lim=100;if(view=='rec')render()};
+const fToggle=(g,v)=>{ff[g].has(v)?ff[g].delete(v):ff[g].add(v);fChanged()};
+const qWords=()=>fold(q).split(/\s+/).filter(Boolean);
+// one label under its different Discogs spellings: case, punctuation, "(2)" numbering and a closing Records, Recordings, Music, Ltd or Inc don't count
+const labKey=s=>fold(s).replace(/\s*\(\d+\)\s*$/,'').replace(/[.,'’]/g,'').replace(/\s+(records|recordings|music|ltd|inc)$/,'').replace(/\s+/g,' ').trim();
+const labMemo=new Map();let labName={};
+const labsOf=r=>{const s=r.label||'';let v=labMemo.get(s);if(!v){v=[...new Set(uniqList(s).split(', ').filter(Boolean).map(labKey).filter(Boolean))];labMemo.set(s,v)}return v};
+// decade of first release (the pressing's year when that's unknown), or of this pressing
+const decOf=r=>{const y=parseInt(ff.yr=='first'?origY(r)||r.year:r.year);return y>1800?[String(Math.floor(y/10)*10)]:[]};
+const fVals=(r,g)=>g=='pl'?[placed(r)?r.loc:'none']:g=='cat'?[r.cat]:g=='rpm'?(rpmOf(r)?rpmOf(r).split('/'):[]):g=='gen'?[gkey(r)]
+  :g=='bpm'?(binOf(r)>=0?[String(binOf(r))]:[]):g=='dec'?decOf(r):labsOf(r);
+const fOK=(r,g)=>!ff[g].size||fVals(r,g).some(v=>ff[g].has(v));
+const fMatch=r=>FG.every(g=>fOK(r,g));
+const fName=(g,v)=>g=='pl'?(v=='none'?'Not placed':L(v)?.name||'Removed location'):g=='cat'?SHORT[v]||v:g=='rpm'?rpmTxt(v):g=='gen'?(v=='__none'?'No genre':v)
+  :g=='bpm'?binName(BPMBINS[+v])+' BPM':g=='dec'?v+'s':labName[v]||v;
+// for every group: each value in the searched records, with [how many a tap would show given the other groups, how many in all]
+function fStats(){
+  const w=qWords(),base=recs.filter(r=>w.every(x=>r.k.includes(x))),st={},sp={};FG.forEach(g=>st[g]=new Map());let n=0;
+  base.forEach(r=>{
+    const ok=FG.map(g=>fOK(r,g)),bad=ok.filter(b=>!b).length;if(!bad)n++;
+    FG.forEach((g,i)=>{const c=!bad||(bad==1&&!ok[i]);
+      fVals(r,g).forEach(v=>{const a=st[g].get(v)||[0,0];a[0]+=c?1:0;a[1]++;st[g].set(v,a)})});
+    uniqList(r.label).split(', ').forEach(x=>{const k=labKey(x);if(k)(sp[k]||(sp[k]={}))[x]=(sp[k][x]||0)+1});
+  });
+  for(const k in sp)labName[k]=Object.entries(sp[k]).sort((a,b)=>b[1]-a[1])[0][0].replace(/\s*\(\d+\)\s*$/,'');
+  FG.forEach(g=>ff[g].forEach(v=>{if(!st[g].has(v))st[g].set(v,[0,0])}));
+  return {st,n};
+}
+function fOrder(g,m){
+  const ks=[...m.keys()],fix=a=>[...a.filter(k=>m.has(k)),...ks.filter(k=>!a.includes(k))];
+  if(g=='pl')return fix(['none',...locs.map(l=>l.id)]);
+  if(g=='cat')return fix(Object.keys(SHORT));
+  if(g=='rpm')return fix(RPMS);
+  if(g=='bpm'||g=='dec')return ks.sort((a,b)=>a-b);
+  return ks.sort((a,b)=>(a=='__none')-(b=='__none')||m.get(b)[1]-m.get(a)[1]||fName(g,a).localeCompare(fName(g,b)));
+}
+const fChip=(g,v,c=[0,0])=>{const on=ff[g].has(v);return `<button class="chip${on?' on':''}${!on&&!c[0]?' z':''}" data-fltg="${g}" data-fltv="${esc(v)}" aria-pressed="${on}">${esc(fName(g,v))}<span class="fn">${c[0]}</span></button>`};
+const fActHTML=()=>{const a=[];FG.forEach(g=>ff[g].forEach(v=>a.push(`<button class="chip" data-fltdel="${g}" data-fltv="${esc(v)}" aria-label="Remove the filter ${esc(fName(g,v))}">${esc(fName(g,v))} ×</button>`)));
+  return a.length?`<div class="chips fact">${a.join('')}<button class="chip fca" data-fltclr="1">Clear all</button></div>`:''};
+const fShow=n=>n?`Show ${n}`:'No matches';
+const fDone=()=>{closeSheet();window.scrollTo(0,0)};
+function filterPage(){
+  sheetDraw=null;const body=$('#sheetbody');$('#sheet').classList.add('full');
+  const {st,n}=fStats(),sc=sheetOpen?body.scrollTop:0;
+  let h=`<div class="fpt"><b class="sht">Filters</b><button class="fx" id="fx" aria-label="Close filters">✕</button></div>`;
+  FG.forEach(g=>{let vs=fOrder(g,st[g]),more='';if(!vs.length)return;
+    if(g=='lab'&&vs.length>8){vs=[...vs.slice(0,6),...vs.slice(6).filter(v=>ff.lab.has(v))];more=`<button class="chip" id="flab">All ${st.lab.size} labels ›</button>`}
+    h+=`<label>${FGN[g]}${g=='dec'?`<span class="fyr" role="group" aria-label="Which year counts">${[['first','First released'],['press','Pressing']].map(([k,t])=>`<button class="${ff.yr==k?'on':''}" data-fyr="${k}" aria-pressed="${ff.yr==k}">${t}</button>`).join('')}</span>`:''}</label>
+    <div class="chips fgr">${vs.map(v=>fChip(g,v,st[g].get(v))).join('')}${more}</div>`});
+  h+=`<div class="fpf"><button class="btn" id="fclr">Clear</button><button class="btn pri" id="fgo">${fShow(n)}</button></div>`;
+  body.innerHTML=h;showSheet();body.scrollTop=sc;
+  body.querySelectorAll('[data-fltg]').forEach(b=>b.onclick=()=>{fToggle(b.dataset.fltg,b.dataset.fltv);filterPage()});
+  body.querySelectorAll('[data-fyr]').forEach(b=>b.onclick=()=>{ff.yr=b.dataset.fyr;fChanged();filterPage()});
+  if($('#flab'))$('#flab').onclick=labPage;
+  $('#fx').onclick=closeSheet;$('#fgo').onclick=fDone;
+  $('#fclr').onclick=()=>{fClear();fChanged();filterPage()};
+}
+// every label, with a search; tick as many as you like
+function labPage(){
+  const body=$('#sheetbody');let fq='';
+  body.innerHTML=`<div class="fpt"><button class="fx" id="fbk" aria-label="Back to filters">‹</button><b class="sht">Label</b><button class="fx" id="fx" aria-label="Close filters">✕</button></div>
+    <input type="search" id="flq" placeholder="Search labels" aria-label="Search labels" autocomplete="off" autocapitalize="off" enterkeyhint="search" style="margin-top:14px">
+    <div id="fll"></div>
+    <div class="fpf"><button class="btn" id="fclr">Clear labels</button><button class="btn pri" id="fgo"></button></div>`;
+  body.scrollTop=0;
+  const list=()=>{const {st,n}=fStats(),m=st.lab,w=fold(fq).trim();
+    const vs=fOrder('lab',m).filter(v=>!w||fold(fName('lab',v)).includes(w));
+    $('#fll').innerHTML=vs.length?vs.map(v=>{const on=ff.lab.has(v),c=m.get(v);return `<button class="flab${on?' on':''}${!on&&!c[0]?' z':''}" data-fltl="${esc(v)}" aria-pressed="${on}"><span class="fbox">${on?'✓':''}</span><span class="fl">${esc(fName('lab',v))}</span><span class="fn">${c[0]}</span></button>`}).join(''):'<p class="mute">No labels match.</p>';
+    $('#fgo').textContent=fShow(n);
+    $('#fll').querySelectorAll('[data-fltl]').forEach(b=>b.onclick=()=>{fToggle('lab',b.dataset.fltl);list()})};
+  list();
+  $('#flq').oninput=e=>{fq=e.target.value;list()};
+  $('#flq').onkeydown=e=>{if(e.key=='Enter')e.target.blur()};
+  $('#fbk').onclick=filterPage;$('#fx').onclick=closeSheet;$('#fgo').onclick=fDone;
+  $('#fclr').onclick=()=>{ff.lab.clear();fChanged();list()};
 }
 /* placing several selected records at once: tap their art on the Selected page in the order they should stand,
    then choose where number 1 goes. The numbers last until you leave the Selected page. */
@@ -793,8 +896,8 @@ function fillList(){
   $('#list').innerHTML=!recs.length?'<div class="empty">No records yet.<br>Open the Data tab to import your CSV.</div>':
     (view=='fav'&&!recs.some(r=>r.fav))?'<div class="empty">Nothing selected yet.<br>Long-press a record, or choose a selection on its card, to add it here.</div>':
     (view=='fav'&&!recs.some(inSelTab))?`<div class="empty">Nothing in ${esc(selName(selTab))} yet.<br>Long-press a record until it shows this hatching.</div>`:
-    !m.length?'<div class="empty">No matches.</div>':
-    `<div class="count">${m.length} ${view=='fav'?'selected':'record'}${view=='fav'||m.length==1?'':'s'}</div>`+m.slice(0,lim).map(r=>recHTML(r)).join('')+(m.length>lim?`<button class="btn" data-more="1">Show more</button>`:'');
+    !m.length?`<div class="empty">No matches.${view=='rec'&&fOn()?'<br><button class="chip" data-fltclr="1" style="margin-top:12px">Clear filters</button>':''}</div>`:
+    `<div class="count">${view=='fav'?m.length+' selected':fOn()||q.trim()?`${m.length} of ${recs.length} records`:`${m.length} record${m.length==1?'':'s'}`}</div>`+m.slice(0,lim).map(r=>recHTML(r)).join('')+(m.length>lim?`<button class="btn" data-more="1">Show more</button>`:'');
 }
 // to: a selection (0-3) from the full card; left out, a long-press steps to the next one, after C back to none
 function toggleFav(id,to){
@@ -823,16 +926,15 @@ function render(){
   if(view=='rec'||view=='fav'){
     const fo=view=='fav';
     setH(fo?'Selected':'Records');
-    const np=recs.filter(r=>!placed(r)).length;
-    app.innerHTML=`<div class="stick"><input type="search" id="q" placeholder="Search" aria-label="Search artist, title, label or notes" value="${esc(q)}" autocomplete="off" autocapitalize="off" enterkeyhint="search">
-    ${fo?'':`<div class="chips"><button class="chip${onlyUnplaced?'':' on'}" data-f="all">All ${recs.length}</button><button class="chip${onlyUnplaced?' on':''}" data-f="un">Not placed ${np}</button></div>`}
-    ${fo?'<div id="stabs"></div>':''}${filterSel('fc','fg',rf,fo?recs.filter(inSelTab):recs)}</div>
+    const qIn=`<input type="search" id="q" placeholder="Search" aria-label="Search artist, title, label or notes" value="${esc(q)}" autocomplete="off" autocapitalize="off" enterkeyhint="search">`,nf=fOn();
+    app.innerHTML=`<div class="stick">${fo?`${qIn}<div id="stabs"></div>${filterSel('fc','fg',rf,recs.filter(inSelTab))}`:
+      `<div class="frow">${qIn}<button class="chip fbtn${nf?' on':''}" data-fltopen="1" aria-label="Filters${nf?`, ${nf} in use`:''}">Filter${nf?`<i>${nf}</i>`:''}</button></div>${fActHTML()}`}</div>
     <div id="mini"></div><div id="list"></div>${fo?'<div class="qbar" id="qbar"></div>':''}`;
     fillList();
     $('#q').oninput=e=>{q=e.target.value;lim=100;fillList()};
     $('#q').onkeydown=e=>{if(e.key=='Enter')e.target.blur()};
-    $('#fc').onchange=e=>{rf.cat=e.target.value;lim=100;fillList()};
-    $('#fg').onchange=e=>{rf.gen=e.target.value;lim=100;fillList()};
+    if(fo){$('#fc').onchange=e=>{rf.cat=e.target.value;lim=100;fillList()};
+      $('#fg').onchange=e=>{rf.gen=e.target.value;lim=100;fillList()}}
   }else if(view=='shelf'){
     setH('Storage');
     if(!L(selLoc))selLoc=locs[0]?.id;
@@ -1786,7 +1888,7 @@ let sheetOpen=false;
 let sheetDraw=null,sheetDirty=false;
 const refresh=()=>{if(sheetOpen&&sheetDraw){sheetDirty=true;sheetDraw()}else render()};
 function showSheet(){$('#sheet').classList.add('open');if(!sheetOpen)try{history.pushState({sheet:1},'')}catch(e){}sheetOpen=true}
-function sheetGone(){listenStop();saveNow();if(!sheetOpen)return false;sheetOpen=false;sheetDraw=null;$('#sheet').classList.remove('open');
+function sheetGone(){listenStop();saveNow();if(!sheetOpen)return false;sheetOpen=false;sheetDraw=null;$('#sheet').classList.remove('open','full');
   if(sheetDirty){sheetDirty=false;render()}return true}
 function closeSheet(){if(sheetGone())try{if(history.state&&history.state.sheet)history.back()}catch(e){}}
 window.addEventListener('popstate',sheetGone);
@@ -1870,7 +1972,9 @@ document.addEventListener('click',e=>{
   else if(d.qclr){qOrder=[];fillList()}
   else if(d.qplace){placeSheet()}
   else if(d.share){shareSheet(d.share)}
-  else if(d.f){onlyUnplaced=d.f=='un';lim=100;render()}
+  else if(d.fltopen){filterPage()}
+  else if(d.fltdel){ff[d.fltdel].delete(d.fltv);fChanged()}
+  else if(d.fltclr){fClear();fChanged()}
   else if(d.l){selLoc=d.l;selSec=null;lim=100;render()}
   else if(d.more){lim+=100;view=='rec'||view=='fav'?fillList():render()}
   else if(d.sec&&view=='shelf'){const n=+d.sec;selSec=selSec==n?null:n;lim=100;render()}
@@ -1881,7 +1985,7 @@ document.addEventListener('click',e=>{
   else if(d.play){const r=recs.find(x=>x.id==d.play);if(r){playedToday(r)?unPlay(r):markPlayed(r);refresh()}}
   else if(d.unplay){const r=recs.find(x=>x.id==d.unplay);if(r){unPlay(r);refresh()}}
   else if(d.qt){const r=recs.find(x=>x.id==d.qt);if(r){r.nx=r.nx?0:Date.now();save();refresh()}}
-  else if(d.gq){q=d.gq;view='rec';qOrder=[];rf.cat='all';rf.gen='all';onlyUnplaced=false;lim=100;render();window.scrollTo(0,0)}
+  else if(d.gq){q=d.gq;view='rec';qOrder=[];rf.cat='all';rf.gen='all';fClear();lim=100;render();window.scrollTo(0,0)}
   else if(d.el){locSheet(d.el)}
   else if(d.id){openRecSheet(d.id)}
 });
