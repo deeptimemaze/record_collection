@@ -253,7 +253,8 @@ label.ck input{width:20px;height:20px}
 .gone{margin:8px 0 0;padding:0 0 0 18px;max-height:260px;overflow:auto}
 .gone li{margin:0 0 6px}.gone span{display:block;font-size:11px;color:var(--mute)}
 .ftags{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 2px}
-.ftags .tag:first-child{color:var(--hl-t);border-color:var(--hl)}
+/* format tags (Mono, Reissue...): all alike, solid and slim, set apart from the framed placement tag */
+.ftags .tag{padding:2px 6px;background:var(--ink);border-color:var(--ink);color:var(--bg);font-weight:500;letter-spacing:.03em}
 .dl{border:2px solid var(--line2);background:var(--card);font-size:13px}
 .dl div{display:grid;grid-template-columns:104px 1fr;gap:10px;padding:8px 12px;border-top:1px solid var(--line)}.dl div:first-child{border-top:0}
 .dl span{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.16em;color:var(--mute);padding-top:3px}
@@ -306,7 +307,7 @@ label.ck input{width:20px;height:20px}
 <div id="sheet"><div id="sheetbody"></div></div>
 
 <script>
-const APP_VERSION=53,APP_DATE='23 Nov 2026';
+const APP_VERSION=54,APP_DATE='23 Nov 2026';
 const COVER_CACHE='vinyl-covers-2'; // must match COVERS in sw.js
 const DEFAULT_LOCS=[
  {id:'kallax',name:'Kallax shelf',mode:'grid',cols:3,rows:4,cap:0,formats:['lp']},
