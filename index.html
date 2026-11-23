@@ -173,6 +173,7 @@ label.ck input{width:20px;height:20px}
 .err{color:var(--red)}
 /* Data tab: a heading per group, and the long explanations folded away */
 .dh{display:flex;align-items:center;gap:12px;margin:30px 0 0;color:var(--hl-t);font:700 12px/1 var(--mono);text-transform:uppercase;letter-spacing:.24em}
+.dh+.rec{margin-top:20px}
 .dh::after{content:"";flex:1;height:2px;background:var(--bd)}
 .more{margin:-2px 0 8px;color:var(--mute);font-size:13px;line-height:1.5}
 .more summary{display:inline-block;cursor:pointer;list-style:none;color:var(--hl-t);font:700 10px/1 var(--mono);text-transform:uppercase;letter-spacing:.14em;padding:4px 0}
@@ -307,7 +308,7 @@ label.ck input{width:20px;height:20px}
 <div id="sheet"><div id="sheetbody"></div></div>
 
 <script>
-const APP_VERSION=54,APP_DATE='23 Nov 2026';
+const APP_VERSION=55,APP_DATE='23 Nov 2026';
 const COVER_CACHE='vinyl-covers-2'; // must match COVERS in sw.js
 const DEFAULT_LOCS=[
  {id:'kallax',name:'Kallax shelf',mode:'grid',cols:3,rows:4,cap:0,formats:['lp']},
@@ -560,8 +561,8 @@ function restoreUndo(){
 }
 const when=t=>{const d=new Date(t);return `${d.getDate()} ${MON[d.getMonth()]} at ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`};
 
-// the Selected column: 1, 2 or 3 for the three selections; Yes (and the like) from older exports is selection 1
-const favOf=v=>/^[123]$/.test(v=String(v||'').trim())?+v:/^(yes|y|true|x|★|●)$/i.test(v)?1:0;
+// the Selected column: A, B or C (1, 2 or 3 in older exports); Yes (and the like) from older exports is selection A
+const favOf=v=>/^[123]$/.test(v=String(v||'').trim())?+v:/^[abc]$/i.test(v)?' abc'.indexOf(v.toLowerCase()):/^(yes|y|true|x|★|●)$/i.test(v)?1:0;
 function finishImport(){
   const {pick,pair}=planImport();
   pick.forEach(r=>{const o=pair.get(r);if(!o)return;
@@ -591,7 +592,7 @@ function exportCSV(){
   // the Discogs columns keep Discogs' own names, so a Discogs export and this one read the same way
   const cur=(Object.entries(recs.reduce((m,r)=>{if(r.cur)m[r.cur]=(m[r.cur]||0)+1;return m},{})).sort((a,b)=>b[1]-a[1])[0]||['SEK'])[0];
   const lines=['Artist,Title,Released,Format,release_id,location,section,position,Genre,Comment,Selected,Date Added,Last played,Play next,Original release,'+XF.map(x=>x[2]).join(',')+`,Rating,Collection Price (${cur}),RPM,Discogs genres,Discogs styles,BPM,BPM (suggested),Plays`,
-    ...recs.map(r=>[r.artist,r.title,r.year,r.fmt,r.id.split('#')[0],placed(r)?L(r.loc).name:'',placed(r)?r.section:'',placed(r)?r.pos:'',r.genre||'',r.comment||'',r.fav?String(r.fav):'',r.da||'',r.played||'',r.nx?'Yes':'',oyOK(r.oy)?r.oy:'',
+    ...recs.map(r=>[r.artist,r.title,r.year,r.fmt,r.id.split('#')[0],placed(r)?L(r.loc).name:'',placed(r)?r.section:'',placed(r)?r.pos:'',r.genre||'',r.comment||'',r.fav?SELN[r.fav]:'',r.da||'',r.played||'',r.nx?'Yes':'',oyOK(r.oy)?r.oy:'',
       ...XF.map(x=>r[x[0]]||''),r.rating||'',r.price!==''&&r.cur&&r.cur!==cur?`${r.price} ${r.cur}`:r.price,r.rpmX||'',(r.dg||[]).join('; '),(r.ds||[]).join('; '),r.bpm?Math.round(r.bpm*10)/10:'',r.bpmSug?Math.round(r.bpmSug*10)/10:'',(r.plays||[]).join('; ')].map(q).join(','))];
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob(['\uFEFF'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'}));
@@ -705,8 +706,8 @@ const bpmChip=r=>{const b=bpmOf(r);return b?`<span class="bpmc${b.sure?'':' sug'
 const rcolHTML=r=>{const c=bpmChip(r);return c?`<div class="rcol">${c}</div>`:''};
 // the full card's Select chip: outlined when off, lime with a tick when on
 // the three selections: long-press a card to step through them (and back to none); the full card picks one directly
-const SELN=['Not selected','135°','45°','Cross'];
-const selName=n=>n?`Selection ${n} · ${SELN[n]}`:'Not selected';
+const SELN=['Not selected','A','B','C'];
+const selName=n=>n?`Selection ${SELN[n]}`:'Not selected';
 const selSegHTML=r=>`<div class="seg sseg" role="radiogroup" aria-label="Selection">${[0,1,2,3].map(n=>
   `<button class="${r.fav==n?'on':''}${n?' c'+n:''}" data-fav="${esc(r.id)}" data-fs="${n}" role="radio" aria-checked="${r.fav==n}">${n?`<span class="hs h${n}"></span>`:''}${n?SELN[n]:'None'}</button>`).join('')}</div>`;
 function metaHTML(r){const f=(r.fmt||'').split(',')[0].trim(),o=origY(r);
@@ -775,7 +776,7 @@ let qOrder=[];
 let selTab=0;const selKeep=new Set();
 const inSelTab=r=>selTab?r.fav==selTab||selKeep.has(r.id):!!r.fav;
 const selTabsHTML=()=>{const c=n=>recs.filter(r=>n?r.fav==n:r.fav).length;
-  return `<div class="seg" role="tablist">${[0,1,2,3].map(n=>`<button class="${selTab==n?'on':''}${n?' c'+n:''}" data-st="${n}" role="tab" aria-selected="${selTab==n}" aria-label="${n?selName(n):'All selected'}, ${c(n)}">${n?`<span class="hs h${n}"></span>`:'All '}${c(n)}</button>`).join('')}</div>`};
+  return `<div class="seg" role="tablist">${[0,1,2,3].map(n=>`<button class="${selTab==n?'on':''}${n?' c'+n:''}" data-st="${n}" role="tab" aria-selected="${selTab==n}" aria-label="${n?selName(n):'All selected'}, ${c(n)}">${n?`<span class="hs h${n}"></span>${SELN[n]} `:'All '}${c(n)}</button>`).join('')}</div>`};
 function toggleQ(id){const i=qOrder.indexOf(id);if(i<0)qOrder.push(id);else qOrder.splice(i,1);fillList()}
 function qbarHTML(){
   const n=qOrder.length;if(!n)return '';
@@ -795,7 +796,7 @@ function fillList(){
     !m.length?'<div class="empty">No matches.</div>':
     `<div class="count">${m.length} ${view=='fav'?'selected':'record'}${view=='fav'||m.length==1?'':'s'}</div>`+m.slice(0,lim).map(r=>recHTML(r)).join('')+(m.length>lim?`<button class="btn" data-more="1">Show more</button>`:'');
 }
-// to: a selection (0-3) from the full card; left out, a long-press steps to the next one, after Cross back to none
+// to: a selection (0-3) from the full card; left out, a long-press steps to the next one, after C back to none
 function toggleFav(id,to){
   const r=recs.find(x=>x.id==id);if(!r)return;
   const was=r.fav;r.fav=to==null?(r.fav+1)%4:to;if(r.fav==was)return;save();
@@ -1176,8 +1177,6 @@ function pickHTML(){
   const lp=recs.find(x=>x.id==lastPlay&&x.id!=pickId&&playedToday(x));
   if(lp)h+=`<div class="pnote"><span>✓ Played “${esc(lp.title)}” today${lp.nxWas?' and took it off play next':''}.</span><button class="chip" data-unplay="${esc(lp.id)}">Undo</button></div>`;
   h+=`<label>Play next${qd.length?` (${qd.length})`:''}</label>`+(qd.length?qd.map(x=>recHTML(x,'',playedLine(x))+playBtns(x)).join(''):'<p class="mute">Nothing queued. Add records from a pick, or from a record\'s sheet.</p>');
-  const unp=recs.filter(x=>!x.played).length,old=recs.slice().sort((a,b)=>(a.played||'')<(b.played||'')?-1:(a.played||'')>(b.played||'')?1:a.sk<b.sk?-1:1).slice(0,8);
-  if(recs.length)h+=`<label>Not played for the longest</label><p class="mute">${unp} of ${recs.length} records have no played date yet.</p>`+old.map(x=>recHTML(x,'',playedLine(x))).join('');
   return h;
 }
 function barsHTML(rows){return `<div class="bars">${rows.map(([k,v,p])=>`<div class="br"><span class="bl">${esc(k)}</span><span class="bt"><i style="width:${Math.max(0,Math.min(100,p*100)).toFixed(1)}%"></i></span><span class="bv">${esc(v)}</span></div>`).join('')}</div>`}
