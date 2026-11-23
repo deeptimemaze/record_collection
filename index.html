@@ -224,6 +224,14 @@ label.ck input{width:20px;height:20px}
 .toast{position:fixed;left:16px;right:16px;bottom:84px;z-index:99;padding:12px 16px;background:var(--ink);color:var(--bg);font-weight:600;text-align:center}
 .toast.err{background:var(--red);color:#000}
 .toast.st{padding:9px 14px}
+.toast.ut{display:flex;align-items:center;gap:14px;padding:8px 8px 8px 16px;text-align:left}.toast.ut span{flex:1}
+.toast.ut button{flex:none;min-height:40px;padding:6px 14px;background:transparent;border:2px solid var(--bg);color:var(--bg);font:700 11px/1 var(--mono);text-transform:uppercase;letter-spacing:.1em}
+/* Selected page: the open selection, named, with its Empty button */
+.sstrip{--sc:var(--s1);display:flex;align-items:center;gap:10px;margin:8px 0 0;padding:4px 4px 4px 10px;border:1px solid var(--sc);color:var(--sc);font:700 11px/1.2 var(--mono);text-transform:uppercase;letter-spacing:.1em}
+.sstrip.c2{--sc:var(--s2)}.sstrip.c3{--sc:var(--s3)}
+.sstrip span{flex:1;min-width:0}
+.sstrip button{flex:none;display:flex;align-items:center;gap:6px;min-height:36px;padding:5px 10px;background:transparent;border:1px solid var(--sc);color:var(--sc);font:inherit;text-transform:uppercase;letter-spacing:.1em}
+.sstrip svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 /* phone storage overview (Data → App) */
 .stot{display:flex;align-items:baseline;gap:8px;margin:0}
 .stot b{font:700 28px/1.1 var(--mono);color:var(--hl-t)}
@@ -329,7 +337,7 @@ label.ck input{width:20px;height:20px}
 <div id="sheet"><div id="sheetbody"></div></div>
 
 <script>
-const APP_VERSION=57,APP_DATE='23 Nov 2026';
+const APP_VERSION=58,APP_DATE='23 Nov 2026';
 const COVER_CACHE='vinyl-covers-2'; // must match COVERS in sw.js
 const DEFAULT_LOCS=[
  {id:'kallax',name:'Kallax shelf',mode:'grid',cols:3,rows:4,cap:0,formats:['lp']},
@@ -884,6 +892,21 @@ let selTab=0;const selKeep=new Set();
 const inSelTab=r=>selTab?r.fav==selTab||selKeep.has(r.id):!!r.fav;
 const selTabsHTML=()=>{const c=n=>recs.filter(r=>n?r.fav==n:r.fav).length;
   return `<div class="seg" role="tablist">${[0,1,2,3].map(n=>`<button class="${selTab==n?'on':''}${n?' c'+n:''}" data-st="${n}" role="tab" aria-selected="${selTab==n}" aria-label="${n?selName(n):'All selected'}, ${c(n)}">${n?`<span class="hs h${n}"></span>${SELN[n]} `:'All '}${c(n)}</button>`).join('')}</div>`};
+// the open selection named, with a button that empties it; not on All
+const sstripHTML=()=>{const n=selTab,c=n?recs.filter(r=>r.fav==n).length:0;if(!c)return '';
+  return `<div class="sstrip c${n}"><span>${esc(selName(n))} · ${c} record${c==1?'':'s'}</span><button data-sempty="${n}" aria-label="Empty ${esc(selName(n))}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-12M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3"/></svg>Empty</button></div>`};
+// emptying asks first, and a note afterwards can put every record back
+async function emptySel(n){
+  const rs=recs.filter(r=>r.fav==n),c=rs.length;if(!c)return;
+  if(!await ask(`Empty ${selName(n)}? Its ${c} record${c==1?'':'s'} leave${c==1?'s':''} the selection. Where they're stored, and everything else about them, stays as it is.`,`Empty ${selName(n)}`,true))return;
+  const ids=new Set(rs.map(r=>r.id));rs.forEach(r=>r.fav=0);save();
+  qOrder=qOrder.filter(id=>!ids.has(id));selKeep.clear();fillList();
+  document.querySelectorAll('.toast.ut').forEach(t=>t.remove());
+  const t=document.createElement('div');t.className='toast ut';t.setAttribute('role','status');
+  t.innerHTML=`<span>Emptied ${esc(selName(n))}.</span><button>Undo</button>`;
+  t.querySelector('button').onclick=()=>{recs.forEach(r=>{if(ids.has(r.id)&&!r.fav)r.fav=n});save();t.remove();if(view=='fav')fillList();else render()};
+  document.body.appendChild(t);setTimeout(()=>t.remove(),8000);
+}
 function toggleQ(id){const i=qOrder.indexOf(id);if(i<0)qOrder.push(id);else qOrder.splice(i,1);fillList()}
 function qbarHTML(){
   const n=qOrder.length;if(!n)return '';
@@ -896,7 +919,7 @@ function fillList(){
     if(s.size)mini+=`<div class="locname">${esc(l.name)}</div>`+diagramHTML(l,{hi:s,size:'mini'});
   });
   $('#mini').innerHTML=mini;
-  if(view=='fav'){qOrder=qOrder.filter(id=>recs.some(r=>r.id==id&&r.fav&&(!selTab||r.fav==selTab)));if($('#stabs'))$('#stabs').innerHTML=selTabsHTML();$('#qbar').innerHTML=qbarHTML();$('#list').classList.toggle('qpad',qOrder.length>0)}
+  if(view=='fav'){qOrder=qOrder.filter(id=>recs.some(r=>r.id==id&&r.fav&&(!selTab||r.fav==selTab)));if($('#stabs'))$('#stabs').innerHTML=selTabsHTML()+sstripHTML();$('#qbar').innerHTML=qbarHTML();$('#list').classList.toggle('qpad',qOrder.length>0)}
   $('#list').innerHTML=!recs.length?'<div class="empty">No records yet.<br>Open the Data tab to import your CSV.</div>':
     (view=='fav'&&!recs.some(r=>r.fav))?'<div class="empty">Nothing selected yet.<br>Long-press a record, or choose a selection on its card, to add it here.</div>':
     (view=='fav'&&!recs.some(inSelTab))?`<div class="empty">Nothing in ${esc(selName(selTab))} yet.<br>Long-press a record until it shows this hatching.</div>`:
@@ -1974,6 +1997,7 @@ document.addEventListener('click',e=>{
   if(d.st!=null){selTab=+d.st;selKeep.clear();qOrder=[];lim=100;fillList();window.scrollTo(0,0)}
   else if(d.v){if(d.v!='fav')qOrder=[];selKeep.clear();view=d.v;render();window.scrollTo(0,0)}
   else if(d.qclr){qOrder=[];fillList()}
+  else if(d.sempty){emptySel(+d.sempty)}
   else if(d.qplace){placeSheet()}
   else if(d.share){shareSheet(d.share)}
   else if(d.fltopen){filterPage()}
