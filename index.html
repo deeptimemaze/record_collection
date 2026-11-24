@@ -337,7 +337,7 @@ label.ck input{width:20px;height:20px}
 <div id="sheet"><div id="sheetbody"></div></div>
 
 <script>
-const APP_VERSION=58,APP_DATE='23 Nov 2026';
+const APP_VERSION=59,APP_DATE='23 Nov 2026';
 const COVER_CACHE='vinyl-covers-2'; // must match COVERS in sw.js
 const DEFAULT_LOCS=[
  {id:'kallax',name:'Kallax shelf',mode:'grid',cols:3,rows:4,cap:0,formats:['lp']},
@@ -1914,7 +1914,8 @@ let sheetOpen=false;
 // a change made on the record sheet redraws the sheet straight away, and the page behind it once the sheet closes
 let sheetDraw=null,sheetDirty=false;
 const refresh=()=>{if(sheetOpen&&sheetDraw){sheetDirty=true;sheetDraw()}else render()};
-function showSheet(){$('#sheet').classList.add('open');if(!sheetOpen)try{history.pushState({sheet:1},'')}catch(e){}sheetOpen=true}
+// a sheet always opens at its top, not where the last one was left scrolled
+function showSheet(){$('#sheet').classList.add('open');if(!sheetOpen){$('#sheetbody').scrollTop=0;try{history.pushState({sheet:1},'')}catch(e){}}sheetOpen=true}
 function sheetGone(){listenStop();saveNow();if(!sheetOpen)return false;sheetOpen=false;sheetDraw=null;$('#sheet').classList.remove('open','full');
   if(sheetDirty){sheetDirty=false;render()}return true}
 function closeSheet(){if(sheetGone())try{if(history.state&&history.state.sheet)history.back()}catch(e){}}
