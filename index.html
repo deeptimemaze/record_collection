@@ -77,6 +77,17 @@ input[type=checkbox]{accent-color:var(--y)}
 .seg{display:flex;margin:14px 0 4px;border:2px solid var(--bd)}
 .seg button{flex:1;min-width:0;min-height:38px;padding:6px 2px;background:transparent;border:0;border-left:2px solid var(--bd);color:var(--mute);font:700 10px/1 var(--mono);text-transform:uppercase;letter-spacing:.06em}
 .seg button:first-child{border-left:0}
+/* Explore → Artists: a graph around one artist, label or genre; tap a node to make it the centre */
+.gcrumb{min-height:18px;margin:10px 0 0;color:var(--mute);font:500 11px/1.5 var(--mono)}
+.gcrumb button{padding:0;background:none;border:0;color:var(--ink);font:inherit;text-decoration:underline}.gcrumb b{color:var(--hl-t)}
+#gsvg{display:block;width:100%;height:auto;margin:4px 0 0;touch-action:manipulation}
+#gsvg text{font-family:var(--mono);pointer-events:none}
+#gsvg .gn{cursor:pointer}
+.ginfo{padding:12px 0 0;border-top:2px solid var(--hl)}
+.ginfo b{display:block;font:700 15px/1.3 var(--mono)}
+.ginfo .btn{margin-bottom:0}
+.gkey{display:flex;flex-wrap:wrap;gap:6px 14px;margin:14px 0 0;color:var(--mute);font:500 11px/1.4 var(--mono)}
+.gkey span{display:flex;align-items:center;gap:6px}.gkey svg{flex:none}
 .seg button.on{background:var(--y);color:#000;box-shadow:var(--glow)}
 
 /* record cards */
@@ -337,7 +348,7 @@ label.ck input{width:20px;height:20px}
 <div id="sheet"><div id="sheetbody"></div></div>
 
 <script>
-const APP_VERSION=59,APP_DATE='23 Nov 2026';
+const APP_VERSION=60,APP_DATE='24 Nov 2026';
 const COVER_CACHE='vinyl-covers-2'; // must match COVERS in sw.js
 const DEFAULT_LOCS=[
  {id:'kallax',name:'Kallax shelf',mode:'grid',cols:3,rows:4,cap:0,formats:['lp']},
@@ -1429,11 +1440,112 @@ function streak(byDay,T){let n=0,t=+T;if(!byDay.has(dStr(new Date(t))))t-=864e5;
 function exploreView(){
   setH('Explore');
   const tab=(k,t)=>`<button class="${exTab==k?'on':''}" data-ex="${k}" role="tab" aria-selected="${exTab==k}">${t}</button>`;
-  $('#app').innerHTML=`<div class="seg" role="tablist">${tab('pick','Pick')}${tab('heard','Listened')}${tab('stats','Stats')}${tab('timeline','Timeline')}${tab('live','Live')}</div>`+(exTab=='heard'?heardHTML():exTab=='stats'?statsHTML():exTab=='timeline'?timelineHTML():exTab=='live'?liveHTML():pickHTML());
+  $('#app').innerHTML=`<div class="seg" role="tablist">${tab('pick','Pick')}${tab('heard','Listened')}${tab('stats','Stats')}${tab('timeline','Timeline')}${tab('live','Live')}${tab('graph','Artists')}</div>`+(exTab=='graph'?graphHTML():exTab=='heard'?heardHTML():exTab=='stats'?statsHTML():exTab=='timeline'?timelineHTML():exTab=='live'?liveHTML():pickHTML());
   if($('#pc'))$('#pc').onchange=e=>{pf.cat=e.target.value;pickId=null;render()};
   if($('#pg'))$('#pg').onchange=e=>{pf.gen=e.target.value;pickId=null;render()};
   if($('#tc'))$('#tc').onchange=e=>{tf.cat=e.target.value;lim=100;render()};
   if($('#tg'))$('#tg').onchange=e=>{tf.gen=e.target.value;lim=100;render()};
+  if(exTab=='graph')grMount();
+}
+/* Explore → Artists. Built from what the collection already holds: artists, the labels they're on and the genres
+   you gave them. Members, groups and places come later from MusicBrainz. Nodes: a: artist, l: label, g: genre */
+let grCenter=null,grTrail=[],grPage=0,grPos={},grAlpha={},grAnim=0,grCache=null;
+const artKey=s=>fold(s).replace(/\s*\(\d+\)\s*$/,'').replace(/\*$/,'').replace(/\s+/g,' ').trim();
+function grBuild(){
+  const n=new Map(),adj=new Map(),nm={};
+  const node=(id,t,name)=>{if(!n.has(id)){n.set(id,{id,t,name,c:0});adj.set(id,new Map())}const o=n.get(id);
+    (nm[id]||(nm[id]={}))[name]=(nm[id][name]||0)+1;return o};
+  const link=(a,b)=>{adj.get(a).set(b,(adj.get(a).get(b)||0)+1);adj.get(b).set(a,(adj.get(b).get(a)||0)+1)};
+  recs.forEach(r=>{
+    const an=(r.artist||'').replace(/\s*\(\d+\)\s*$/,'').replace(/\*$/,'').trim(),ak=artKey(an);
+    if(!ak||/^various( artists)?$/.test(ak))return;
+    const a=node('a:'+ak,'a',an);a.c++;
+    uniqList(r.label).split(', ').forEach(x=>{const k=labKey(x);if(!k||/^(not on label|no label|self-released)/.test(k))return;
+      const l=node('l:'+k,'l',x.replace(/\s*\(\d+\)\s*$/,''));l.c++;link(a.id,l.id)});
+    if(r.genre){const g=node('g:'+r.genre,'g',r.genre);g.c++;link(a.id,g.id)}
+  });
+  // the most common spelling names each node
+  n.forEach((o,id)=>{o.name=Object.entries(nm[id]).sort((x,y)=>y[1]-x[1])[0][0]});
+  return grCache={n,adj,at:recs.length+':'+recs.reduce((s,r)=>s+(r.genre||'').length,0)};
+}
+const grData=()=>grCache&&grCache.at==recs.length+':'+recs.reduce((s,r)=>s+(r.genre||'').length,0)?grCache:grBuild();
+// a node's neighbours, most shared records first: for an artist its labels then genres; for a label or genre its artists
+function grNbrs(id){
+  const {n,adj}=grData(),o=n.get(id),ORD={l:0,g:1,a:2};
+  return [...adj.get(id).entries()].sort((x,y)=>ORD[n.get(x[0]).t]-ORD[n.get(y[0]).t]||y[1]-x[1]||n.get(x[0]).name.localeCompare(n.get(y[0]).name)).map(x=>x[0]);
+}
+const GPAGE=11,GW=360,GH=400,GC={x:180,y:190};
+function grVisible(id){
+  const all=grNbrs(id),pages=Math.max(1,Math.ceil(all.length/GPAGE));if(grPage>=pages)grPage=0;
+  const v=all.slice(grPage*GPAGE,grPage*GPAGE+GPAGE);return {v,more:all.length>GPAGE?all.length-v.length:0,all:all.length}
+}
+function grLayout(id){
+  const t={},{v,more}=grVisible(id),ns=more?[...v,'+more']:v,k=ns.length;t[id]={x:GC.x,y:GC.y};
+  ns.forEach((x,i)=>{const a=-Math.PI/2+i*2*Math.PI/Math.max(k,1),r=k>6?(i%2?150:116):130;t[x]={x:GC.x+Math.cos(a)*r*.95,y:GC.y+Math.sin(a)*r}});
+  return t;
+}
+function grDesc(id){
+  const {n,adj}=grData(),o=n.get(id),nb=[...adj.get(id).keys()].map(x=>n.get(x));
+  if(o.t=='a'){const ls=nb.filter(x=>x.t=='l').length,gs=nb.filter(x=>x.t=='g').map(x=>x.name);
+    return `${o.c} record${o.c==1?'':'s'}${ls?` · ${ls} label${ls==1?'':'s'}`:''}${gs.length?' · '+gs.slice(0,3).join(', '):''}`}
+  const as=nb.length;return `${o.t=='l'?'Label':'Genre'} · ${o.c} record${o.c==1?'':'s'} by ${as} artist${as==1?'':'s'}`;
+}
+function grDraw(P,A){
+  const g=$('#gsvg');if(!g)return;const {n,adj}=grData();let h='';
+  const ids=Object.keys(P),seen=new Set(ids);
+  ids.forEach(a=>{if(a=='+more')return;adj.get(a)&&adj.get(a).forEach((w,b)=>{if(a<b&&seen.has(b)){const al=Math.min(A[a]||0,A[b]||0);if(al<.02)return;
+    const t=n.get(a).t=='a'?n.get(b).t:n.get(a).t,st=t=='g'?'stroke="var(--ink)" stroke-dasharray="2 3" stroke-width="1.5"':'stroke="var(--mute)" stroke-width="1.5"';
+    h+=`<line x1="${P[a].x.toFixed(1)}" y1="${P[a].y.toFixed(1)}" x2="${P[b].x.toFixed(1)}" y2="${P[b].y.toFixed(1)}" ${st} opacity="${al.toFixed(2)}"/>`}})});
+  if(P['+more']&&(A['+more']||0)>.02){const m=P['+more'];h+=`<line x1="${GC.x}" y1="${GC.y}" x2="${m.x.toFixed(1)}" y2="${m.y.toFixed(1)}" stroke="var(--line2)" stroke-width="1" stroke-dasharray="1 4" opacity="${A['+more'].toFixed(2)}"/>`}
+  ids.forEach(id=>{const al=A[id]||0;if(al<.02)return;const {x,y}=P[id],c=id==grCenter,r=c?13:8;let sh,lbl,cls='gn';
+    if(id=='+more'){const {more}=grVisible(grCenter);sh=`<circle cx="${x}" cy="${y}" r="15" fill="var(--bg)" stroke="var(--line2)" stroke-width="1.5" stroke-dasharray="3 3"/><text x="${x}" y="${y+4}" text-anchor="middle" fill="var(--ink)" font-size="11" font-weight="700">+${more}</text>`;lbl='more'}
+    else{const o=n.get(id);lbl=o.name.length>15?o.name.slice(0,14)+'…':o.name;
+      if(o.t=='a')sh=`<circle cx="${x}" cy="${y}" r="${r}" fill="var(--hl)"/>`;
+      else if(o.t=='l')sh=`<rect x="${x-r+1}" y="${y-r+1}" width="${2*r-2}" height="${2*r-2}" fill="var(--thumb)" stroke="var(--mute)" stroke-width="1.5"/>`;
+      else{const q=r+1;sh=`<polygon points="${[0,1,2,3,4,5].map(i=>{const a=Math.PI/6+i*Math.PI/3;return (x+Math.cos(a)*q).toFixed(1)+','+(y+Math.sin(a)*q).toFixed(1)}).join(' ')}" fill="var(--bg)" stroke="var(--ink)" stroke-width="1.5"/>`}}
+    h+=`<g class="${cls}" data-gid="${esc(id)}" opacity="${al.toFixed(2)}" role="button" aria-label="${esc(id=='+more'?'Show more':n.get(id).name)}">${c?`<circle cx="${x}" cy="${y}" r="20" fill="none" stroke="var(--hl)" stroke-opacity=".4"/>`:''}${sh}${id=='+more'?'':`<text x="${Math.min(GW-lbl.length*(c?3.7:3.4)-3,Math.max(lbl.length*(c?3.7:3.4)+3,x)).toFixed(1)}" y="${y+(c?29:22)}" text-anchor="middle" fill="${c?'var(--hl-t)':'var(--ink)'}" font-size="${c?12:11}" font-weight="${c?700:500}">${esc(lbl)}</text>`}<circle cx="${x}" cy="${y}" r="22" fill="transparent"/></g>`});
+  g.innerHTML=h;
+  g.querySelectorAll('.gn').forEach(e=>e.onclick=()=>{const id=e.dataset.gid;if(id=='+more'){grPage++;grGo(grCenter,true)}else grGo(id)});
+}
+function grInfo(){
+  const {n}=grData(),o=n.get(grCenter),{all}=grVisible(grCenter);
+  const btn=o.t=='a'?'Show records':o.t=='l'?'Show records on this label':'Show records in this genre';
+  $('#ginfo').innerHTML=`<b>${esc(o.name)}</b><p class="mute" style="margin:4px 0 0">${esc(grDesc(grCenter))}${all>GPAGE?` · showing ${grPage*GPAGE+1}–${Math.min(all,(grPage+1)*GPAGE)} of ${all}, ${(grPage+1)*GPAGE>=all?'tap +more to start over':'tap +more for the next'}`:''}</p><button class="btn" data-gshow="${esc(grCenter)}">${btn}</button>`;
+  $('#gcrumb').innerHTML=grTrail.map((id,i)=>i==grTrail.length-1?`<b>${esc(n.get(id).name)}</b>`:`<button data-gtr="${i}">${esc(n.get(id).name)}</button>`).join(' › ');
+}
+// make a node the centre; the trail remembers the last few steps
+function grGo(id,samePage){
+  const {n}=grData();if(!n.has(id))return;
+  if(!samePage)grPage=0;
+  if(grTrail[grTrail.length-1]!=id){const j=grTrail.indexOf(id);grTrail=j>=0?grTrail.slice(0,j+1):[...grTrail,id];if(grTrail.length>5)grTrail=grTrail.slice(-5)}
+  const from={...grPos},fa={...grAlpha},to=grLayout(id),ta={};Object.keys(to).forEach(k=>ta[k]=1);
+  const origin=grPos[id]||GC;Object.keys(to).forEach(k=>{if(!from[k]||!(fa[k]>0)){from[k]={...origin};fa[k]=0}});
+  Object.keys(from).forEach(k=>{if(!to[k])to[k]={...from[k]}});
+  grCenter=id;grInfo();cancelAnimationFrame(grAnim);
+  const D=matchMedia('(prefers-reduced-motion: reduce)').matches?0:480,t0=performance.now();
+  const step=now=>{let p=D?Math.min(1,(now-t0)/D):1;p=1-Math.pow(1-p,3);const P={},A={};
+    Object.keys(to).forEach(k=>{P[k]={x:from[k].x+(to[k].x-from[k].x)*p,y:from[k].y+(to[k].y-from[k].y)*p};A[k]=(fa[k]||0)+((ta[k]||0)-(fa[k]||0))*p});
+    grDraw(P,A);if(p<1)grAnim=requestAnimationFrame(step);else{grPos={};grAlpha={};Object.keys(ta).forEach(k=>{grPos[k]=to[k];grAlpha[k]=1});grDraw(grPos,grAlpha)}};
+  grAnim=requestAnimationFrame(step);
+}
+function graphHTML(){
+  return `<input type="search" id="gq" placeholder="Find an artist, label or genre" aria-label="Find an artist, label or genre" autocomplete="off" autocapitalize="off" enterkeyhint="search" style="margin-top:14px">
+  <div class="chips" id="gres" style="margin:8px 0 0"></div>
+  <div class="gcrumb" id="gcrumb"></div>
+  <svg id="gsvg" viewBox="0 0 ${GW} ${GH}" role="group" aria-label="Graph of artists, labels and genres"></svg>
+  <div class="ginfo" id="ginfo"></div>
+  <div class="gkey"><span><svg width="14" height="14"><circle cx="7" cy="7" r="6" fill="var(--hl)"/></svg>Artist</span><span><svg width="14" height="14"><rect x="1" y="1" width="12" height="12" fill="var(--thumb)" stroke="var(--mute)" stroke-width="1.5"/></svg>Label</span><span><svg width="16" height="16"><polygon points="14,8 11,13.2 5,13.2 2,8 5,2.8 11,2.8" fill="none" stroke="var(--ink)" stroke-width="1.5"/></svg>Genre</span></div>
+  <p class="mute" style="margin:10px 0 0;font-size:12px">Built from your records' artists, labels and genres. Band members and where artists come from will be added from MusicBrainz.</p>`;
+}
+function grMount(){
+  const {n}=grData();if(!n.size){$('#ginfo').innerHTML='<p class="mute">No artists yet. Import your CSV in the Data tab.</p>';return}
+  if(!grCenter||!n.has(grCenter)){grCenter=[...n.values()].filter(o=>o.t=='a').sort((a,b)=>b.c-a.c)[0].id;grTrail=[]}
+  grPos={};grAlpha={};const c=grCenter;grCenter=null;grGo(c,true);
+  const q=$('#gq'),res=$('#gres');
+  q.oninput=()=>{const w=fold(q.value).trim();if(!w){res.innerHTML='';return}
+    const hits=[...n.values()].filter(o=>fold(o.name).includes(w)).sort((a,b)=>(fold(b.name).startsWith(w)-fold(a.name).startsWith(w))||b.c-a.c).slice(0,8);
+    res.innerHTML=hits.length?hits.map(o=>`<button class="chip" data-gn="${esc(o.id)}">${esc(o.name)}<span class="fn">${o.t=='a'?o.c:o.t=='l'?'label':'genre'}</span></button>`).join(''):'<p class="mute" style="margin:0">Nothing found.</p>'};
+  q.onkeydown=e=>{if(e.key=='Enter')e.target.blur()};
 }
 function dataView(msg=''){
   setH('Data');
@@ -2002,6 +2114,10 @@ document.addEventListener('click',e=>{
   else if(d.qplace){placeSheet()}
   else if(d.share){shareSheet(d.share)}
   else if(d.fltopen){filterPage()}
+  else if(d.gn){$('#gq').value='';$('#gres').innerHTML='';grGo(d.gn)}
+  else if(d.gtr!=null){const i=+d.gtr,id=grTrail[i];grTrail=grTrail.slice(0,i);grGo(id)}
+  else if(d.gshow){const o=grData().n.get(d.gshow);if(o){fClear();q='';if(o.t=='a')q=o.name;else if(o.t=='l'){ff.lab.add(d.gshow.slice(2));labName[d.gshow.slice(2)]=o.name}else ff.gen.add(d.gshow.slice(2));
+    view='rec';qOrder=[];lim=100;render();window.scrollTo(0,0)}}
   else if(d.fltdel){ff[d.fltdel].delete(d.fltv);fChanged()}
   else if(d.fltclr){fClear();fChanged()}
   else if(d.l){selLoc=d.l;selSec=null;lim=100;render()}
