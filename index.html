@@ -348,7 +348,7 @@ label.ck input{width:20px;height:20px}
 <div id="sheet"><div id="sheetbody"></div></div>
 
 <script>
-const APP_VERSION=61,APP_DATE='24 Nov 2026';
+const APP_VERSION=62,APP_DATE='24 Nov 2026';
 const COVER_CACHE='vinyl-covers-2'; // must match COVERS in sw.js
 const DEFAULT_LOCS=[
  {id:'kallax',name:'Kallax shelf',mode:'grid',cols:3,rows:4,cap:0,formats:['lp']},
@@ -1510,7 +1510,56 @@ const artRun=jobRunner({st:artState,todo:()=>{artT0=Date.now();return artTodo()}
   work:artLookup,tries:4,wait:12000,every:5,saveMore:saveArts,slowMsg:'MusicBrainz asked us to slow down, waiting a moment.',
   netMsg:'Could not reach MusicBrainz. Resume when you are online.',busyMsg:'MusicBrainz is busy. Resume in a few minutes.',
   apply:(it,res)=>{arts[it.k]={...res,n:Date.now()};artsVer++;return !!res.m},
-  after:()=>{if(view=='ex')render()}});
+  after:()=>{if(plcAreas().some(a=>!(a in plc.mb)))plcRun();else if(view=='ex')render()}});
+
+/* places: each MusicBrainz area is matched to Wikidata, then followed up through "located in" (P131) to the country,
+   collecting the regions it's on (P706), such as Long Island. Kept on this phone:
+   mb: MusicBrainz area id → Wikidata id (0: not on Wikidata); wd: Wikidata id → {n name, up parent, reg regions, co country, x water} */
+let plc={mb:{},wd:{}};try{Object.assign(plc,JSON.parse(localStorage.getItem('vinylPlace')||'{}'))}catch(e){}
+const savePlc=()=>{try{localStorage.setItem('vinylPlace',JSON.stringify(plc))}catch(e){}};
+let plcVer=0;const plcState={run:false,msg:''};
+const WDAPI='https://www.wikidata.org/w/api.php?format=json&origin=*&';
+const WDCOUNTRY=new Set(['Q6256','Q3624078','Q7275','Q3024240']),WDWATER=new Set(['Q4022','Q23397','Q165','Q9430','Q5107','Q39594','Q35666','Q1322134','Q12284']);
+const plcAreas=()=>[...new Set(Object.values(arts).filter(a=>a.m&&(a.b||a.a)).map(a=>(a.b||a.a)[0]))];
+const plcText=()=>{const a=plcAreas(),m=a.filter(x=>x in plc.mb),f=a.filter(x=>plc.mb[x]),regs=new Set();
+  Object.values(plc.wd).forEach(o=>(o.reg||[]).forEach(r=>{if(plc.wd[r]&&!plc.wd[r].x)regs.add(r)}));
+  return a.length?`${f.length} of ${a.length} places connected through Wikidata${regs.size?`, with ${regs.size} regions such as ${[...regs].slice(0,2).map(r=>plc.wd[r].n).join(' and ')}`:''}.${a.length>m.length?` ${a.length-m.length} not looked up yet.`:''}`+(plcState.msg?' '+plcState.msg:'')
+    :'Places are connected once artists have been looked up.'};
+async function wdJSON(url){let r;try{r=await fetch(url,{headers:{Accept:'application/json, application/sparql-results+json'}})}catch(e){throw 'net'}
+  if(!r.ok)throw 'busy';return r.json()}
+// a statement's current value: preferred over normal, never deprecated or ended
+const wdBest=(en,p)=>{const cs=((en.claims||{})[p]||[]).filter(c=>c.rank!='deprecated'&&c.mainsnak.datavalue&&!(c.qualifiers&&c.qualifiers.P582));
+  const pr=cs.filter(c=>c.rank=='preferred');return (pr.length?pr:cs).map(c=>c.mainsnak.datavalue.value.id).filter(Boolean)};
+async function plcRun(){
+  if(plcState.run)return;plcState.run=true;plcState.msg='Working...';const ui=()=>{const e=$('#plprog');if(e)e.textContent=plcText()};ui();
+  try{
+    // 1. MusicBrainz areas to Wikidata, 80 at a time
+    const todo=plcAreas().filter(a=>!(a in plc.mb));
+    for(let i=0;i<todo.length;i+=80){const ch=todo.slice(i,i+80);
+      const q=`SELECT ?item ?mb WHERE { VALUES ?mb { ${ch.map(x=>'"'+x+'"').join(' ')} } ?item wdt:P982 ?mb }`;
+      const j=await wdJSON('https://query.wikidata.org/sparql?format=json&query='+encodeURIComponent(q));
+      ch.forEach(x=>plc.mb[x]=0);(j.results.bindings||[]).forEach(b=>{plc.mb[b.mb.value]=b.item.value.split('/').pop()});savePlc();ui()}
+    // 2. up through the parents and regions, 50 places a request
+    const need=new Set();Object.values(plc.mb).forEach(q=>{if(q&&!plc.wd[q])need.add(q)});
+    Object.values(plc.wd).forEach(o=>[o.up,...(o.reg||[])].forEach(x=>{if(x&&!plc.wd[x])need.add(x)}));
+    for(let k=0;need.size&&k<200;k++){
+      const ids=[...need].slice(0,50);ids.forEach(x=>need.delete(x));
+      const es=(await wdJSON(WDAPI+'action=wbgetentities&props=labels|claims&languages=en&ids='+ids.join('|'))).entities||{};
+      ids.forEach(q=>{const en=es[q];if(!en||'missing' in en){plc.wd[q]={n:q,up:'',reg:[]};return}
+        const t=wdBest(en,'P31'),co=t.some(x=>WDCOUNTRY.has(x));
+        const o={n:(en.labels&&en.labels.en||{}).value||q,up:co?'':(wdBest(en,'P131')[0]||''),reg:co?[]:wdBest(en,'P706').slice(0,3)};
+        if(co)o.co=1;if(t.some(x=>WDWATER.has(x)))o.x=1;
+        plc.wd[q]=o;[o.up,...o.reg].forEach(x=>{if(x&&!plc.wd[x])need.add(x)})});
+      savePlc();ui();
+    }
+    plcState.msg='';
+  }catch(e){plcState.msg=e=='net'?'Could not reach Wikidata. Try again when you are online.':'Wikidata is busy. Try again in a minute.'}
+  plcVer++;plcState.run=false;ui();if(view=='ex')render();
+}
+// a place's chain upwards (itself first) and every region along it, skipping water and loops
+function plcChain(q){const ch=[],reg=[];let x=q;
+  while(x&&!ch.includes(x)&&ch.length<12){const o=plc.wd[x];if(!o)break;ch.push(x);(o.reg||[]).forEach(r=>{if(plc.wd[r]&&!plc.wd[r].x&&!reg.includes(r))reg.push(r)});x=o.up}
+  return {ch,reg}}
 
 /* the graph: a: artist in the collection, b: bridge artist (a member or group with no records here), p: place, l: label, g: genre.
    Each link has a kind: m member, c collaboration or alias, p from, l on the label, g genre; mo marks the member's side */
@@ -1526,21 +1575,38 @@ function grBuild(){
       if(r.genre){const g=node('g:'+r.genre,'g',r.genre);g.c++;link(a.id,g.id,'g')}});
     const ar=arts[o.k];if(ar&&ar.m)byM[ar.m]=a.id});
   groups.forEach(o=>{const ar=arts[o.k];if(!ar||!ar.m)return;const id='a:'+o.k;
-    const pl=ar.b||ar.a;if(pl){const p=node('p:'+pl[0],'p',pl[1]);p.c++;link(id,p.id,'p')}
+    const pl=ar.b||ar.a;if(pl){const q=plc.mb[pl[0]];
+      if(!q||!plc.wd[q]){const p=node('p:'+pl[0],'p',pl[1]);p.c++;link(id,p.id,'p')}
+      else{
+        // the artist links to its own place, the regions it's on and the state; the places link to each other up to the country
+        const {ch,reg}=plcChain(q),pn=x=>node('p:'+x,'p',plc.wd[x].n);
+        ch.forEach((x,i)=>{pn(x);if(i)link('p:'+ch[i-1],'p:'+x,'u','p:'+x)});
+        reg.forEach(r=>{pn(r).r=1;const holder=ch.find(x=>(plc.wd[x].reg||[]).includes(r));link('p:'+holder,'p:'+r,'u','p:'+r);
+          const up=plcChain(r).ch;up.forEach((x,i)=>{pn(x);if(i)link('p:'+up[i-1],'p:'+x,'u','p:'+x)})});
+        const co=ch.findIndex(x=>plc.wd[x].co),state=co>1?ch[co-1]:null;
+        const tie=[...new Set([...reg,state].filter(x=>x&&x!=q))];  // the country is one step up from the state
+        link(id,'p:'+q,'p');tie.forEach(x=>link(id,'p:'+x,'w'));
+        [q,...tie].forEach(x=>n.get('p:'+x).c++)}}
     (ar.r||[]).forEach(([kind,mid,name])=>{const t=byM[mid]||'b:'+mid;if(t==id)return;if(!n.has(t))node(t,'b',name);
       const k=kind.slice(0,3);link(id,t,k=='mem'||k=='sub'?'m':'c',k=='mem'||k=='sub'?(kind[3]=='>'?id:t):'')});
   });
   n.forEach((o,id)=>{o.name=Object.entries(nm[id]).sort((x,y)=>y[1]-x[1])[0][0]});
   return grCache={n,adj,at:grKey()};
 }
-const grKey=()=>recs.length+':'+recs.reduce((s,r)=>s+(r.genre||'').length,0)+':'+artsVer+':'+Object.keys(arts).length;
+const grKey=()=>recs.length+':'+recs.reduce((s,r)=>s+(r.genre||'').length,0)+':'+artsVer+':'+Object.keys(arts).length+':'+plcVer+':'+Object.keys(plc.wd).length;
 const grData=()=>grCache&&grCache.at==grKey()?grCache:grBuild();
 // a node's neighbours: members and groups first, then collaborations, places, labels, genres; most shared records first
 // members and groups keep MusicBrainz's order (founders first); the first page mixes a few of them with the place, labels and genres
 function grNbrs(id){
-  const {n,adj}=grData(),KO={m:0,c:1,p:2,l:3,g:4},es=[...adj.get(id).entries()];
+  const {n,adj}=grData(),es=[...adj.get(id).entries()];
   const by=k=>es.filter(e=>e[1].k==k),srt=a=>a.sort((x,y)=>y[1].w-x[1].w||n.get(x[0]).name.localeCompare(n.get(y[0]).name));
-  const m=by('m').sort((x,y)=>(n.get(y[0]).t=='a')-(n.get(x[0]).t=='a')),c=by('c'),rest=[...by('p'),...srt(by('l')),...srt(by('g'))];
+  // a place: the places above it, then the places inside it, then artists from it, most records first
+  if(n.get(id).t=='p'){const up=by('u').filter(e=>e[1].mo==e[0]),down=by('u').filter(e=>e[1].mo==id),
+    ar=[...by('p'),...by('w')].sort((x,y)=>n.get(y[0]).c-n.get(x[0]).c||n.get(x[0]).name.localeCompare(n.get(y[0]).name));
+    down.sort((x,y)=>n.get(y[0]).c-n.get(x[0]).c);
+    if(up.length+down.length+ar.length<=GPAGE)return [...up,...down,...ar].map(x=>x[0]);
+    const ds=down.slice(0,4);return [...up,...ds,...ar,...down.slice(4)].map(x=>x[0])}
+  const m=by('m').sort((x,y)=>(n.get(y[0]).t=='a')-(n.get(x[0]).t=='a')),c=by('c'),rest=[...by('p'),...by('w'),...srt(by('l')),...srt(by('g'))];
   if(m.length+c.length+rest.length<=GPAGE)return [...m,...c,...rest].map(x=>x[0]);
   const ms=m.slice(0,6),cs=c.slice(0,Math.max(0,8-ms.length));
   return [...ms,...cs,...rest,...m.slice(ms.length),...c.slice(cs.length)].map(x=>x[0]);
@@ -1559,7 +1625,7 @@ const plur=(c,w)=>`${c} ${w}${c==1?'':'s'}`;
 function grDesc(id){
   const {n,adj}=grData(),o=n.get(id),es=[...adj.get(id).entries()],nb=t=>es.filter(([x,e])=>e.k==t).map(([x])=>n.get(x));
   const of=es.filter(([x,e])=>e.k=='m'&&e.mo==id).map(([x])=>n.get(x).name),has=es.filter(([x,e])=>e.k=='m'&&e.mo==x).map(([x])=>n.get(x).name);
-  const ar=o.t=='a'?arts[id.slice(2)]:null,pl=o.t=='p'?[]:nb('p').map(x=>x.name);
+  const ar=o.t=='a'?arts[id.slice(2)]:null,pl=o.t=='p'?[]:[...nb('p'),...nb('w').filter(x=>x.r)].map(x=>x.name);
   const parts=[];
   if(o.t=='a'){parts.push(plur(o.c,'record'));if(ar&&ar.t)parts.push(ar.t=='G'?'group':'person')}
   if(o.t=='b')parts.push('no records of their own here');
@@ -1568,15 +1634,17 @@ function grDesc(id){
   if(has.length)parts.push(plur(has.length,'member'));
   if(o.t=='a'){const ls=nb('l').length,gs=nb('g').map(x=>x.name);if(ls)parts.push(plur(ls,'label'));if(gs.length)parts.push(gs.slice(0,2).join(', '))}
   if(o.t=='l'||o.t=='g')parts.push(`${o.t=='l'?'label':'genre'}, ${plur(o.c,'record')} by ${plur(es.length,'artist')}`);
-  if(o.t=='p')parts.push(`place, ${plur(es.length,'artist')} from here in your collection`);
+  if(o.t=='p'){const q=id.slice(2),w=plc.wd[q],up=w?plcChain(q).ch.slice(1).map(x=>plc.wd[x].n):[],ons=w?plcChain(q).reg.map(x=>plc.wd[x].n):[];
+    parts.push(o.r?'region':'place');if(up.length)parts.push('in '+up.slice(0,3).join(', '));if(ons.length)parts.push('on '+ons.join(', '));
+    const na=es.filter(([x,e])=>e.k=='p'||e.k=='w').length;parts.push(`${plur(na,'artist')} from here in your collection`)}
   const s=parts.join(' · ');return s[0].toUpperCase()+s.slice(1);
 }
 const GES={m:'stroke="var(--hl)" stroke-width="2"',c:'stroke="var(--hl)" stroke-width="1.5" stroke-dasharray="5 3"',p:'stroke="var(--ink)" stroke-width="1.5" stroke-dasharray="2 3"',
-  l:'stroke="var(--mute)" stroke-width="1.5"',g:'stroke="var(--mute)" stroke-width="1.2" stroke-dasharray="6 4"'};
+  l:'stroke="var(--mute)" stroke-width="1.5"',w:'stroke="var(--mute)" stroke-width="1.5" stroke-dasharray="2 3"',u:'stroke="var(--ink)" stroke-width="1"',g:'stroke="var(--mute)" stroke-width="1.2" stroke-dasharray="6 4"'};
 function grDraw(P,A){
   const g=$('#gsvg');if(!g)return;const {n,adj}=grData();let h='';
   const ids=Object.keys(P),seen=new Set(ids);
-  ids.forEach(a=>{if(a=='+more')return;adj.get(a)&&adj.get(a).forEach((e,b)=>{if(a<b&&seen.has(b)){const al=Math.min(A[a]||0,A[b]||0);if(al<.02)return;
+  ids.forEach(a=>{if(a=='+more')return;adj.get(a)&&adj.get(a).forEach((e,b)=>{if(a<b&&seen.has(b)&&(a==grCenter||b==grCenter)){const al=Math.min(A[a]||0,A[b]||0);if(al<.02)return;
     h+=`<line x1="${P[a].x.toFixed(1)}" y1="${P[a].y.toFixed(1)}" x2="${P[b].x.toFixed(1)}" y2="${P[b].y.toFixed(1)}" ${GES[e.k]} opacity="${al.toFixed(2)}"/>`}})});
   if(P['+more']&&(A['+more']||0)>.02){const m=P['+more'];h+=`<line x1="${GC.x}" y1="${GC.y}" x2="${m.x.toFixed(1)}" y2="${m.y.toFixed(1)}" stroke="var(--line2)" stroke-width="1" stroke-dasharray="1 4" opacity="${A['+more'].toFixed(2)}"/>`}
   ids.forEach(id=>{const al=A[id]||0;if(al<.02)return;const {x,y}=P[id],c=id==grCenter,r=c?13:8;let sh,lbl;
@@ -1679,8 +1747,9 @@ function dataView(msg=''){
     ${more(`The Released year from Discogs is the year of your pressing. This looks it up on MusicBrainz at about one record every two seconds, keeps going where it left off, and sends a record's Discogs number, and sometimes its artist and title, to MusicBrainz.`)}
     <p class="mute" id="oyprog">${oyText()}</p><button class="btn" id="oyb">${oyState.run?'Pause':'Fetch original years'}</button>
     <label>Artist connections</label><p class="mute">Band members, groups and where artists come from, for the Artists graph under Explore.</p>
-    ${more(`Looked up on MusicBrainz, most-collected artists first, at roughly an artist every five to ten seconds (a few hours for a big collection), and it keeps going where it left off. An artist is found through one of your releases when it's linked to Discogs, otherwise by name, and only when exactly one artist has that name. This sends Discogs numbers and artist names to MusicBrainz.`)}
-    <p class="mute" id="arprog">${artText()}</p><button class="btn" id="arb">${artState.run?'Pause':'Fetch artist connections'}</button>`+
+    ${more(`Looked up on MusicBrainz, most-collected artists first, at roughly an artist every five to ten seconds (a few hours for a big collection), and it keeps going where it left off. An artist is found through one of your releases when it's linked to Discogs, otherwise by name, and only when exactly one artist has that name. This sends Discogs numbers and artist names to MusicBrainz. Places are then connected through Wikidata, which knows that Amityville is in Suffolk County, on Long Island, in New York; that runs by itself after a lookup, takes a minute or so, and sends only place ids to Wikidata.`)}
+    <p class="mute" id="arprog">${artText()}</p><button class="btn" id="arb">${artState.run?'Pause':'Fetch artist connections'}</button>
+    <p class="mute" id="plprog" style="margin-top:12px">${plcText()}</p><button class="btn" id="plb">Connect places</button>`+
     sec('Concerts')+
     `<p class="mute">The concerts you've marked as attended on setlist.fm, shown as LIVE tags, on the record sheet and in Explore → Live.</p>
     ${more(`setlist.fm doesn't let web apps fetch them, so run <b>tools/setlistfm_export.py</b> on a computer (see the README) and choose the CSV it writes. Importing again replaces the list.`)}
@@ -1715,6 +1784,7 @@ function dataView(msg=''){
     if($('#gclr'))$('#gclr').onclick=async()=>{if(!await ask('Remove all imported concerts? Your records are not affected.','Remove concerts',true))return;gigs=[];saveGigs();dataView('Concerts removed.')};
     $('#oyb').onclick=oyRun;
     $('#arb').onclick=artRun;
+    $('#plb').onclick=plcRun;
     $('#dgb').onclick=dgRun;
     $('#bpb').onclick=bpmRun;
     $('#upd').onclick=async()=>{$('#updmsg').textContent='Checking...';const m=await checkUpdate(true);if($('#updmsg'))$('#updmsg').textContent=m};
