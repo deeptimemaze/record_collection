@@ -86,6 +86,32 @@ input[type=checkbox]{accent-color:var(--y)}
 .ginfo{padding:12px 0 0;border-top:2px solid var(--hl)}
 .ginfo b{display:block;font:700 15px/1.3 var(--mono)}
 .ginfo .btn{margin-bottom:0}
+.seg.gmode{margin:12px 0 0;border-width:1px}.seg.gmode button{min-height:34px;border-left-width:1px;font-size:11px;letter-spacing:.14em}
+.seg.gmode button.on{background:var(--ink);color:var(--bg);box-shadow:none}
+#qz{margin-top:14px}
+.qzc{margin:0 0 12px;padding:14px;border:2px solid var(--line2);background:var(--card)}.qzc b{display:block;font:700 14px/1.3 var(--mono);text-transform:uppercase;letter-spacing:.08em}
+.qzc .mute{margin:6px 0 0}.qzc .btn{margin-bottom:0}
+.qback{padding:4px 0;background:none;border:0;color:var(--mute);font:600 11px/1 var(--mono);text-transform:uppercase;letter-spacing:.12em}
+.qtt{display:block;margin:8px 0 0;font:700 15px/1.3 var(--mono);text-transform:uppercase;letter-spacing:.1em}
+.qgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.qtile{min-height:72px;padding:6px 4px;border:2px solid var(--line2);background:var(--card);color:var(--ink);font:700 11px/1.25 var(--mono);text-transform:uppercase;letter-spacing:.02em;overflow-wrap:anywhere}
+.qtile.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.qsol{--sc:var(--s1);grid-column:1/-1;position:relative;padding:10px 12px 10px 60px;min-height:64px;border:2px solid var(--sc);background:transparent;color:var(--sc);text-align:left;font:inherit;overflow:hidden}
+.qsol::before{content:"";position:absolute;left:0;top:0;bottom:0;width:48px;border-right:1px solid var(--sc);background:repeating-linear-gradient(135deg,var(--sc) 0 1px,transparent 1px 7px)}
+.qsol.c2{--sc:var(--s2)}.qsol.c2::before{background:repeating-linear-gradient(45deg,var(--sc) 0 1px,transparent 1px 7px)}
+.qsol.c3{--sc:var(--s3)}.qsol.c3::before{background:repeating-linear-gradient(135deg,var(--sc) 0 1px,transparent 1px 9px),repeating-linear-gradient(45deg,var(--sc) 0 1px,transparent 1px 9px)}
+.qsol.lost{opacity:.55;border-style:dashed}
+.qsol b{display:block;font:700 12px/1.3 var(--mono);text-transform:uppercase;letter-spacing:.08em}.qsol span{display:block;margin-top:3px;color:var(--ink);font:500 12px/1.4 var(--mono)}
+.qmiss{display:flex;align-items:center;gap:6px;margin:12px 0 0;color:var(--mute);font:600 11px/1 var(--mono);text-transform:uppercase;letter-spacing:.1em}
+.qmiss i{width:11px;height:11px;border:1.5px solid var(--line2)}.qmiss i.x{background:var(--red);border-color:var(--red)}.qmiss span{margin-left:8px;color:var(--hl-t)}
+.qzbar{display:flex;gap:10px}.qzbar .btn{flex:1}.btn[disabled]{opacity:.4}
+.qprog{display:flex;gap:4px;margin:0 0 12px}.qprog i{flex:1;height:4px;background:var(--line2)}.qprog i.ok{background:var(--y)}.qprog i.no{background:var(--red)}
+.qq{display:block;margin:0 0 12px;font:700 16px/1.4 var(--mono)}
+.qans{display:flex;align-items:center;gap:12px;width:100%;min-height:48px;margin:0 0 8px;padding:10px 12px;border:2px solid var(--line2);background:var(--card);color:var(--ink);font:700 13px/1.3 var(--mono);text-align:left}
+.qans span{color:var(--mute);width:14px}.qans.ok{background:var(--y);border-color:var(--on-bd);color:#000}.qans.ok span{color:#000}
+.qans.no{border-color:var(--red);color:var(--red)}.qans.dim{opacity:.4}
+.qex{margin:4px 0 0;padding:10px 12px;border:1px solid var(--line2);color:var(--ink);font-size:13px;line-height:1.5}
+.qlink{padding:0;background:none;border:0;color:var(--hl-t);font:inherit;font-weight:700;text-decoration:underline dotted;text-underline-offset:3px}
 .gkey{display:flex;flex-wrap:wrap;gap:6px 14px;margin:14px 0 0;color:var(--mute);font:500 11px/1.4 var(--mono)}
 .gkey span{display:flex;align-items:center;gap:6px}.gkey svg{flex:none}
 .seg button.on{background:var(--y);color:#000;box-shadow:var(--glow)}
@@ -351,7 +377,7 @@ label.ck input{width:20px;height:20px}
 <div id="sheet"><div id="sheetbody"></div></div>
 
 <script>
-const APP_VERSION=63,APP_DATE='24 Nov 2026';
+const APP_VERSION=64,APP_DATE='24 Nov 2026';
 const COVER_CACHE='vinyl-covers-2'; // must match COVERS in sw.js
 const DEFAULT_LOCS=[
  {id:'kallax',name:'Kallax shelf',mode:'grid',cols:3,rows:4,cap:0,formats:['lp']},
@@ -1445,12 +1471,12 @@ function streak(byDay,T){let n=0,t=+T;if(!byDay.has(dStr(new Date(t))))t-=864e5;
 function exploreView(){
   setH('Explore');
   const tab=(k,t)=>`<button class="${exTab==k?'on':''}" data-ex="${k}" role="tab" aria-selected="${exTab==k}">${t}</button>`;
-  $('#app').innerHTML=`<div class="seg" role="tablist">${tab('pick','Pick')}${tab('heard','Listened')}${tab('stats','Stats')}${tab('timeline','Timeline')}${tab('live','Live')}${tab('graph','Artists')}</div>`+(exTab=='graph'?graphHTML():exTab=='heard'?heardHTML():exTab=='stats'?statsHTML():exTab=='timeline'?timelineHTML():exTab=='live'?liveHTML():pickHTML());
+  $('#app').innerHTML=`<div class="seg" role="tablist">${tab('pick','Pick')}${tab('heard','Listened')}${tab('stats','Stats')}${tab('timeline','Timeline')}${tab('live','Live')}${tab('graph','Artists')}</div>`+(exTab=='graph'?artistsHTML():exTab=='heard'?heardHTML():exTab=='stats'?statsHTML():exTab=='timeline'?timelineHTML():exTab=='live'?liveHTML():pickHTML());
   if($('#pc'))$('#pc').onchange=e=>{pf.cat=e.target.value;pickId=null;render()};
   if($('#pg'))$('#pg').onchange=e=>{pf.gen=e.target.value;pickId=null;render()};
   if($('#tc'))$('#tc').onchange=e=>{tf.cat=e.target.value;lim=100;render()};
   if($('#tg'))$('#tg').onchange=e=>{tf.gen=e.target.value;lim=100;render()};
-  if(exTab=='graph')grMount();
+  if(exTab=='graph')artistsMount();
 }
 /* Explore → Artists. Built from what the collection already holds: artists, the labels they're on and the genres
    you gave them. Members, groups and places come later from MusicBrainz. Nodes: a: artist, l: label, g: genre */
@@ -1459,7 +1485,7 @@ let grCenter=null,grTrail=[],grPage=0,grPos={},grAlpha={},grAnim=0,grCache=null;
 try{const g=JSON.parse(localStorage.getItem('vinylGraph')||'{}');if(g.c){grCenter=g.c;grTrail=Array.isArray(g.t)?g.t:[]}}catch(e){}
 const grSave=()=>{try{localStorage.setItem('vinylGraph',JSON.stringify({c:grCenter,t:grTrail}))}catch(e){}};
 const artKey=s=>fold(s).replace(/\s*\(\d+\)\s*$/,'').replace(/\*$/,'').replace(/\s+/g,' ').trim();
-const artName=s=>(s||'').replace(/\s*\(\d+\)\s*$/,'').replace(/\*$/,'').trim();
+const artName=s=>(s||'').replace(/\s*\(\d+\)/g,'').replace(/\*$/,'').replace(/\s+/g,' ').trim();
 const isVarious=k=>!k||/^various( artists)?$/.test(k);
 
 /* artist connections from MusicBrainz, kept on this phone per artist:
@@ -1525,7 +1551,7 @@ let plc={mb:{},wd:{}};try{Object.assign(plc,JSON.parse(localStorage.getItem('vin
 const savePlc=()=>{try{localStorage.setItem('vinylPlace',JSON.stringify(plc))}catch(e){}};
 let plcVer=0;const plcState={run:false,msg:''};
 const WDAPI='https://www.wikidata.org/w/api.php?format=json&origin=*&';
-const WDCOUNTRY=new Set(['Q6256','Q3624078','Q7275','Q3024240']),WDWATER=new Set(['Q4022','Q23397','Q165','Q9430','Q5107','Q39594','Q35666','Q1322134','Q12284']);
+const WDCOUNTRY=new Set(['Q6256','Q3624078','Q7275','Q3024240','Q3336843']),WDWATER=new Set(['Q4022','Q23397','Q165','Q9430','Q5107','Q39594','Q35666','Q1322134','Q12284']);
 const plcAreas=()=>[...new Set(Object.values(arts).filter(a=>a.m&&(a.b||a.a)).map(a=>(a.b||a.a)[0]))];
 const plcText=()=>{const a=plcAreas(),m=a.filter(x=>x in plc.mb),f=a.filter(x=>plc.mb[x]),regs=new Set();
   Object.values(plc.wd).forEach(o=>(o.reg||[]).forEach(r=>{if(plc.wd[r]&&!plc.wd[r].x)regs.add(r)}));
@@ -1706,6 +1732,133 @@ function grMount(){
     res.innerHTML=hits.length?hits.map(o=>`<button class="chip" data-gn="${esc(o.id)}">${esc(o.name)}<span class="fn">${o.t=='a'?o.c:o.t=='l'?'label':'genre'}</span></button>`).join(''):'<p class="mute" style="margin:0">Nothing found.</p>'};
   q.onkeydown=e=>{if(e.key=='Enter')e.target.blur()};
 }
+/* Explore → Artists → Quiz: two games built fresh from the graph each time.
+   Three of a kind: nine names, three groups of three (members of a band, from a place, on a label, a genre).
+   Five questions: which band, where from, which label, which year, which one doesn't belong. */
+let grMode='graph';try{grMode=localStorage.getItem('vinylGraphMode')=='quiz'?'quiz':'graph'}catch(e){}
+let qzStat={best:0,games:0,grids:0};try{Object.assign(qzStat,JSON.parse(localStorage.getItem('vinylQuiz')||'{}'))}catch(e){}
+const qzSave=()=>{try{localStorage.setItem('vinylQuiz',JSON.stringify(qzStat))}catch(e){}};
+let qz={mode:'home'};
+const shuf=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const rnd=a=>a[Math.floor(Math.random()*a.length)];
+// every group of three or more in the graph: a band's members, the artists from a place, on a label, in a genre
+function qzFacts(){
+  const {n,adj}=grData(),groups=[];
+  n.forEach((o,id)=>{const es=[...adj.get(id).entries()];let items=[],kind,title;
+    if(o.t=='a'||o.t=='b'){items=es.filter(([x,e])=>e.k=='m'&&e.mo==x).map(([x])=>x);kind='m';title='Members of '+o.name}
+    else if(o.t=='p'){const w=plc.wd[id.slice(2)];if(w&&(w.co||(o.r&&w.up&&plc.wd[w.up]&&plc.wd[w.up].co)))return;items=es.filter(([x,e])=>e.k=='p'||e.k=='w').map(([x])=>x);kind='p';title='From '+o.name}
+    else if(o.t=='l'){items=es.map(([x])=>x);kind='l';title='On '+o.name}
+    else{items=es.map(([x])=>x);kind='g';title='Genre: '+o.name}
+    if(items.length>=3)groups.push({id,kind,title,name:o.name,items:new Set(items)})});
+  return {n,adj,groups};
+}
+const wpick=(a,w)=>{const t=a.reduce((s,x)=>s+w(x),0);let r=Math.random()*t;for(const x of a){r-=w(x);if(r<=0)return x}return a[a.length-1]};
+// three groups, of different kinds when possible, each with three names that belong to it and to neither of the other two
+function qzGrid(){
+  const {n,groups}=qzFacts(),W={m:5,p:4,l:2,g:1};if(groups.length<3)return null;
+  for(let t=0;t<400;t++){
+    const pick=[],kinds=new Set();
+    for(let i=0;i<3;i++){const c=groups.filter(g=>!pick.includes(g)&&(t>200||!kinds.has(g.kind)));if(!c.length)break;const g=wpick(c,g=>W[g.kind]);pick.push(g);kinds.add(g.kind)}
+    if(pick.length<3)continue;
+    const items=pick.map(g=>shuf([...g.items].filter(x=>pick.filter(h=>h.items.has(x)).length==1&&n.get(x).name.length<=26).slice(0,g.kind=='m'?5:99)).slice(0,3));  // long names don't fit a tile
+    if(items.some(a=>a.length<3))continue;
+    const all=items.flat();if(new Set(all.map(x=>fold(n.get(x).name))).size<9)continue;
+    return {groups:pick.map((g,i)=>({id:g.id,title:g.title,items:items[i]})),left:shuf(all),sel:[],solved:[],miss:0,msg:''};
+  }
+  return null;
+}
+// how alike two nodes are: shared genres, labels and places, for wrong answers that aren't too easy
+function qzSim(a,b){const {adj}=grData(),A=adj.get(a),B=adj.get(b);if(!A||!B)return 0;let s=0;A.forEach((e,x)=>{if(B.has(x))s+=e.k=='g'?2:e.k=='p'||e.k=='w'?2:1});return s}
+function qzNear(target,pool,exclude,k=3){
+  const c=shuf(pool.filter(x=>x!=target&&!exclude.has(x))).map(x=>[x,qzSim(target,x)+Math.random()]).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  return shuf(c).slice(0,k).map(x=>x[0]);
+}
+const qzLink=id=>{const o=grData().n.get(id);return o?`<button class="qlink" data-qgo="${esc(id)}">${esc(o.name)}</button>`:''};
+// the question makers; each returns null when the collection can't support it
+const QZ={
+  member(){const {n,adj}=grData(),pairs=[];adj.forEach((m,id)=>m.forEach((e,x)=>{if(e.k=='m'&&e.mo==id&&n.get(id).t!='p'&&!fold(n.get(x).name).includes(fold(n.get(id).name)))pairs.push([id,x])}));
+    // ask about a band's first five members in MusicBrainz's order, mostly the founders
+    const early=new Set();adj.forEach((m,g)=>{[...m.entries()].filter(([x,e])=>e.k=='m'&&e.mo==x).slice(0,5).forEach(([x])=>early.add(x+'|'+g))});
+    const ask=pairs.filter(([p,g])=>early.has(p+'|'+g));
+    if(!ask.length)return null;const [p,g]=rnd(ask),bands=[...new Set(pairs.map(x=>x[1]))],mine=new Set(pairs.filter(x=>x[0]==p).map(x=>x[1]));
+    const wrong=qzNear(g,bands,mine);if(wrong.length<3)return null;
+    return {q:`Which band did ${n.get(p).name} play in?`,ok:g,opts:[g,...wrong],ex:`${qzLink(p)} was a member of ${qzLink(g)}.`}},
+  from(){const {n,adj}=grData(),pairs=[];adj.forEach((m,id)=>{if(n.get(id).t=='a')m.forEach((e,x)=>{if(e.k=='p')pairs.push([id,x])})});
+    if(pairs.length<4)return null;const [a,p]=rnd(pairs),places=[...new Set(pairs.map(x=>x[1]))];
+    const near=new Set([...adj.get(a).keys()].filter(x=>n.get(x).t=='p'));if(plc.wd[p.slice(2)])plcChain(p.slice(2)).ch.forEach(x=>near.add('p:'+x));
+    const wrong=qzNear(p,places,near).filter(x=>!(plc.wd[x.slice(2)]&&plcChain(x.slice(2)).ch.includes(p.slice(2))));if(wrong.length<3)return null;
+    return {q:`Where did ${n.get(a).name} start out?`,ok:p,opts:[p,...wrong.slice(0,3)],ex:`${qzLink(a)} started out in ${qzLink(p)}.`}},
+  label(){const rs=recs.filter(r=>r.label&&!isVarious(artKey(artName(r.artist))));if(!rs.length)return null;const r=rnd(rs),{n}=grData();
+    const mine=new Set(uniqList(r.label).split(', ').map(x=>'l:'+labKey(x)).filter(x=>n.has(x)));if(!mine.size)return null;const ok=[...mine][0];
+    const labels=[...n.keys()].filter(x=>x.startsWith('l:'));const wrong=qzNear(ok,labels,mine);if(wrong.length<3)return null;
+    return {q:`Which label is your copy of “${r.title}” by ${artName(r.artist)} on?`,ok,opts:[ok,...wrong],ex:`It's on ${qzLink(ok)}.`}},
+  year(){const rs=recs.filter(r=>+(origY(r)||r.year)>1900&&!isVarious(artKey(artName(r.artist))));if(!rs.length)return null;const r=rnd(rs),y=+(origY(r)||r.year),now=new Date().getFullYear();
+    const ys=new Set([y]);while(ys.size<4){const d=(Math.random()<.5?-1:1)*(1+Math.floor(Math.random()*7));if(y+d<=now&&y+d>1900)ys.add(y+d)}
+    const a='a:'+artKey(artName(r.artist));
+    return {q:`What year did “${r.title}” by ${artName(r.artist)} first come out?`,ok:String(y),opts:[...ys].map(String),plain:1,ex:`${y}. ${qzLink(a)}`}},
+  odd(){const {groups,n}=qzFacts(),gs=groups.filter(g=>(g.kind=='p'||g.kind=='l')&&[...g.items].filter(x=>n.get(x).t=='a').length>=3);if(!gs.length)return null;
+    const g=rnd(gs),three=shuf([...g.items].filter(x=>n.get(x).t=='a')).slice(0,3),arts=[...n.keys()].filter(x=>x.startsWith('a:')&&!g.items.has(x));
+    const odd=qzNear(three[0],arts,new Set(),1)[0];if(!odd)return null;
+    return {q:`Three of these are ${g.kind=='p'?'from '+g.name:'on '+g.name}. Which one isn't?`,ok:odd,opts:[odd,...three],ex:`${qzLink(odd)} isn't ${g.kind=='p'?'from':'on'} ${qzLink(g.id)}.`}}
+};
+function qzQuestions(){
+  const out=[],used=new Set(),order=shuf(['member','member','from','from','odd','label','year']);
+  for(let t=0;out.length<5&&t<60;t++){const k=order[t%order.length],x=QZ[k]();if(!x)continue;
+    const key=x.q;if(used.has(key))continue;used.add(key);x.opts=shuf([...new Set(x.opts)]);if(x.opts.length<4)continue;out.push(x)}
+  return out.length>=3?{qs:out,i:0,res:[]}:null;
+}
+const qzName=(id,plain)=>plain?id:grData().n.get(id).name;
+function qzDraw(){
+  const b=$('#qz');if(!b)return;
+  if(qz.mode=='home'){
+    b.innerHTML=`<div class="qzc"><b>Three of a kind</b><p class="mute">Nine names, three groups: members of a band, artists from one place, on one label or in one genre. All from your collection.</p><button class="btn pri" id="qgrid">Play</button></div>
+    <div class="qzc"><b>Five questions</b><p class="mute">Which band, where from, which label, which year, which one doesn't belong.</p><button class="btn" id="qmc">Play</button></div>
+    <p class="mute">${qzStat.grids?`${plur(qzStat.grids,'grid')} solved. `:''}${qzStat.games?`Best score ${qzStat.best} of 5.`:''}${Object.keys(arts).length<artGroups().size?` Questions about members and places get richer as <b>Data → Fetch artist connections</b> fills in.`:''}</p>`;
+    $('#qgrid').onclick=()=>{const g=qzGrid();if(!g){toast('Not enough connections yet for a grid. Fetch artist connections in Data first.',true);return}qz={mode:'grid',...g};qzDraw()};
+    $('#qmc').onclick=()=>{const m=qzQuestions();if(!m){toast('Not enough connections yet for questions. Fetch artist connections in Data first.',true);return}qz={mode:'mc',...m};qzDraw()};
+    return}
+  const back=`<button class="qback" id="qhome">‹ Quiz</button>`;
+  if(qz.mode=='grid'){const {n}=grData(),done=qz.solved.length==3||qz.miss>=3;
+    const sol=(done?qz.groups:qz.solved).map(g=>{const i=qz.groups.indexOf(g)+1,got=qz.solved.includes(g);
+      return `<button class="qsol c${i}${got?'':' lost'}" data-qgo="${esc(g.id)}"><b>${esc(g.title)}</b><span>${g.items.map(x=>esc(n.get(x).name)).join(' · ')}</span></button>`}).join('');
+    b.innerHTML=`${back}<b class="qtt">Three of a kind</b><p class="mute" style="margin:2px 0 10px">${done?(qz.solved.length==3?'All three found. Tap a group to open it in the graph.':'Out of tries. Here are the groups; tap one to open it in the graph.'):'Tap three that belong together.'}</p>
+      <div class="qgrid">${sol}${done?'':qz.left.map(x=>`<button class="qtile${qz.sel.includes(x)?' on':''}" data-qtile="${esc(x)}" aria-pressed="${qz.sel.includes(x)}">${esc(n.get(x).name)}</button>`).join('')}</div>
+      <div class="qmiss">Mistakes ${[0,1,2].map(i=>`<i class="${i<qz.miss?'x':''}"></i>`).join('')}<span>${esc(qz.msg)}</span></div>
+      ${done?`<button class="btn pri" id="qagain">New grid</button>`:`<div class="qzbar"><button class="btn" id="qshuf">Shuffle</button><button class="btn pri" id="qcheck"${qz.sel.length==3?'':' disabled'}>Check</button></div>`}`;
+    b.querySelectorAll('[data-qtile]').forEach(e=>e.onclick=()=>{const x=e.dataset.qtile;qz.sel=qz.sel.includes(x)?qz.sel.filter(y=>y!=x):qz.sel.length<3?[...qz.sel,x]:qz.sel;qz.msg='';qzDraw()});
+    if($('#qshuf'))$('#qshuf').onclick=()=>{shuf(qz.left);qzDraw()};
+    if($('#qcheck'))$('#qcheck').onclick=()=>{const g=qz.groups.find(g=>!qz.solved.includes(g)&&qz.sel.every(x=>g.items.includes(x)));
+      if(g){qz.solved.push(g);qz.left=qz.left.filter(x=>!g.items.includes(x));qz.msg='';if(qz.solved.length==3){qzStat.grids++;qzSave()}}
+      else{qz.miss++;qz.msg=qz.groups.some(g=>qz.sel.filter(x=>g.items.includes(x)).length==2)?'One away.':'Not a group.'}
+      qz.sel=[];qzDraw()};
+    if($('#qagain'))$('#qagain').onclick=()=>{const g=qzGrid();if(g){qz={mode:'grid',...g};qzDraw()}};
+  }else{
+    const x=qz.qs[qz.i],over=qz.i>=qz.qs.length,done=qz.res[qz.i]!=null,pk=(qz.picked||[])[qz.i];
+    const prog=`<div class="qprog">${qz.qs.map((_,i)=>`<i class="${qz.res[i]===true?'ok':qz.res[i]===false?'no':''}"></i>`).join('')}</div>`;
+    if(over){const s=qz.res.filter(Boolean).length;
+      b.innerHTML=`${back}${prog}<b class="qtt" style="font-size:22px">${s} of ${qz.qs.length} right</b><p class="mute">${s>=qzStat.best&&s?'Your best so far.':`Your best is ${qzStat.best}.`}</p><button class="btn pri" id="qagain">Five new questions</button>`;
+      $('#qagain').onclick=()=>{const m=qzQuestions();if(m){qz={mode:'mc',...m};qzDraw()}};
+    }else{
+      b.innerHTML=`${back}<p class="mute" style="margin:0 0 6px">Question ${qz.i+1} of ${qz.qs.length}</p>${prog}<b class="qq">${esc(x.q)}</b>
+        ${x.opts.map((o,i)=>`<button class="qans${!done?'':o==x.ok?' ok':o==pk?' no':' dim'}" data-qans="${esc(o)}"${done?' disabled':''}><span>${'ABCD'[i]}</span>${esc(qzName(o,x.plain))}</button>`).join('')}
+        ${!done?'':`<div class="qex">${qz.res[qz.i]?'Right. ':'Not quite. '}${x.ex}</div><button class="btn pri" id="qnext">${qz.i==qz.qs.length-1?'See the score':'Next'}</button>`}`;
+      b.querySelectorAll('[data-qans]').forEach(e=>e.onclick=()=>{if(qz.res[qz.i]!=null)return;qz.res[qz.i]=e.dataset.qans==x.ok;
+        // the chosen answer is kept too, so it can be marked
+        qz.picked=qz.picked||[];qz.picked[qz.i]=e.dataset.qans;qzDraw()});
+      if($('#qnext'))$('#qnext').onclick=()=>{qz.i++;if(qz.i>=qz.qs.length){const s=qz.res.filter(Boolean).length;qzStat.games++;qzStat.best=Math.max(qzStat.best,s);qzSave()}qzDraw()};
+    }
+  }
+  if($('#qhome'))$('#qhome').onclick=()=>{qz={mode:'home'};qzDraw()};
+}
+function artistsHTML(){
+  return `<div class="seg gmode" role="tablist">${['graph','quiz'].map(k=>`<button class="${grMode==k?'on':''}" data-gmode="${k}" role="tab" aria-selected="${grMode==k}">${k=='graph'?'Graph':'Quiz'}</button>`).join('')}</div>`+
+    (grMode=='quiz'?'<div id="qz"></div>':graphHTML());
+}
+function artistsMount(){if(grMode=='quiz')qzDraw();else grMount()}
+// from a quiz answer or group straight to the graph
+function grOpen(id){if(!grData().n.has(id))return;
+  if(grTrail[grTrail.length-1]!=id)grTrail=[...grTrail.filter(x=>x!=id),id].slice(-5);
+  grCenter=id;grPage=0;grSave();grMode='graph';try{localStorage.setItem('vinylGraphMode','graph')}catch(e){}render();window.scrollTo(0,0)}
 function dataView(msg=''){
   setH('Data');
   let h=`<p class="mute">${recs.length} records · ${recs.filter(placed).length} placed · ${recs.filter(r=>r.genre).length} with a genre · ${recs.filter(r=>r.fav).length} selected</p><!--msg-->`;
@@ -2282,6 +2435,8 @@ document.addEventListener('click',e=>{
   else if(d.gart){const id='a:'+d.gart;if(!grData().n.has(id))return;
     if(grTrail[grTrail.length-1]!=id){grTrail=[...grTrail.filter(x=>x!=id),id].slice(-5)}grCenter=id;grPage=0;grSave();
     view='ex';exTab='graph';qOrder=[];closeSheet();render();window.scrollTo(0,0)}
+  else if(d.gmode){grMode=d.gmode;try{localStorage.setItem('vinylGraphMode',grMode)}catch(e){}render()}
+  else if(d.qgo){grOpen(d.qgo)}
   else if(d.gn){$('#gq').value='';$('#gres').innerHTML='';grGo(d.gn)}
   else if(d.gtr!=null){const i=+d.gtr,id=grTrail[i];grTrail=grTrail.slice(0,i);grGo(id)}
   else if(d.gshow){const o=grData().n.get(d.gshow);if(o){fClear();q='';if(o.t=='a')q=o.name;else if(o.t=='l'){ff.lab.add(d.gshow.slice(2));labName[d.gshow.slice(2)]=o.name}else ff.gen.add(d.gshow.slice(2));
