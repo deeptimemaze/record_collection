@@ -380,7 +380,7 @@ label.ck input{width:20px;height:20px}
 <div id="sheet"><div id="sheetbody"></div></div>
 
 <script>
-const APP_VERSION=68,APP_DATE='25 Nov 2026';
+const APP_VERSION=69,APP_DATE='25 Nov 2026';
 const COVER_CACHE='vinyl-covers-2'; // must match COVERS in sw.js
 const DEFAULT_LOCS=[
  {id:'kallax',name:'Kallax shelf',mode:'grid',cols:3,rows:4,cap:0,formats:['lp']},
@@ -1530,11 +1530,15 @@ const artEta=left=>{const per=artState.run&&artState.done>=3?(Date.now()-artT0)/
   return m<90?`about ${Math.max(1,m)} min`:`about ${Math.round(m/6)/10} hours`};
 // most-collected artists first; one not found is tried again after two months
 function artTodo(){
-  return [...artGroups().values()].filter(o=>{const a=arts[o.k];return !a||(!a.m&&Date.now()-(a.n||0)>60*864e5)})
+  return [...artGroups().values()].filter(o=>{const a=arts[o.k];return !a||(!a.m&&Date.now()-(a.n||0)>60*864e5)||(a.m&&!a.e)})
     .sort((a,b)=>b.rs.length-a.rs.length||a.k.localeCompare(b.k));
 }
+// special events only: festivals, benefits, tributes, award shows and the like, not every tour date
+const EVSPECIAL=/\b(aid|benefit|tribute|festival|fest|jubilee|telethon|olympic|eurovision|awards?|concert for)\b/i,EVBENEFIT=/\b(aid|benefit|tribute|telethon|concert for|jubilee)\b/i;
+// one name per festival: "Austin City Limits Music Festival 2019, Day 2: Honda Stage" → "Austin City Limits Music Festival 2019"
+const evName=s=>String(s||'').replace(/\s*[,:–-]\s*(day|dag|night|weekend|stage|part|evening|afternoon)\b.*$/i,'').replace(/\s*:\s*[^:]*\bstage\b.*$/i,'').replace(/\s*\((day|night)[^)]*\)\s*$/i,'').trim();
 async function artLookup(it){
-  let id=null;
+  let id=arts[it.k]&&arts[it.k].m||null;
   const rs=it.rs.filter(r=>/^\d+$/.test(ridOf(r))).sort((a,b)=>!!mbRel[ridOf(b)]-!!mbRel[ridOf(a)]).slice(0,2);
   // through one of the artist's own releases linked to Discogs: certain, and cheap when the link is already known from covers
   const viaRelease=async only=>{for(const r of rs){if(only&&!mbRel[ridOf(r)])continue;
@@ -1542,18 +1546,22 @@ async function artLookup(it){
     const j=await mb(`release/${m}?inc=artist-credits`),ac=(j['artist-credit']||[]).filter(x=>x.artist);
     const hit=ac.find(x=>artKey(x.name)==it.k||artKey(x.artist.name)==it.k)||(ac.length==1?ac[0]:null);
     if(hit)return hit.artist.id}return null};
-  id=await viaRelease(true);
+  if(!id)id=await viaRelease(true);
   // otherwise by name, taken only when exactly one artist has that name; when it's ambiguous, through a release after all
-  if(!id){
+  if(!id&&!(arts[it.k]&&arts[it.k].m)){
     const j=await mb(`artist/?query=${encodeURIComponent('artist:"'+it.name.replace(/"/g,' ')+'"')}&limit=5`);
     const ex=(j.artists||[]).filter(x=>(x.score||0)>=95&&artKey(x.name)==it.k);
     if(ex.length==1)id=ex[0].id;else if(ex.length>1)id=await viaRelease(false);
   }
   if(!id)return {m:0};
-  const a=await mb(`artist/${id}?inc=artist-rels`),ar=x=>x&&x.id?[x.id,x.name,x.type||'']:0,seen=new Set();
+  const a=await mb(`artist/${id}?inc=artist-rels+event-rels+url-rels`),ar=x=>x&&x.id?[x.id,x.name,x.type||'']:0,seen=new Set();
   const r=(a.relations||[]).filter(x=>x.artist&&AREL[x.type]).map(x=>[AREL[x.type]+(x.direction=='backward'?'<':'>'),x.artist.id,x.artist.name])
     .filter(x=>{const k=x[0]+x[1];if(seen.has(k))return false;seen.add(k);return true});
-  return {m:id,t:a.type=='Group'?'G':a.type=='Person'?'P':'',a:ar(a.area),b:ar(a['begin-area']),r};
+  // events: [id, name, type, year]; the Wikidata id, for "participant in" (Live Aid and the like)
+  const ev=[],evs=new Set();(a.relations||[]).filter(x=>x.event&&x.event.name).forEach(x=>{const e=x.event;if(evs.has(e.id))return;
+    if(/\btour\b|\s(at|@)\s/i.test(e.name)||(e.type!='Festival'&&e.type!='Award ceremony'&&!EVSPECIAL.test(e.name)))return;evs.add(e.id);ev.push([e.id,e.name,e.type||'',((e['life-span']||{}).begin||'').slice(0,4)])});
+  const wd=(a.relations||[]).find(x=>x.type=='wikidata'&&x.url),wq=wd?wd.url.resource.split('/').pop():'';
+  return {m:id,t:a.type=='Group'?'G':a.type=='Person'?'P':'',a:ar(a.area),b:ar(a['begin-area']),r,ev:ev.slice(0,40),wq,e:1};
 }
 const artText=()=>{const g=artGroups(),tot=g.size;let done=0,found=0;g.forEach((o,k)=>{if(arts[k]){done++;if(arts[k].m)found++}});
   const left=artTodo().length;
@@ -1563,7 +1571,7 @@ const artRun=jobRunner({st:artState,todo:()=>{artT0=Date.now();return artTodo()}
   work:artLookup,tries:4,wait:12000,every:5,saveMore:saveArts,slowMsg:'MusicBrainz asked us to slow down, waiting a moment.',
   netMsg:'Could not reach MusicBrainz. Resume when you are online.',busyMsg:'MusicBrainz is busy. Resume in a few minutes.',
   apply:(it,res)=>{arts[it.k]={...res,n:Date.now()};artsVer++;return !!res.m},
-  after:()=>{if(plcAreas().some(a=>!(a in plc.mb)))plcRun();else if(view=='ex')render()}});
+  after:()=>{if(plcAreas().some(a=>!(a in plc.mb))||evtTodo())plcRun();else if(view=='ex')render()}});
 
 /* places: each MusicBrainz area is matched to Wikidata, then followed up through "located in" (P131) to the country,
    collecting the regions it's on (P706), such as Long Island. Kept on this phone:
@@ -1573,11 +1581,14 @@ const savePlc=()=>{try{localStorage.setItem('vinylPlace',JSON.stringify(plc))}ca
 let plcVer=0;const plcState={run:false,msg:''};
 const WDAPI='https://www.wikidata.org/w/api.php?format=json&origin=*&';
 const WDCOUNTRY=new Set(['Q6256','Q3624078','Q7275','Q3024240','Q3336843']),WDWATER=new Set(['Q4022','Q23397','Q165','Q9430','Q5107','Q39594','Q35666','Q1322134','Q12284']);
+const evtTodo=()=>Object.values(arts).some(a=>a.wq&&!(a.wq in evt.a));
 const plcAreas=()=>[...new Set(Object.values(arts).filter(a=>a.m&&(a.b||a.a)).map(a=>(a.b||a.a)[0]))];
 const plcText=()=>{const a=plcAreas(),m=a.filter(x=>x in plc.mb),f=a.filter(x=>plc.mb[x]),regs=new Set();
   Object.values(plc.wd).forEach(o=>(o.reg||[]).forEach(r=>{if(plc.wd[r]&&!plc.wd[r].x)regs.add(r)}));
-  return a.length?`${f.length} of ${a.length} places connected through Wikidata${regs.size?`, with ${regs.size} regions such as ${[...regs].slice(0,2).map(r=>plc.wd[r].n).join(' and ')}`:''}.${a.length>m.length?` ${a.length-m.length} not looked up yet.`:''}`+(plcState.msg?' '+plcState.msg:'')
-    :'Places are connected once artists have been looked up.'};
+  return (a.length?`${f.length} of ${a.length} places connected through Wikidata${regs.size?`, with ${regs.size} regions such as ${[...regs].slice(0,2).map(r=>plc.wd[r].n).join(' and ')}`:''}.${a.length>m.length?` ${a.length-m.length} not looked up yet.`:''}`+(plcState.msg?' '+plcState.msg:'')
+    :'Places are connected once artists have been looked up.')+evtText()};
+const evtText=()=>{let mbn=0,wdn=0;Object.values(arts).forEach(a=>{mbn+=(a.ev||[]).length});Object.values(evt.a).forEach(l=>l.forEach(q=>{if(evt.wd[q]&&evt.wd[q].n)wdn++}));
+  return mbn||wdn?` Special events: ${mbn} from MusicBrainz and ${wdn} from Wikidata.`:''};
 async function wdJSON(url){let r;try{r=await fetch(url,{headers:{Accept:'application/json, application/sparql-results+json'}})}catch(e){throw 'net'}
   if(!r.ok)throw 'busy';return r.json()}
 // a statement's current value: preferred over normal, never deprecated or ended
@@ -1605,9 +1616,23 @@ async function plcRun(){
         plc.wd[q]=o;[o.up,...o.reg].forEach(x=>{if(x&&!plc.wd[x])need.add(x)})});
       savePlc();ui();
     }
+    plcState.msg='Connecting events...';ui();await evtRun();
     plcState.msg='';
   }catch(e){plcState.msg=e=='net'?'Could not reach Wikidata. Try again when you are online.':'Wikidata is busy. Try again in a minute.'}
-  plcVer++;plcState.run=false;ui();if(view=='ex')render();
+  plcVer++;plcState.run=false;ui();if(view=='ex')render();  // places and events
+}
+/* events from Wikidata: what each artist "participated in" (P1344), such as Live Aid or a Eurovision contest. Kept on this phone:
+   a: artist's Wikidata id → event ids; wd: event id → {n name, y year} */
+let evt={a:{},wd:{}};try{Object.assign(evt,JSON.parse(localStorage.getItem('vinylEvt')||'{}'))}catch(e){}
+const saveEvt=()=>{try{localStorage.setItem('vinylEvt',JSON.stringify(evt))}catch(e){}};
+async function evtRun(){
+  const qs=[...new Set(Object.values(arts).map(a=>a.wq).filter(q=>q&&!(q in evt.a)))];
+  for(let i=0;i<qs.length;i+=50){const ids=qs.slice(i,i+50),es=(await wdJSON(WDAPI+'action=wbgetentities&props=claims&ids='+ids.join('|'))).entities||{};
+    ids.forEach(q=>{evt.a[q]=es[q]?wdBest(es[q],'P1344').slice(0,20):[]});saveEvt()}
+  const need=[...new Set(Object.values(evt.a).flat().filter(q=>!evt.wd[q]))];
+  for(let i=0;i<need.length;i+=50){const ids=need.slice(i,i+50),es=(await wdJSON(WDAPI+'action=wbgetentities&props=labels|claims&languages=en&ids='+ids.join('|'))).entities||{};
+    ids.forEach(q=>{const en=es[q],t=en&&((en.claims||{}).P585||(en.claims||{}).P580||[])[0],y=t&&t.mainsnak.datavalue?String(t.mainsnak.datavalue.value.time||'').slice(1,5):'';
+      evt.wd[q]={n:en&&en.labels&&en.labels.en?en.labels.en.value:'',y}});saveEvt()}
 }
 // a place's chain upwards (itself first) and every region along it, skipping water and loops
 function plcChain(q){const ch=[],reg=[];let x=q;
@@ -1634,6 +1659,24 @@ function grBuild(){
     const e=adj.get(id).get(t)||{w:0,k:k=='f'?'c':'x',rs:[],pr:t,on:id};if(!adj.get(id).has(t)){adj.get(id).set(t,e);adj.get(t).set(id,e)}
     e.w++;const what=`${k=='p'?'produced':k=='r'?'remixed':'featured on'} ${r.title}`;if(!e.rs.includes(what)&&e.rs.length<6)e.rs.push(what);
     if(t[0]=='k')n.get(t).c++}))});
+  // special events: one node per event, MusicBrainz and Wikidata merged by name
+  const evId=nm=>'e:'+fold(nm).replace(/[^a-z0-9]+/g,' ').trim();
+  // shown when Wikidata knows it, it's a benefit or tribute, or at least two of your artists were there; tours and "X at venue" are left out
+  const evs=new Map();
+  groups.forEach(o=>{const ar=arts[o.k];if(!ar||!ar.m)return;const id='a:'+o.k;
+    const add=(nm,y,wd)=>{nm=evName(nm);if(!nm||/\btour\b|\s(at|@)\s/i.test(nm))return;const eid=evId(nm);if(!evs.has(eid))evs.set(eid,{nm,y,wd:false,as:new Set()});
+      const e=evs.get(eid);e.as.add(id);if(wd)e.wd=true;if(y&&!e.y)e.y=y};
+    (ar.ev||[]).forEach(([eid,nm,ty,y])=>add(nm,y,false));
+    ((ar.wq&&evt.a[ar.wq])||[]).forEach(q=>{const w=evt.wd[q];if(w&&w.n)add(w.n,w.y,true)})});
+  evs.forEach((e,eid)=>{if(!(e.wd||EVBENEFIT.test(e.nm)||e.as.size>=2))return;const nd=node(eid,'e',e.nm);nd.y=e.y;nd.c=e.as.size;e.as.forEach(a=>link(a,eid,'v'))});
+  // your own concerts: acts at one venue within three days make one night or festival, when two or more played
+  if(gigs.length){const ak=new Map();groups.forEach(o=>ak.set(akey(o.name),o.k));
+    const byV=new Map();gigs.forEach(g=>{const k=fold(g.v+'|'+g.c);if(!byV.has(k))byV.set(k,[]);byV.get(k).push(g)});
+    byV.forEach(list=>{list.sort((a,b)=>a.d<b.d?-1:1);let cl=[];const flush=()=>{const acts=[...new Set(cl.map(g=>akey(g.a)))];
+      if(acts.length>=2&&acts.some(a=>ak.has(a))){const g0=cl[0],last=cl[cl.length-1],multi=g0.d!=last.d;
+        const nm=multi?`${g0.v} ${g0.d.slice(0,4)}`:`${g0.v} · ${gigDate(g0.d)}`,yid='y:'+fold(g0.v+g0.d),y=node(yid,'y',nm);y.y=g0.d.slice(0,4);y.pl=gigPlace(g0);y.multi=multi;
+        cl.forEach(g=>{const a=akey(g.a),t=ak.has(a)?'a:'+ak.get(a):'v:'+a;if(!n.has(t))node(t,'v',g.a);if(!adj.get(yid).has(t))y.c++;link(t,yid,'y')})}cl=[]};
+      list.forEach(g=>{if(cl.length&&(Date.parse(g.d)-Date.parse(cl[cl.length-1].d))>3*864e5)flush();cl.push(g)});flush()})}
   groups.forEach(o=>{const ar=arts[o.k];if(!ar||!ar.m)return;const id='a:'+o.k;
     const pl=ar.b||ar.a;if(pl){const q=plc.mb[pl[0]];
       if(!q||!plc.wd[q]){const p=node('p:'+pl[0],'p',pl[1]);p.c++;link(id,p.id,'p')}
@@ -1653,7 +1696,7 @@ function grBuild(){
   n.forEach((o,id)=>{o.name=Object.entries(nm[id]).sort((x,y)=>y[1]-x[1])[0][0]});
   return grCache={n,adj,at:grKey()};
 }
-const grKey=()=>recs.length+':'+recs.reduce((s,r)=>s+(r.genre||'').length,0)+':'+artsVer+':'+Object.keys(arts).length+':'+plcVer+':'+Object.keys(plc.wd).length;
+const grKey=()=>gigs.length+':'+Object.keys(evt.wd).length+':'+recs.length+':'+recs.reduce((s,r)=>s+(r.genre||'').length,0)+':'+artsVer+':'+Object.keys(arts).length+':'+plcVer+':'+Object.keys(plc.wd).length;
 const grData=()=>grCache&&grCache.at==grKey()?grCache:grBuild();
 // a node's neighbours: members and groups first, then collaborations, places, labels, genres; most shared records first
 // members and groups keep MusicBrainz's order (founders first); the first page mixes four of them, two featured artists and two producers with the place, labels and genres
@@ -1666,7 +1709,7 @@ function grNbrs(id){
     down.sort((x,y)=>n.get(y[0]).c-n.get(x[0]).c);
     if(up.length+down.length+ar.length<=GPAGE)return [...up,...down,...ar].map(x=>x[0]);
     const ds=down.slice(0,4);return [...up,...ds,...ar,...down.slice(4)].map(x=>x[0])}
-  const m=by('m').sort((x,y)=>(n.get(y[0]).t=='a')-(n.get(x[0]).t=='a')),c=by('c'),rest=[...by('p'),...by('w'),...srt(by('l')),...srt(by('g'))];
+  const m=by('m').sort((x,y)=>(n.get(y[0]).t=='a')-(n.get(x[0]).t=='a')),c=by('c'),rest=[...by('p'),...by('w'),...by('y'),...by('v'),...srt(by('l')),...srt(by('g'))];
   const x=srt(by('x')),ms=m.slice(0,4),cs=c.slice(0,2),xs=x.slice(0,2);
   if(m.length+c.length+x.length+rest.length<=GPAGE)return [...m,...c,...x,...rest].map(e=>e[0]);
   return [...ms,...cs,...xs,...rest,...m.slice(ms.length),...c.slice(cs.length),...x.slice(xs.length)].map(e=>e[0]);
@@ -1698,13 +1741,17 @@ function grDesc(id){
   if(of.length)parts.push('member of '+of.slice(0,3).join(', ')+(of.length>3?' and more':''));
   if(has.length)parts.push(plur(has.length,'member'));
   if(o.t=='a'){const ls=nb('l').length,gs=nb('g').map(x=>x.name);if(ls)parts.push(plur(ls,'label'));if(gs.length)parts.push(gs.slice(0,2).join(', '))}
+  if(o.t=='e')parts.push(`event${o.y?' · '+o.y:''} · ${plur(es.length,'artist')} from your collection took part`);
+  if(o.t=='y')parts.push(`your concert${o.multi?'s':''} · ${o.pl} · you saw ${plur(es.length,'act')} here`);
+  if(o.t=='v')parts.push('you saw them live; no records of their own here');
+  if(o.t=='a'){const evn=es.filter(([x,e])=>e.k=='v').length,mine=es.filter(([x,e])=>e.k=='y').length;if(evn)parts.push(plur(evn,'special event'));if(mine)parts.push(`seen live at ${plur(mine,'shared bill')}`)}
   if(o.t=='l'||o.t=='g')parts.push(`${o.t=='l'?'label':'genre'}, ${plur(o.c,'record')} by ${plur(es.length,'artist')}`);
   if(o.t=='p'){const q=id.slice(2),w=plc.wd[q],up=w?plcChain(q).ch.slice(1).map(x=>plc.wd[x].n):[],ons=w?plcChain(q).reg.map(x=>plc.wd[x].n):[];
     parts.push(o.r?'region':'place');if(up.length)parts.push('in '+up.slice(0,3).join(', '));if(ons.length)parts.push('on '+ons.join(', '));
     const na=es.filter(([x,e])=>e.k=='p'||e.k=='w').length;parts.push(`${plur(na,'artist')} from here in your collection`)}
   const s=parts.join(' · ');return s[0].toUpperCase()+s.slice(1);
 }
-const GES={x:'stroke="var(--s2)" stroke-width="1.6" stroke-dasharray="6 3"',m:'stroke="var(--hl)" stroke-width="2"',c:'stroke="var(--hl)" stroke-width="1.5" stroke-dasharray="5 3"',p:'stroke="var(--ink)" stroke-width="1.5" stroke-dasharray="2 3"',
+const GES={v:'stroke="var(--ink)" stroke-width="1.4" stroke-dasharray="1 3"',y:'stroke="var(--hl)" stroke-width="1.8" stroke-dasharray="1 3"',x:'stroke="var(--s2)" stroke-width="1.6" stroke-dasharray="6 3"',m:'stroke="var(--hl)" stroke-width="2"',c:'stroke="var(--hl)" stroke-width="1.5" stroke-dasharray="5 3"',p:'stroke="var(--ink)" stroke-width="1.5" stroke-dasharray="2 3"',
   l:'stroke="var(--mute)" stroke-width="1.5"',w:'stroke="var(--mute)" stroke-width="1.5" stroke-dasharray="2 3"',u:'stroke="var(--ink)" stroke-width="1"',g:'stroke="var(--mute)" stroke-width="1.2" stroke-dasharray="6 4"'};
 function grDraw(P,A){
   const g=$('#gsvg');if(!g)return;const {n,adj}=grData();let h='';
@@ -1717,6 +1764,9 @@ function grDraw(P,A){
     else{const o=n.get(id);lbl=o.name.length>15?o.name.slice(0,14)+'…':o.name;
       if(o.t=='a')sh=`<circle cx="${x}" cy="${y}" r="${r}" fill="var(--hl)"/>`;
       else if(o.t=='b')sh=`<circle cx="${x}" cy="${y}" r="${r-1}" fill="var(--bg)" stroke="var(--hl)" stroke-width="2"/>`;
+      else if(o.t=='e'||o.t=='y'){const w=r*2.4,h=r*1.6,c=o.t=='y'?'var(--hl)':'var(--ink)';
+        sh=`<path d="M${x-w/2} ${y-h/2}h${w}v${h*.32}a${h*.18} ${h*.18} 0 0 0 0 ${h*.36}v${h*.32}h${-w}v${-h*.32}a${h*.18} ${h*.18} 0 0 0 0 ${-h*.36}z" fill="var(--bg)" stroke="${c}" stroke-width="2"/><line x1="${x-w*.18}" y1="${y-h/2+2}" x2="${x-w*.18}" y2="${y+h/2-2}" stroke="${c}" stroke-width="1" stroke-dasharray="1.5 2"/>`}
+      else if(o.t=='v')sh=`<circle cx="${x}" cy="${y}" r="${r-1}" fill="var(--bg)" stroke="var(--ink)" stroke-width="1.5"/>`;
       else if(o.t=='k')sh=`<circle cx="${x}" cy="${y}" r="${r-1}" fill="var(--bg)" stroke="var(--s2)" stroke-width="2"/>`;
       else if(o.t=='p')sh=`<rect x="${x-r+2}" y="${y-r+2}" width="${2*r-4}" height="${2*r-4}" transform="rotate(45 ${x} ${y})" fill="var(--bg)" stroke="var(--ink)" stroke-width="2"/>`;
       else if(o.t=='l')sh=`<rect x="${x-r+1}" y="${y-r+1}" width="${2*r-2}" height="${2*r-2}" fill="var(--thumb)" stroke="var(--mute)" stroke-width="1.5"/>`;
@@ -1755,7 +1805,7 @@ function graphHTML(){
   <div class="gcrumb" id="gcrumb"></div>
   <svg id="gsvg" viewBox="0 0 ${GW} ${GH}" role="group" aria-label="Graph of artists, labels and genres"></svg>
   <div class="ginfo" id="ginfo"></div>
-  <div class="gkey"><span><svg width="14" height="14"><circle cx="7" cy="7" r="6" fill="var(--hl)"/></svg>Artist</span><span><svg width="14" height="14"><rect x="1" y="1" width="12" height="12" fill="var(--thumb)" stroke="var(--mute)" stroke-width="1.5"/></svg>Label</span><span><svg width="16" height="16"><polygon points="14,8 11,13.2 5,13.2 2,8 5,2.8 11,2.8" fill="none" stroke="var(--ink)" stroke-width="1.5"/></svg>Genre</span><span><svg width="14" height="14"><circle cx="7" cy="7" r="5" fill="none" stroke="var(--hl)" stroke-width="2"/></svg>Member or group, no records here</span><span><svg width="14" height="14"><rect x="3" y="3" width="8" height="8" transform="rotate(45 7 7)" fill="none" stroke="var(--ink)" stroke-width="2"/></svg>Place</span><span><svg width="14" height="14"><circle cx="7" cy="7" r="5" fill="none" stroke="var(--s2)" stroke-width="2"/></svg>Producer or remixer</span></div>
+  <div class="gkey"><span><svg width="14" height="14"><circle cx="7" cy="7" r="6" fill="var(--hl)"/></svg>Artist</span><span><svg width="14" height="14"><rect x="1" y="1" width="12" height="12" fill="var(--thumb)" stroke="var(--mute)" stroke-width="1.5"/></svg>Label</span><span><svg width="16" height="16"><polygon points="14,8 11,13.2 5,13.2 2,8 5,2.8 11,2.8" fill="none" stroke="var(--ink)" stroke-width="1.5"/></svg>Genre</span><span><svg width="14" height="14"><circle cx="7" cy="7" r="5" fill="none" stroke="var(--hl)" stroke-width="2"/></svg>Member or group, no records here</span><span><svg width="14" height="14"><rect x="3" y="3" width="8" height="8" transform="rotate(45 7 7)" fill="none" stroke="var(--ink)" stroke-width="2"/></svg>Place</span><span><svg width="14" height="14"><circle cx="7" cy="7" r="5" fill="none" stroke="var(--s2)" stroke-width="2"/></svg>Producer or remixer</span><span><svg width="18" height="14"><path d="M2 3h14v2.5a1.5 1.5 0 0 0 0 3v2.5h-14v-2.5a1.5 1.5 0 0 0 0-3z" fill="none" stroke="var(--ink)" stroke-width="1.5"/></svg>Special event</span><span><svg width="18" height="14"><path d="M2 3h14v2.5a1.5 1.5 0 0 0 0 3v2.5h-14v-2.5a1.5 1.5 0 0 0 0-3z" fill="none" stroke="var(--hl)" stroke-width="1.5"/></svg>Your concert</span></div>
   <p class="mute" style="margin:10px 0 0;font-size:12px">${(()=>{const g=artGroups();let d=0;g.forEach((o,k)=>{if(arts[k])d++});return d<g.size?`Band members, groups and places come from <b>Data → Artist connections</b>: ${d} of ${g.size} artists looked up so far.`:'Band members, groups and places come from MusicBrainz.'})()}</p>`;
 }
 function grMount(){
@@ -1785,15 +1835,17 @@ function qzFacts(){
     if(o.t=='a'||o.t=='b'){items=es.filter(([x,e])=>e.k=='m'&&e.mo==x).map(([x])=>x);kind='m';title='Members of '+o.name}
     else if(o.t=='p'){const w=plc.wd[id.slice(2)];if(w&&(w.co||(o.r&&w.up&&plc.wd[w.up]&&plc.wd[w.up].co)))return;items=es.filter(([x,e])=>e.k=='p'||e.k=='w').map(([x])=>x);kind='p';title='From '+o.name}
     else if(o.t=='l'){items=es.map(([x])=>x);kind='l';title='On '+o.name}
-    else{items=es.map(([x])=>x);kind='g';title='Genre: '+o.name}
-    if(items.length>=3)groups.push({id,kind,title,name:o.name,items:new Set(items)});
+    else if(o.t=='e'||o.t=='y'){items=es.map(([x])=>x);kind='e';title=o.t=='y'?'You saw them at '+o.name:'Took part in '+o.name}
+    else if(o.t=='g'){items=es.map(([x])=>x);kind='g';title='Genre: '+o.name}
+    else kind='';
+    if(kind&&items.length>=3)groups.push({id,kind,title,name:o.name,items:new Set(items)});
     const px=es.filter(([x,e])=>e.k=='x'&&e.pr==id).map(([x])=>x);if((o.t=='k'||o.t=='a')&&px.length>=3&&kind!='x')groups.push({id,kind:'x',title:'Produced by '+o.name,name:o.name,items:new Set(px)})});
   return {n,adj,groups};
 }
 const wpick=(a,w)=>{const t=a.reduce((s,x)=>s+w(x),0);let r=Math.random()*t;for(const x of a){r-=w(x);if(r<=0)return x}return a[a.length-1]};
 // three groups, of different kinds when possible, each with three names that belong to it and to neither of the other two
 function qzGrid(){
-  const {n,groups}=qzFacts(),W={m:5,x:5,p:4,l:2,g:1};if(groups.length<3)return null;
+  const {n,groups}=qzFacts(),W={m:5,x:5,e:5,p:4,l:2,g:1};if(groups.length<3)return null;
   for(let t=0;t<400;t++){
     const pick=[],kinds=new Set();
     for(let i=0;i<3;i++){const c=groups.filter(g=>!pick.includes(g)&&(t>200||!kinds.has(g.kind)));if(!c.length)break;const g=wpick(c,g=>W[g.kind]);pick.push(g);kinds.add(g.kind)}
@@ -2005,7 +2057,7 @@ function dataView(msg=''){
     <label>Artist connections</label><p class="mute">Band members, groups and where artists come from, for the Artists graph under Explore.</p>
     ${more(`Looked up on MusicBrainz, most-collected artists first, at roughly an artist every five to ten seconds (a few hours for a big collection), and it keeps going where it left off. An artist is found through one of your releases when it's linked to Discogs, otherwise by name, and only when exactly one artist has that name. This sends Discogs numbers and artist names to MusicBrainz. Places are then connected through Wikidata, which knows that Amityville is in Suffolk County, on Long Island, in New York; that runs by itself after a lookup, takes a minute or so, and sends only place ids to Wikidata.`)}
     <p class="mute" id="arprog">${artText()}</p><button class="btn" id="arb">${artState.run?'Pause':'Fetch artist connections'}</button>
-    <p class="mute" id="plprog" style="margin-top:12px">${plcText()}</p><button class="btn" id="plb">Connect places</button>`+
+    <p class="mute" id="plprog" style="margin-top:12px">${plcText()}</p><button class="btn" id="plb">Connect places and events</button>`+
     sec('Concerts')+
     `<p class="mute">The concerts you've marked as attended on setlist.fm, shown as LIVE tags, on the record sheet and in Explore → Live.</p>
     ${more(`setlist.fm doesn't let web apps fetch them, so run <b>tools/setlistfm_export.py</b> on a computer (see the README) and choose the CSV it writes. Importing again replaces the list.`)}
