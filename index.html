@@ -383,7 +383,7 @@ label.ck input{width:20px;height:20px}
 <div id="sheet"><div id="sheetbody"></div></div>
 
 <script>
-const APP_VERSION=65,APP_DATE='25 Nov 2026';
+const APP_VERSION=66,APP_DATE='25 Nov 2026';
 const COVER_CACHE='vinyl-covers-2'; // must match COVERS in sw.js
 const DEFAULT_LOCS=[
  {id:'kallax',name:'Kallax shelf',mode:'grid',cols:3,rows:4,cap:0,formats:['lp']},
@@ -993,7 +993,17 @@ function selNote(id){
 // page headings in Japanese, with the English name as a small tag on the right; the bottom tabs stay in English
 const JA={Records:'レコード',Storage:'収納',Selected:'選択',Explore:'探索',Data:'データ'};
 const setH=en=>{$('#h').innerHTML=`<span class="ja" lang="ja">${JA[en]||esc(en)}</span><span class="en">// ${esc(en.toUpperCase())}</span>`};
+/* the phone's back button steps back through pages (the bottom tabs, Explore's tabs, Graph or Quiz) instead of closing the app.
+   Each page change adds a step; at the first page, one back press asks, and a second one within a few seconds closes the app */
+let navKeyLast=null,navRestoring=false,exitArmed=false;
+const navState=()=>({v:view,ex:exTab,gm:grMode});
+const navKeyOf=st=>st.v+(st.v=='ex'?'|'+st.ex+(st.ex=='graph'?'|'+st.gm:''):'');
+const navKey=()=>navKeyOf(navState());
+function navNote(){const k=navKey();if(k==navKeyLast)return;
+  if(navKeyLast!==null&&!navRestoring)try{history.pushState(navState(),'')}catch(e){}else try{if(!history.state||!history.state.sheet)history.replaceState(navState(),'')}catch(e){}
+  navKeyLast=k}
 function render(){
+  navNote();
   document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.v==view));
   const app=$('#app');
   if(view=='rec'||view=='fav'){
@@ -2366,11 +2376,19 @@ let sheetOpen=false;
 let sheetDraw=null,sheetDirty=false;
 const refresh=()=>{if(sheetOpen&&sheetDraw){sheetDirty=true;sheetDraw()}else render()};
 // a sheet always opens at its top, not where the last one was left scrolled
-function showSheet(){$('#sheet').classList.add('open');if(!sheetOpen){$('#sheetbody').scrollTop=0;try{history.pushState({sheet:1},'')}catch(e){}}sheetOpen=true}
+function showSheet(){$('#sheet').classList.add('open');if(!sheetOpen){$('#sheetbody').scrollTop=0;try{history.pushState({sheet:1,...navState()},'')}catch(e){}}sheetOpen=true}
 function sheetGone(){listenStop();saveNow();if(!sheetOpen)return false;sheetOpen=false;sheetDraw=null;$('#sheet').classList.remove('open','full');
   if(sheetDirty){sheetDirty=false;render()}return true}
 function closeSheet(){if(sheetGone())try{if(history.state&&history.state.sheet)history.back()}catch(e){}}
-window.addEventListener('popstate',sheetGone);
+window.addEventListener('popstate',e=>{
+  if(sheetGone())return;  // an open card or sheet: closing it is the step back
+  const st=e.state||{};
+  if(st.v){exitArmed=false;if(navKeyOf(st)!=navKey()){navRestoring=true;view=st.v;exTab=st.ex||exTab;grMode=st.gm||grMode;qOrder=[];lim=100;render();navRestoring=false;window.scrollTo(0,0)}return}
+  // before the first page: a second back closes the app
+  if(exitArmed){exitArmed=false;history.back();return}
+  exitArmed=true;toast('Press back again to close Crate.');setTimeout(()=>exitArmed=false,3000);
+  try{history.pushState(navState(),'')}catch(e){}
+});
 $('#sheet').onclick=e=>{if(e.target.id=='sheet')closeSheet()};
 
 /* full card: swipe left for the next record and right for the previous one, in the order of the list behind the card
@@ -2457,7 +2475,7 @@ document.addEventListener('click',e=>{
     pixWave(b.left+b.width/2,b.top+b.height/2,()=>{
       if(grTrail[grTrail.length-1]!=id){grTrail=[...grTrail.filter(x=>x!=id),id].slice(-5)}grCenter=id;grPage=0;grSave();
       grMode='graph';try{localStorage.setItem('vinylGraphMode','graph')}catch(e){}
-      view='ex';exTab='graph';qOrder=[];closeSheet();render();window.scrollTo(0,0)})}
+      view='ex';exTab='graph';qOrder=[];sheetGone();try{history.replaceState(navState(),'')}catch(e){}navKeyLast=navKey();render();window.scrollTo(0,0)})}
   else if(d.gmode){grMode=d.gmode;try{localStorage.setItem('vinylGraphMode',grMode)}catch(e){}render()}
   else if(d.qgo){grOpen(d.qgo)}
   else if(d.gn){$('#gq').value='';$('#gres').innerHTML='';grGo(d.gn)}
@@ -2480,7 +2498,10 @@ document.addEventListener('click',e=>{
   else if(d.el){locSheet(d.el)}
   else if(d.id){openRecSheet(d.id)}
 });
-load();render();
+load();
+// the entry the app opened on stays empty: going back to it is what asks before closing
+try{history.replaceState({root:1},'');history.pushState(navState(),'')}catch(e){}navKeyLast=navKey();
+render();
 /* self-update: compare with the version on the server, then clear the app cache (never your data or covers) and reload */
 async function remoteVersion(){
   const r=await fetch('index.html?cb='+Date.now(),{cache:'no-store'});
