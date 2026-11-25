@@ -231,15 +231,11 @@ label.ck input{width:20px;height:20px}
 .shd b{display:block;font-size:14px;font-weight:700;line-height:1.3}
 .shd span.s{display:block;margin-top:2px;font-size:11px;color:var(--mute);letter-spacing:.02em}
 .shd .tw{display:block;margin-top:2px}
-/* the full card's graph icon: a small pixel creature whose antennae and legs end in nodes, marching between two frames */
-.gico{flex:none;width:32px;height:32px;display:grid;place-items:center;margin-top:auto;padding:0;background:rgba(5,5,5,.75);border:1px solid var(--line2);cursor:pointer}
-.gico svg{width:22px;height:18px;shape-rendering:crispEdges}
-.gico .f1{animation:gico1 1s steps(1) infinite}.gico .f2{animation:gico2 1s steps(1) infinite}
-@keyframes gico1{0%{opacity:1}50%{opacity:0}}@keyframes gico2{0%{opacity:0}50%{opacity:1}}
-.gico:active{background:#000}
-@media(prefers-reduced-motion:reduce){.gico .f1{animation:none}.gico .f2{display:none}}
-/* the pixel wave that opens the graph */
-.pxw{position:fixed;inset:0;z-index:60;display:grid;overflow:hidden;pointer-events:none}.pxw i{background:var(--y);opacity:0}
+/* the full card's graph icon: a slowly turning wireframe ball of twelve nodes, drawn in the ink colour, no frame */
+.gico{flex:none;width:32px;height:32px;display:grid;place-items:center;margin-top:auto;padding:0;background:none;border:0;cursor:pointer}
+.gico canvas{width:26px;height:26px;display:block}
+/* tapping it: the ball explodes into nodes and vectors that land as the graph */
+.gburst{position:fixed;inset:0;z-index:60;width:100%;height:100%}
 .chip.selc{min-height:30px;padding:5px 10px}
 /* Records filters: a Filter button beside the search, the filters in use as chips under it, and a full-screen filter page */
 .frow{display:flex;gap:8px}.frow input{flex:1;min-width:0}
@@ -383,7 +379,7 @@ label.ck input{width:20px;height:20px}
 <div id="sheet"><div id="sheetbody"></div></div>
 
 <script>
-const APP_VERSION=66,APP_DATE='25 Nov 2026';
+const APP_VERSION=67,APP_DATE='25 Nov 2026';
 const COVER_CACHE='vinyl-covers-2'; // must match COVERS in sw.js
 const DEFAULT_LOCS=[
  {id:'kallax',name:'Kallax shelf',mode:'grid',cols:3,rows:4,cap:0,formats:['lp']},
@@ -1866,20 +1862,63 @@ function qzDraw(){
   }
   if($('#qhome'))$('#qhome').onclick=()=>{qz={mode:'home'};qzDraw()};
 }
-// the full card's graph icon (not for Various)
-const GICO=[["XX.......XX","XX.......XX","..X.....X..","...XXXXX...","..XX.X.XX..","..XXXXXXX..","...X.X.X...","..X..X..X..",".XX..X..XX."],
-  ["..XX...XX..","..XX...XX..","...X...X...","...XXXXX...","..XX.X.XX..","..XXXXXXX..","...X.X.X...","...X.X.X...","..XX.X.XX.."]];
-const gicoSVG=GICO.map((f,i)=>`<g class="f${i+1}">${f.map((r,y)=>[...r].map((c,x)=>c=='X'?`<rect x="${x}" y="${y}" width="1" height="1"/>`:'').join('')).join('')}</g>`).join('');
-const graphIconHTML=r=>{const k=artKey(artName(r.artist));return isVarious(k)?'':`<button class="gico" data-gart="${esc(k)}" aria-label="Open ${esc(artName(r.artist))} in the artist graph"><svg viewBox="0 0 11 9" fill="#c6ff00" aria-hidden="true">${gicoSVG}</svg></button>`};
-// lime pixels ripple out from (x, y) across the screen and fall away; mid() runs under them, when the screen is covered
-function pixWave(x,y,mid){
-  if(matchMedia('(prefers-reduced-motion: reduce)').matches){mid();return}
-  const S=20,W=innerWidth,H=innerHeight,cols=Math.ceil(W/S),rows=Math.ceil(H/S),o=document.createElement('div');
-  o.className='pxw';o.style.gridTemplateColumns=`repeat(${cols},${S}px)`;o.style.gridAutoRows=S+'px';o.innerHTML='<i></i>'.repeat(cols*rows);
-  document.body.appendChild(o);const max=Math.hypot(Math.max(x,W-x),Math.max(y,H-y));
-  o.querySelectorAll('i').forEach((c,j)=>{const d=Math.hypot((j%cols)*S+S/2-x,Math.floor(j/cols)*S+S/2-y)/max;
-    try{c.animate([{opacity:0},{opacity:1,offset:.35},{opacity:1,offset:.55},{opacity:0}],{duration:520,delay:d*280+Math.random()*40,easing:'steps(3,end)',fill:'both'})}catch(e){}});
-  setTimeout(mid,300);setTimeout(()=>o.remove(),950);
+// the full card's graph icon (not for Various): an icosahedron, twelve nodes and thirty links, turning once every ten seconds
+const ICO=(()=>{const f=(1+Math.sqrt(5))/2,m=Math.hypot(1,f),V=[[-1,f,0],[1,f,0],[-1,-f,0],[1,-f,0],[0,-1,f],[0,1,f],[0,-1,-f],[0,1,-f],[f,0,-1],[f,0,1],[-f,0,-1],[-f,0,1]].map(v=>v.map(c=>c/m)),E=[];
+  for(let i=0;i<12;i++)for(let j=i+1;j<12;j++)if(Math.abs(Math.hypot(V[i][0]-V[j][0],V[i][1]-V[j][1],V[i][2]-V[j][2])-2/m)<.01)E.push([i,j]);return {V,E}})();
+const icoRot=([x,y,z],a,b)=>{const ca=Math.cos(a),sa=Math.sin(a),cb=Math.cos(b),sb=Math.sin(b);let X=x*ca+z*sa,Z=-x*sa+z*ca,Y=y*cb-Z*sb;Z=y*sb+Z*cb;return [X,Y,Z]};
+const icoStill=()=>matchMedia('(prefers-reduced-motion: reduce)').matches;
+const icoTilt=a=>.45+Math.sin(a*.7)*.18;
+const cssVar=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+let icoSpin=.6,icoRun=false,icoLast=0;
+// lines and nodes facing you are brighter, the ones at the back fainter
+function icoDraw(c,a,b){const d=devicePixelRatio||1,w=c.clientWidth||26;if(c.width!=Math.round(w*d)){c.width=Math.round(w*d);c.height=Math.round(w*d)}
+  const x=c.getContext('2d'),ink=cssVar('--ink')||'#ececec';x.setTransform(d,0,0,d,0,0);x.clearRect(0,0,w,w);const R=w*.42,m=w/2;
+  const P=ICO.V.map(v=>{const [X,Y,Z]=icoRot(v,a,b),f=1/(1+Z*.25);return [m+X*R*f,m+Y*R*f,Z]});x.strokeStyle=ink;x.fillStyle=ink;x.lineWidth=1;x.lineCap='round';
+  ICO.E.forEach(([i,j])=>{const p=P[i],q=P[j];x.globalAlpha=.3+.55*((p[2]+q[2])/4+.5);x.beginPath();x.moveTo(p[0],p[1]);x.lineTo(q[0],q[1]);x.stroke()});
+  P.forEach(p=>{x.globalAlpha=.45+.55*(p[2]/2+.5);x.beginPath();x.arc(p[0],p[1],1.5*(1+p[2]*.15),0,7);x.fill()});x.globalAlpha=1}
+// one loop while a card is open, drawing only the icons on screen
+function icoLoop(t){if(!sheetOpen){icoRun=false;return}const dt=icoLast?Math.min(100,t-icoLast):0;icoLast=t;if(!icoStill())icoSpin+=dt/10000*Math.PI*2;
+  const H=innerHeight;document.querySelectorAll('#sheet .gico canvas').forEach(c=>{const r=c.getBoundingClientRect();if(r.bottom>0&&r.top<H)icoDraw(c,icoSpin,icoTilt(icoSpin))});
+  requestAnimationFrame(icoLoop)}
+const icoStart=()=>{if(!icoRun){icoRun=true;icoLast=0;requestAnimationFrame(icoLoop)}};
+const graphIconHTML=r=>{const k=artKey(artName(r.artist));return isVarious(k)?'':`<button class="gico" data-gart="${esc(k)}" aria-label="Open ${esc(artName(r.artist))} in the artist graph"><canvas aria-hidden="true"></canvas></button>`};
+/* tapping the icon: the ball spins up and its twelve nodes shoot out across the screen, trailing vectors back to the icon;
+   a dark veil hides the step from card to graph, and the nodes swing in and land where the real graph's nodes sit.
+   go() opens the graph page under it. Tapping skips to the end; with reduced motion the graph just opens */
+function graphBurst(ox,oy,go){
+  if(icoStill()){go();return}
+  const c=document.createElement('canvas'),d=devicePixelRatio||1,W=innerWidth,H=innerHeight;c.className='gburst';c.width=W*d;c.height=H*d;document.body.appendChild(c);
+  const x=c.getContext('2d'),ink=cssVar('--ink')||'#ececec',hl=cssVar('--hl')||'#c6ff00',bg=cssVar('--bg')||'#050505',mute=cssVar('--mute')||'#7d7d7d';x.setTransform(d,0,0,d,0,0);
+  const a0=icoSpin,b0=icoTilt(icoSpin),t0=performance.now(),T1=430,T2=1020,ease=t=>1-Math.pow(1-t,3),eio=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
+  let tg=null,swapped=false,end=false;
+  const swap=()=>{if(swapped)return;swapped=true;go();const sv=$('#gsvg');if(!sv)return;
+    // settle the real graph at once, hidden, to know where its nodes sit on screen
+    cancelAnimationFrame(grAnim);const to=grLayout(grCenter);grPos=to;grAlpha={};Object.keys(to).forEach(k=>grAlpha[k]=1);grDraw(grPos,grAlpha);sv.style.visibility='hidden';
+    const r=sv.getBoundingClientRect(),sc=r.width/GW,at=p=>({x:r.left+p.x*sc,y:r.top+p.y*sc});
+    tg={c:at(to[grCenter]),pts:[at(to[grCenter]),...Object.keys(to).filter(k=>k!=grCenter).map(k=>at(to[k]))]}};
+  const finish=()=>{if(end)return;end=true;swap();const sv=$('#gsvg');if(sv)sv.style.visibility='';c.remove()};
+  c.onclick=finish;
+  function step(t){if(end)return;const e=t-t0;
+    const sp=a0+e/1000*7,P=ICO.V.map(v=>icoRot(v,sp,b0)),k=Math.min(1,e/T1),R=13+ease(k)*Math.min(W,H)*.62;
+    let pos=P.map(([X,Y,Z])=>({x:ox+X*R,y:oy+Y*R*1.2,z:Z,f:0}));
+    if(e>=T1-30)swap();
+    const u=e>T1&&tg?eio(Math.min(1,(e-T1)/(T2-T1))):0;
+    if(u>0)pos=pos.map((p,i)=>{const q=tg.pts[i]||tg.c,f=tg.pts[i]?0:u;return {x:p.x+(q.x-p.x)*u,y:p.y+(q.y-p.y)*u,z:p.z*(1-u),f}});
+    x.clearRect(0,0,W,H);
+    const veil=e<T1-130?0:e<T1?(e-(T1-130))/130:Math.max(0,1-(e-T1)/300);
+    if(veil>0){x.globalAlpha=veil;x.fillStyle=bg;x.fillRect(0,0,W,H)}
+    x.lineCap='round';x.strokeStyle=ink;
+    // vectors back to the icon, and the ball's own links, fading as the nodes land
+    x.lineWidth=1;pos.forEach(p=>{x.globalAlpha=(1-u)*(.25+.35*(1-k));x.beginPath();x.moveTo(ox,oy);x.lineTo(p.x,p.y);x.stroke()});
+    x.lineWidth=1.2;ICO.E.forEach(([i,j])=>{const p=pos[i],q=pos[j];x.globalAlpha=(1-u)*.55*(1-k*.35)*(1-Math.max(p.f,q.f));x.beginPath();x.moveTo(p.x,p.y);x.lineTo(q.x,q.y);x.stroke()});
+    // the graph's spokes grow in from the centre node
+    if(u>0){x.strokeStyle=mute;x.lineWidth=1.5;pos.forEach((p,i)=>{if(!i||p.f)return;x.globalAlpha=u;x.beginPath();x.moveTo(pos[0].x,pos[0].y);x.lineTo(p.x,p.y);x.stroke()})}
+    pos.forEach((p,i)=>{const r=Math.max(1.6,2.6+(1-u)*(p.z+1)*1.3+(i==0?10*u:5*u));x.globalAlpha=1-p.f;x.beginPath();x.arc(p.x,p.y,r,0,7);
+      if(i==0&&u>.3){x.fillStyle=hl;x.fill()}else if(i&&u>.6){x.fillStyle=bg;x.fill();x.strokeStyle=hl;x.lineWidth=2;x.stroke()}else{x.fillStyle=ink;x.fill()}});
+    x.globalAlpha=1;
+    if(e>=T2){finish();return}
+    requestAnimationFrame(step)}
+  requestAnimationFrame(step);
 }
 function artistsHTML(){
   return `<div class="seg gmode" role="tablist">${['graph','quiz'].map(k=>`<button class="${grMode==k?'on':''}" data-gmode="${k}" role="tab" aria-selected="${grMode==k}">${k=='graph'?'Graph':'Quiz'}</button>`).join('')}</div>`+
@@ -2376,7 +2415,7 @@ let sheetOpen=false;
 let sheetDraw=null,sheetDirty=false;
 const refresh=()=>{if(sheetOpen&&sheetDraw){sheetDirty=true;sheetDraw()}else render()};
 // a sheet always opens at its top, not where the last one was left scrolled
-function showSheet(){$('#sheet').classList.add('open');if(!sheetOpen){$('#sheetbody').scrollTop=0;try{history.pushState({sheet:1,...navState()},'')}catch(e){}}sheetOpen=true}
+function showSheet(){icoStart();$('#sheet').classList.add('open');if(!sheetOpen){$('#sheetbody').scrollTop=0;try{history.pushState({sheet:1,...navState()},'')}catch(e){}}sheetOpen=true}
 function sheetGone(){listenStop();saveNow();if(!sheetOpen)return false;sheetOpen=false;sheetDraw=null;$('#sheet').classList.remove('open','full');
   if(sheetDirty){sheetDirty=false;render()}return true}
 function closeSheet(){if(sheetGone())try{if(history.state&&history.state.sheet)history.back()}catch(e){}}
@@ -2471,8 +2510,8 @@ document.addEventListener('click',e=>{
   else if(d.qplace){placeSheet()}
   else if(d.share){shareSheet(d.share)}
   else if(d.fltopen){filterPage()}
-  else if(d.gart){const id='a:'+d.gart;if(!grData().n.has(id))return;const b=t.getBoundingClientRect();
-    pixWave(b.left+b.width/2,b.top+b.height/2,()=>{
+  else if(d.gart){const id='a:'+d.gart;if(!grData().n.has(id))return;const b=t.getBoundingClientRect();t.style.visibility='hidden';  // the ball becomes the explosion
+    graphBurst(b.left+b.width/2,b.top+b.height/2,()=>{
       if(grTrail[grTrail.length-1]!=id){grTrail=[...grTrail.filter(x=>x!=id),id].slice(-5)}grCenter=id;grPage=0;grSave();
       grMode='graph';try{localStorage.setItem('vinylGraphMode','graph')}catch(e){}
       view='ex';exTab='graph';qOrder=[];sheetGone();try{history.replaceState(navState(),'')}catch(e){}navKeyLast=navKey();render();window.scrollTo(0,0)})}
