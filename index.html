@@ -283,6 +283,24 @@ label.ck input{width:20px;height:20px}
 .srow{display:grid;grid-template-columns:12px 1fr auto;gap:8px;align-items:center;padding:7px 0;border-top:1px solid var(--line);font-size:12px}
 .srow:first-of-type{border-top:0}.srow .sw{width:10px;height:10px;border:1px solid var(--line2)}
 .srow em{display:block;font-style:normal;color:var(--mute);font-size:11px}.srow b{font-variant-numeric:tabular-nums}
+/* Data page */
+.dkv{display:grid;grid-template-columns:1fr auto;gap:6px 12px;font-size:13px}.dkv span{color:var(--mute)}.dkv b{font-family:var(--mono)}
+.dimp{display:flex;gap:12px;align-items:flex-start;padding:12px 0 4px;border-top:1px solid var(--line)}.dimp div{flex:1;min-width:0}.dimp b{display:block;font:700 13px/1.3 var(--mono)}
+.dimp span{display:block;margin-top:3px;color:var(--mute);font-size:13px;line-height:1.5}.dimp .chip{flex:none}
+.dsw{display:flex;gap:12px;align-items:flex-start;margin-top:16px}.dsw div{flex:1}.dsw b{display:block;font:700 13px/1.3 var(--mono)}.dsw span{display:block;margin-top:3px;color:var(--mute);font-size:13px;line-height:1.5}
+.tog{flex:none;position:relative;width:46px;height:26px;padding:0;background:transparent;border:2px solid var(--y)}.tog::after{content:"";position:absolute;top:3px;left:23px;width:16px;height:16px;background:var(--y)}
+.tog.off{border-color:var(--line2)}.tog.off::after{left:3px;background:var(--line2)}
+.lkr{border-top:1px solid var(--line);padding:2px 0 10px}.lkr:first-of-type{margin-top:12px}
+.lkh{display:flex;justify-content:space-between;align-items:baseline;gap:10px;width:100%;padding:10px 0 0;background:none;border:0;color:var(--ink);text-align:left}
+.lkh b{font:700 13px/1.3 var(--mono)}.lkh span{color:var(--mute);font:500 11px/1.3 var(--mono);white-space:nowrap}
+.lkh::after{content:"+";margin-left:6px;color:var(--mute);font:700 13px/1 var(--mono)}.lkr.open .lkh::after{content:"−"}
+.lkb{height:5px;margin-top:7px;background:var(--line)}.lkb i{display:block;height:100%;background:var(--y);transition:width .4s}
+.lkr.run .lkb i{background:repeating-linear-gradient(135deg,var(--y) 0 4px,transparent 4px 8px);background-size:11.3px 11.3px;animation:lkmv 1s linear infinite}
+@keyframes lkmv{to{background-position:11.3px 0}}
+.lkd{margin:4px 0 0;color:var(--mute);font-size:11px}
+.lkx{display:none;padding-top:6px}.lkr.open .lkx{display:block}.lkx .btn{margin-bottom:0}
+.more.locs{margin:26px 0 0;border-top:2px solid var(--bd);padding-top:12px}.more.locs summary{font:700 12px/1 var(--mono);text-transform:uppercase;letter-spacing:.16em;color:var(--hl-t)}
+.dzone{margin-top:26px;padding:4px 12px 12px;border:1px solid var(--red)}.dzone .dh{margin-top:12px;color:var(--red)}.dzone .dh::after{background:var(--red)}
 .smeter{height:10px;margin:8px 0 4px;border:1px solid var(--line2)}.smeter i{display:block;height:100%;background:var(--y)}
 .smeter.hi i{background:var(--p)}
 .smk{display:flex;justify-content:space-between;color:var(--mute);font-size:11px}
@@ -380,7 +398,7 @@ label.ck input{width:20px;height:20px}
 <div id="sheet"><div id="sheetbody"></div></div>
 
 <script>
-const APP_VERSION=71,APP_DATE='25 Nov 2026';
+const APP_VERSION=72,APP_DATE='25 Nov 2026';
 const COVER_CACHE='vinyl-covers-2'; // must match COVERS in sw.js
 const DEFAULT_LOCS=[
  {id:'kallax',name:'Kallax shelf',mode:'grid',cols:3,rows:4,cap:0,formats:['lp']},
@@ -450,12 +468,12 @@ async function storageHTML(){
   const cv='caches' in window?await cacheSize(COVER_CACHE):{n:0,b:0};
   let app=0;try{for(const k of await caches.keys())if(k!==COVER_CACHE)app+=(await cacheSize(k)).b}catch(e){}
   let est=null,pers=null;try{est=await navigator.storage.estimate()}catch(e){}try{pers=await navigator.storage.persisted()}catch(e){}
-  const u=getUndo(),undoB=g('vinylUndo'),lk=['vinylCov','vinylMbRel','vinylOyNone'];
+  const u=getUndo(),undoB=g('vinylUndo'),lk=['vinylCov','vinylMbRel','vinylOyNone','vinylArt','vinylPlace','vinylEvt'];
   const parts=[
     ['Album covers',`${cv.n} image${cv.n==1?'':'s'}`,cv.b,'var(--az)'],
     ['Records',`${recs.length.toLocaleString('en')} records, places, plays, tempos`,g('vinylRecs2'),'var(--y)'],
     ['Undo copy',!u?'None at the moment':undoB?`From the ${u.what=='clear'?'clear':'import'} on ${when(u.at)}`:'Too big to keep; lost when the app closes',undoB,'var(--mute)'],
-    ['Lookups','Cover links, MusicBrainz links, original years',g(...lk),'var(--p)'],
+    ['Lookups','Artists, places and events, cover and MusicBrainz links, original years (credits and samples are kept with the records)',g(...lk),'var(--p)'],
     ['App files','The saved copy for offline use',app,'var(--ink)'],
     ['Concerts and settings',`${gigs.length} concert${gigs.length==1?'':'s'}, ${locs.length} storage location${locs.length==1?'':'s'}`,lsTot-g('vinylRecs2','vinylUndo',...lk),'var(--line2)']];
   const sum=parts.reduce((t,x)=>t+x[2],0),tot=est&&est.usage>sum?est.usage:sum,pct=lsTot/LS_LIMIT;
@@ -467,14 +485,11 @@ async function storageHTML(){
     `<div class="smeter${pct>=.8?' hi':''}"><i style="width:${Math.min(100,pct*100).toFixed(1)}%"></i></div><div class="smk"><span>${fmtB(lsTot)} used</span><span>about 5 MB</span></div>`;
   if(u&&!undoB)h+=`<div class="box warn">The undo copy didn't fit, so it's only kept until the app closes.</div>`;
   if(pct>=.8)h+=`<div class="box warn"><b>${pct>=.95?'Almost full':'Getting full'}.</b>${undoB?` Dropping the undo copy frees ${fmtB(undoB)}.`:''} When it's full, changes can't be saved.</div>`;
-  h+=`<div class="chips">${u?'<button class="chip" id="sdu">Drop undo copy</button>':''}${cv.n?'<button class="chip" id="scc">Clear saved covers</button>':''}</div>`;
   return h;
 }
 let storRun=0;
 async function fillStorage(){
   const n=++storRun,h=await storageHTML(),el=$('#stor');if(!el||n!=storRun)return;el.innerHTML=h;
-  if($('#sdu'))$('#sdu').onclick=async()=>{if(!await ask('Drop the undo copy? You can no longer undo the last import or clear.','Drop undo copy',true))return;dropUndo();dataView('Undo copy dropped.')};
-  if($('#scc'))$('#scc').onclick=clearCovers;
 }
 async function clearCovers(){cov={};saveCov();try{await caches.delete(COVER_CACHE)}catch(e){}dataView('Saved covers cleared. They will be fetched again as you browse.')}
 function load(){
@@ -836,7 +851,7 @@ function recHTML(r,lead='',extra=''){
 function matches(){
   const w=qWords(),fo=view=='fav';
   const m=recs.filter(r=>(fo?inSelTab(r)&&fmtOK(r,rf.cat)&&(rf.gen=='all'||gkey(r)==rf.gen):fMatch(r))&&w.every(x=>r.k.includes(x))).sort((a,b)=>a.sk<b.sk?-1:a.sk>b.sk?1:0);
-  // on the Selected page, placed records follow storage: location (in the Data tab's order), section, then position;
+  // on the Selected page, placed records follow storage: location (in the Storage tab's order), section, then position;
   // records not placed come after, alphabetically
   if(fo){const li=new Map(locs.map((l,i)=>[l.id,i])),k=r=>placed(r)&&li.has(r.loc)?[li.get(r.loc),+r.section||0,+r.pos||0]:[1e9,0,0];
     m.sort((a,b)=>{const x=k(a),y=k(b);return x[0]-y[0]||x[1]-y[1]||x[2]-y[2]})}
@@ -1032,8 +1047,11 @@ function render(){
         <div class="count">${all.length} record${all.length==1?'':'s'} in ${esc(l.name)}</div>`+
         (all.length?all.slice(0,lim).map(r=>recHTML(r)).join('')+(all.length>lim?'<button class="btn" data-more="1">Show more</button>':''):'<div class="empty">Nothing here yet.</div>');
       }
-    }else h='<div class="empty">No storage locations. Add one in the Data tab.</div>';
+    }else h='<div class="empty">No storage locations yet.</div>';
+    h+=`<details class="more locs"${l?'':' open'}><summary>Edit storage locations</summary>`+locs.map(x=>`<button class="rec" data-el="${esc(x.id)}"><div class="t"><b>${esc(x.name)}</b><span class="s">${single(x)?'One compartment':x.mode=='units'?`${x.cols*stk(x)} units × ${x.rows} shelves · ${x.w} × ${x.h} × ${x.d} cm`:x.mode=='drawers'?`${x.cols} × ${x.rows} drawers · ${x.w} × ${x.h} × ${x.d} cm`:`${x.cols} × ${x.rows} sections`}${x.cap?`, ${x.cap} per ${single(x)?'case':unitOf(x)}`:''}</span></div><span class="tag">Edit</span></button>`).join('')+
+      `<button class="btn" id="addloc">Add storage location</button></details>`;
     app.innerHTML=h;
+    $('#addloc').onclick=()=>locSheet(null);
   }else if(view=='ex')exploreView();
   else dataView();
 }
@@ -1128,7 +1146,7 @@ new MutationObserver(()=>covScan()).observe(document.getElementById('app'),{chil
    retries when a service asks it to slow down, saves as it goes, and keeps the screen on while it works */
 function jobRunner(o){
   const st=o.st;
-  const ui=()=>{const e=document.getElementById(o.prog);if(e)e.textContent=o.text();const b=document.getElementById(o.btn);if(b)b.textContent=st.run?'Pause':o.label};
+  const ui=()=>{const e=document.getElementById(o.prog);if(e)e.textContent=o.text();const b=document.getElementById(o.btn);if(b)b.textContent=st.run?'Pause':o.label;lkRefresh()};
   const saveAll=()=>{save();if(o.saveMore)o.saveMore()};
   async function run(){
     if(st.run){st.stop=true;st.msg='Pausing...';ui();return}
@@ -1162,8 +1180,9 @@ let oyNone={};try{oyNone=JSON.parse(localStorage.getItem('vinylOyNone')||'{}')}c
 const saveOyNone=()=>{try{localStorage.setItem('vinylOyNone',JSON.stringify(oyNone))}catch(e){}};
 const oyState={run:false,stop:false,done:0,total:0,found:0,msg:''};
 function oyTodo(){const seen=new Set(),out=[];
+  const has=new Set();recs.forEach(r=>{if(oyOK(r.oy))has.add(ridOf(r))});
   recs.forEach(r=>{const rid=ridOf(r);if(seen.has(rid))return;seen.add(rid);
-    if(oyOK(r.oy)||recs.some(x=>ridOf(x)==rid&&oyOK(x.oy)))return;
+    if(has.has(rid))return;
     if(oyNone[rid]&&Date.now()-oyNone[rid]<30*864e5)return;out.push(r)});return out}
 async function findOrig(r){
   const rid=ridOf(r),yr=parseInt(r.year);let d='';
@@ -2070,10 +2089,56 @@ function artistsMount(){if(grMode=='quiz')qzDraw();else grMount()}
 function grOpen(id){if(!grData().n.has(id))return;
   if(grTrail[grTrail.length-1]!=id)grTrail=[...grTrail.filter(x=>x!=id),id].slice(-5);
   grCenter=id;grPage=0;grSave();grMode='graph';try{localStorage.setItem('vinylGraphMode','graph')}catch(e){}render();window.scrollTo(0,0)}
+let dTab='col';try{dTab=localStorage.getItem('vinylDataTab')||'col'}catch(e){}
+const lkOpen=new Set();let lkAll=false;
+function lkStats(){
+  const rids=new Set(),albums=new Set(),done={dg:0,oy:0,sm:new Set()},oyHas=new Set(),bp12=new Set(),bpDone=new Set();
+  recs.forEach(r=>{const rid=ridOf(r),num=/^\d+$/.test(rid);if(num)rids.add(rid);if(oyOK(r.oy))oyHas.add(rid);
+    if(is12(r)&&num){bp12.add(rid);if(r.bpmD)bpDone.add(rid)}
+    if(!isVarious(artKey(artName(r.artist)))){const k=smKey(r);albums.add(k);if(r.smd)done.sm.add(k)}});
+  const dgDone=new Set(recs.filter(r=>r.dd&&r.crd).map(ridOf)).size,allR=new Set(recs.map(ridOf));
+  const oyDone=[...allR].filter(rid=>oyHas.has(rid)||(oyNone[rid]&&Date.now()-oyNone[rid]<30*864e5)).length;
+  const g=artGroups();let ad=0;g.forEach((o,k)=>{const a=arts[k];if(a&&(a.m?a.e:Date.now()-(a.n||0)<=60*864e5))ad++});
+  const pa=plcAreas(),pd=pa.filter(x=>x in plc.mb).length;
+  return [
+    {id:'dg',name:'Details from Discogs',done:dgDone,total:rids.size,unit:'releases',sec:2.5,st:dgState,run:dgRun,prog:'dgprog',btn:'dgb',label:'Fetch details from Discogs',text:dgText,
+      what:'The exact speed, genres, styles and country of each release, and who produced, remixed or featured on it.',
+      more:`Your Discogs export leaves out the speed. It's filled in where the format makes it clear (LP 33⅓, 7" 45, shellac 78); this looks up the rest, records with an unclear speed first. Records without a genre get the first Discogs genre. About 24 releases a minute; it keeps going where it left off and sends each record's Discogs number to Discogs.`},
+    {id:'ar',name:'Artist connections',done:ad,total:g.size,unit:'artists',sec:8,st:artState,run:artRun,prog:'arprog',btn:'arb',label:'Fetch artist connections',text:artText,
+      what:'Band members, groups, where artists come from, and the festivals and benefit concerts they played, for the Artists graph.',
+      more:`Looked up on MusicBrainz, most-collected artists first, at roughly an artist every five to ten seconds; it keeps going where it left off. An artist is found through one of your releases when it's linked to Discogs, otherwise by name, and only when exactly one artist has that name. This sends Discogs numbers and artist names to MusicBrainz.`},
+    {id:'pl',name:'Places and events',done:pd,total:pa.length,unit:'places',sec:.5,st:null,prog:'plprog',btn:'plb',label:'Connect places and events',text:plcText,dep:'Runs by itself after artist connections',
+      what:'Which region, state and country each place is in (Amityville is on Long Island, in New York), and what artists took part in, such as Live Aid.',
+      more:`From Wikidata, a minute or so at a time. It sends only place and artist ids to Wikidata.`},
+    {id:'sm',name:'Samples',done:done.sm.size,total:albums.size,unit:'albums',sec:7,st:smState,run:smRun,prog:'smprog',btn:'smb',label:'Fetch samples',text:smText,
+      what:'Which tracks your records sample, and who sampled them, for the Artists graph.',
+      more:`Looked up on MusicBrainz one album at a time (one pressing of each), hip hop, electronic and dance first; it keeps going where it left off. MusicBrainz knows samples well for well-known hip hop and electronic records and less elsewhere. This sends Discogs numbers, artist names and titles to MusicBrainz.`},
+    {id:'oy',name:'Original release year',done:oyDone,total:allR.size,unit:'releases',sec:2.2,st:oyState,run:oyRun,prog:'oyprog',btn:'oyb',label:'Fetch original years',text:oyText,
+      what:'The year each album first came out, shown in bold on the cards.',
+      more:`The Released year from Discogs is the year of your pressing. This looks it up on MusicBrainz at about one record every two seconds, keeps going where it left off, and sends a record's Discogs number, and sometimes its artist and title, to MusicBrainz.`},
+    {id:'bp',name:'Tempo for 12" singles',done:bpDone.size,total:bp12.size,unit:'12"s',sec:8,st:bpState,run:bpmRun,prog:'bpprog',btn:'bpb',label:'Fetch tempos',text:bpText,
+      what:'A suggested tempo for each track on your 12" singles and EPs.',
+      more:`Measured BPM from AcousticBrainz (through MusicBrainz) and Deezer's BPM by artist and title. Expect about half of them to be found, and some to be half or double the real tempo or from another mix, so check them on the record sheet, where you can also tap along or let it listen. It takes about 8 seconds a record, keeps going where it left off, and sends each record's Discogs number to Discogs and MusicBrainz and its artist and track titles to Deezer.`}
+  ].map(x=>({...x,left:Math.max(0,x.total-x.done)}));
+}
+function lkSummary(){const L2=lkStats(),tot=L2.reduce((t,x)=>t+x.total,0),dn=L2.reduce((t,x)=>t+Math.min(x.done,x.total),0),h=L2.reduce((t,x)=>t+x.left*x.sec,0)/3600;
+  return `${tot?Math.floor(dn/tot*100):100}% done overall${h>0.02?`, about ${h<1.5?Math.max(1,Math.round(h*60))+' minutes':Math.round(h*10)/10+' hours'} left`:''}. ${lkAll?'Updating: keep the app open; it picks up where it stopped.':'Update everything runs them in this order, and picks up where it stopped.'}`}
+// bars and counts follow the running lookup without redrawing the page
+let lkT=0;function lkRefresh(){if(view!='data'||dTab!='lk'||!$('#lksum'))return;const now=Date.now();if(now-lkT<800)return;lkT=now;
+  lkStats().forEach(x=>{const n=$('#lkn-'+x.id),b=$('#lkb-'+x.id),r=$('#lk-'+x.id);if(n)n.textContent=`${x.done.toLocaleString('en')} / ${x.total.toLocaleString('en')} ${x.unit}`;
+    if(b)b.style.width=(x.total?Math.max(1.5,x.done/x.total*100):0)+'%';if(r)r.classList.toggle('run',!!(x.st&&x.st.run))});
+  $('#lksum').textContent=lkSummary();const a=$('#lkall');if(a)a.textContent=lkAll?'Pause updating':'Update everything'}
+// Update everything: each lookup in turn, stopping when one is paused or can't reach its service
+async function runAll(){
+  if(lkAll){lkAll=false;lkStats().forEach(x=>{if(x.st&&x.st.run)x.run()});lkT=0;lkRefresh();return}
+  lkAll=true;lkT=0;lkRefresh();
+  for(const x of lkStats()){if(!lkAll)break;if(!x.st||!x.left)continue;
+    await x.run();if(/Paused|Could not|busy/i.test(x.st.msg||''))break}
+  lkAll=false;lkT=0;if(view=='data'&&dTab=='lk')dataView()}
 function dataView(msg=''){
   setH('Data');
-  let h=`<p class="mute">${recs.length} records · ${recs.filter(placed).length} placed · ${recs.filter(r=>r.genre).length} with a genre · ${recs.filter(r=>r.fav).length} selected</p><!--msg-->`;
-  const u=!staged&&getUndo();
+  let h='<!--msg-->';
+  const u=!staged&&dTab=='col'&&getUndo();  // the undo box sits on Collection, with the imports
   if(u)h+=`<div class="box"><b>${u.what=='clear'?'Records cleared':'Collection imported'} on ${when(u.at)}</b>${u.note?`<p>${esc(u.note)}</p>`:''}<p>Undo puts back the ${u.n} record${u.n==1?'':'s'} you had before${u.what=='clear'?'':' the import'}, with their locations, selections and notes.</p>
     <div class="chips" style="margin-bottom:0"><button class="chip on" id="und">Undo ${u.what=='clear'?'clear':'import'}</button><button class="chip" id="undx">Keep it</button></div></div>`;
   if(staged){
@@ -2094,45 +2159,37 @@ function dataView(msg=''){
       `<button class="btn pri" id="go">${g.length?`Import ${n} and remove ${g.length}`:`Import ${n} records`}</button><button class="btn" id="no">Cancel</button>`;
   }else{
     const sec=t=>`<h2 class="dh">${t}</h2>`,more=t=>`<details class="more"><summary>More</summary><p>${t}</p></details>`;
-    h+=sec('Collection')+
-    `<label>Import (CSV)</label><p class="mute">Your Discogs export, or a CSV exported from this app. Records you have already set up keep their location, genre, comment and selection.</p>
-    ${more(`Label, catalogue number, rating, folder, where and when you bought it, price, condition and Discogs notes are read too, along with Genre, Comment, Selected, Last played, Plays and Play next from this app's own export. A record without a genre gets one from its Discogs folder when the folder names a genre. Two copies of the same release are told apart by their Date Added.`)}
-    <input type="file" id="file" accept=".csv,text/csv,text/plain" hidden><button class="btn pri" id="imp">Choose CSV file</button>
-    <label>Back up</label><p class="mute">A CSV with every record's location, genre, comment, selection and plays. You can import it again later.</p>
-    <button class="btn" id="exp">Export CSV</button><button class="btn dng" id="clr">Clear all records</button>`+
-    sec('Storage')+
-    locs.map(l=>`<button class="rec" data-el="${esc(l.id)}"><div class="t"><b>${esc(l.name)}</b><span class="s">${single(l)?'One compartment':l.mode=='units'?`${l.cols*stk(l)} units × ${l.rows} shelves · ${l.w} × ${l.h} × ${l.d} cm`:l.mode=='drawers'?`${l.cols} × ${l.rows} drawers · ${l.w} × ${l.h} × ${l.d} cm`:`${l.cols} × ${l.rows} sections`}${l.cap?`, ${l.cap} per ${single(l)?'case':unitOf(l)}`:''}</span></div><span class="tag">Edit</span></button>`).join('')+
-    `<button class="btn" id="addloc">Add storage location</button>`+
-    sec('Lookups')+
-    `<label>Album covers</label><p class="mute">Looked up as records scroll into view, and saved on this phone.</p>
-    ${more(`Covers come from MusicBrainz and the Cover Art Archive. This sends a record's Discogs number, and sometimes its artist and title, to those sites.`)}
-    <div class="chips" style="margin-top:0"><button class="chip${covOn()?' on':''}" id="cvt">${covOn()?'Covers on':'Covers off'}</button><button class="chip" id="cvd">Test lookup</button><button class="chip" id="cvc">Refetch all</button></div>
-    <p class="mute" id="cvmsg"></p>
-    <label>Details from Discogs</label><p class="mute">The exact speed, genres, styles and country of each release, and who produced, remixed or featured on it (for the Artists graph).</p>
-    ${more(`Your Discogs export leaves out the speed. It's filled in where the format makes it clear (LP 33⅓, 7" 45, shellac 78); this looks up the rest, records with an unclear speed first. Records without a genre get the first Discogs genre. It runs at about 24 records a minute, keeps going where it left off, and sends each record's Discogs number to Discogs.`)}
-    <p class="mute" id="dgprog">${dgText()}</p><button class="btn" id="dgb">${dgState.run?'Pause':'Fetch details from Discogs'}</button>
-    <label>Tempo (BPM) for 12" singles</label><p class="mute">A suggested tempo for each track on your 12" singles and EPs.</p>
-    ${more(`Measured BPM from AcousticBrainz (through MusicBrainz) and Deezer's BPM by artist and title. Expect about half of them to be found, and some to be half or double the real tempo or from another mix, so check them on the record sheet, where you can also tap along or let it listen. It takes about 8 seconds a record, keeps going where it left off, and sends each record's Discogs number to Discogs and MusicBrainz and its artist and track titles to Deezer.`)}
-    <p class="mute" id="bpprog">${bpText()}</p><button class="btn" id="bpb">${bpState.run?'Pause':'Fetch tempos'}</button>
-    <label>Original release year</label><p class="mute">The year each album first came out, shown in bold on the cards.</p>
-    ${more(`The Released year from Discogs is the year of your pressing. This looks it up on MusicBrainz at about one record every two seconds, keeps going where it left off, and sends a record's Discogs number, and sometimes its artist and title, to MusicBrainz.`)}
-    <p class="mute" id="oyprog">${oyText()}</p><button class="btn" id="oyb">${oyState.run?'Pause':'Fetch original years'}</button>
-    <label>Artist connections</label><p class="mute">Band members, groups and where artists come from, for the Artists graph under Explore.</p>
-    ${more(`Looked up on MusicBrainz, most-collected artists first, at roughly an artist every five to ten seconds (a few hours for a big collection), and it keeps going where it left off. An artist is found through one of your releases when it's linked to Discogs, otherwise by name, and only when exactly one artist has that name. This sends Discogs numbers and artist names to MusicBrainz. Places are then connected through Wikidata, which knows that Amityville is in Suffolk County, on Long Island, in New York; that runs by itself after a lookup, takes a minute or so, and sends only place ids to Wikidata.`)}
-    <p class="mute" id="arprog">${artText()}</p><button class="btn" id="arb">${artState.run?'Pause':'Fetch artist connections'}</button>
-    <p class="mute" id="plprog" style="margin-top:12px">${plcText()}</p><button class="btn" id="plb">Connect places and events</button>
-    <label>Samples</label><p class="mute">Which tracks your records sample, and who sampled them, for the Artists graph.</p>
-    ${more(`Looked up on MusicBrainz one album at a time (one pressing of each), hip hop, electronic and dance first, at roughly an album every five to ten seconds; it keeps going where it left off. MusicBrainz knows samples well for well-known hip hop and electronic records and less elsewhere. This sends Discogs numbers, artist names and titles to MusicBrainz.`)}
-    <p class="mute" id="smprog">${smText()}</p><button class="btn" id="smb">${smState.run?'Pause':'Fetch samples'}</button>`+
-    sec('Concerts')+
-    `<p class="mute">The concerts you've marked as attended on setlist.fm, shown as LIVE tags, on the record sheet and in Explore → Live.</p>
-    ${more(`setlist.fm doesn't let web apps fetch them, so run <b>tools/setlistfm_export.py</b> on a computer (see the README) and choose the CSV it writes. Importing again replaces the list.`)}
-    <p class="mute" id="gigmsg">${gigs.length?`${gigs.length} concerts imported. ${recs.filter(r=>gigsFor(r).length).length} of your records are by artists you've seen live.`:'No concerts imported yet.'}</p>
-    <input type="file" id="gfile" accept=".csv,text/csv,text/plain" hidden><button class="btn" id="gimp">Choose concerts CSV</button>${gigs.length?'<button class="btn dng" id="gclr">Remove concerts</button>':''}`+
-    sec('App')+`<label>Phone storage</label><div id="stor"><p class="mute">Measuring…</p></div>`;
+    h+=`<div class="seg" role="tablist" style="margin:12px 0 4px">${[['col','Collection'],['lk','Lookups'],['app','App']].map(([k,t])=>`<button class="${dTab==k?'on':''}" data-dtab="${k}" role="tab" aria-selected="${dTab==k}">${t}</button>`).join('')}</div>`;
+    if(dTab=='col'){
+      const pl=recs.filter(placed).length,gn=recs.filter(r=>r.genre).length,sl=recs.filter(r=>r.fav).length;
+      h+=sec('Collection')+`<div class="dkv"><span>Records</span><b>${recs.length.toLocaleString('en')}</b><span>Placed</span><b>${pl.toLocaleString('en')}</b><span>With a genre</span><b>${gn.toLocaleString('en')}</b><span>Selected</span><b>${sl}</b><span>Concerts</span><b>${gigs.length}</b></div>`+
+      sec('Import')+
+      `<div class="dimp"><div><b>Records (CSV)</b><span>Your Discogs export, or a backup from this app. Records you have already set up keep their location, genre, comment and selection.</span></div><button class="chip" id="imp">Choose</button></div>
+      ${more(`Label, catalogue number, rating, folder, where and when you bought it, price, condition and Discogs notes are read too, along with Genre, Comment, Selected, Last played, Plays and Play next from this app's own export. A record without a genre gets one from its Discogs folder when the folder names a genre. Two copies of the same release are told apart by their Date Added.`)}
+      <div class="dimp"><div><b>Concerts (CSV)</b><span id="gigmsg">${gigs.length?`${gigs.length} concerts imported. ${recs.filter(r=>gigsFor(r).length).length} of your records are by artists you've seen live.`:'Concerts you marked as attended on setlist.fm. None imported yet.'}</span></div><button class="chip" id="gimp">Choose</button></div>
+      ${more(`setlist.fm doesn't let web apps fetch them, so run <b>tools/setlistfm_export.py</b> on a computer (see the README) and choose the CSV it writes. Importing again replaces the list. They show as LIVE tags, on the record sheet, in Explore → Live and in the Artists graph.`)}
+      <input type="file" id="file" accept=".csv,text/csv,text/plain" hidden><input type="file" id="gfile" accept=".csv,text/csv,text/plain" hidden>`+
+      sec('Back up')+`<p class="mute">A CSV with every record's location, genre, comment, selection and plays. You can import it again later.</p><button class="btn" id="exp">Export CSV</button>
+      <p class="mute" style="margin-top:16px">Storage locations are added and edited on the Storage tab.</p>`;
+    }else if(dTab=='lk'){
+      const L2=lkStats(),left=L2.reduce((t,x)=>t+x.left*x.sec,0)/3600;
+      h+=sec('Lookups')+`<p class="mute" id="lksum">${lkSummary()}</p>
+      <button class="btn pri" id="lkall">${lkAll?'Pause updating':'Update everything'}</button>
+      <div class="dsw"><div><b>Album covers</b><span>Looked up as records scroll into view, and saved on this phone. Covers come from MusicBrainz and the Cover Art Archive.</span></div><button class="tog${covOn()?'':' off'}" id="cvt" role="switch" aria-checked="${covOn()}" aria-label="Album covers"></button></div>
+      <div class="chips" style="margin:6px 0 0"><button class="chip" id="cvd">Test a cover lookup</button></div><p class="mute" id="cvmsg"></p>`+
+      L2.map(x=>`<div class="lkr${lkOpen.has(x.id)?' open':''}${x.st&&x.st.run?' run':''}" id="lk-${x.id}"><button class="lkh" data-lko="${x.id}" aria-expanded="${lkOpen.has(x.id)}"><b>${x.name}</b><span id="lkn-${x.id}">${x.done.toLocaleString('en')} / ${x.total.toLocaleString('en')} ${x.unit}</span></button>
+        <div class="lkb"><i id="lkb-${x.id}" style="width:${x.total?Math.max(1.5,x.done/x.total*100):0}%"></i></div>${x.dep?`<p class="lkd">${x.dep}</p>`:''}
+        <div class="lkx"><p class="mute">${x.what}</p>${more(x.more)}<p class="mute" id="${x.prog}">${x.text()}</p>${x.btn?`<button class="btn" id="${x.btn}">${x.st&&x.st.run?'Pause':x.label}</button>`:''}</div></div>`).join('');
+    }else{
+      const u=getUndo();
+      h+=sec('Phone storage')+`<div id="stor"><p class="mute">Measuring…</p></div>`+
+      sec('App')+`<p class="mute">Crate · version ${APP_VERSION} · ${APP_DATE}</p><button class="btn" id="upd">Check for updates</button><p class="mute" id="updmsg" style="min-height:1.4em"></p>
+      <div class="dzone"><h2 class="dh">Danger zone</h2><p class="mute">Each of these asks before it removes anything.</p>
+      ${u?'<button class="btn dng" id="dzu">Drop undo copy</button>':''}<button class="btn dng" id="scc">Clear saved covers</button>${gigs.length?'<button class="btn dng" id="gclr">Remove concerts</button>':''}<button class="btn dng" id="clr">Clear all records</button></div>`;
+    }
   }
   // messages from an import or a change show at the top of the tab
-  $('#app').innerHTML=h.replace('<!--msg-->',msg?`<div class="box">${esc(msg)}</div>`:'')+`<p class="mute ver">Crate · version ${APP_VERSION} · ${APP_DATE}</p><div class="chips" style="justify-content:center;margin:0"><button class="chip" id="upd">Check for updates</button></div><p class="mute" id="updmsg" style="text-align:center;min-height:1.4em"></p>`;
+  $('#app').innerHTML=h.replace('<!--msg-->',msg?`<div class="box">${esc(msg)}</div>`:'');
   if(msg)window.scrollTo(0,0);
   if($('#stor'))fillStorage();
   if(staged){
@@ -2141,34 +2198,30 @@ function dataView(msg=''){
     $('#go').onclick=()=>{const had=recs.length,m=finishImport();if(had){dataView();window.scrollTo(0,0)}else dataView(m)};
     $('#no').onclick=()=>{staged=null;dataView()};
   }else{
-    $('#imp').onclick=()=>$('#file').click();
-    $('#file').onchange=async e=>{const f=e.target.files[0];if(!f)return;
+    const on=(id,f)=>{const e=$('#'+id);if(e)e.onclick=f};
+    on('imp',()=>$('#file').click());
+    if($('#file'))$('#file').onchange=async e=>{const f=e.target.files[0];if(!f)return;
       const txt=await readText(f);
-      if(/(^|,)"?setlist id"?(,|\r?\n)/i.test(txt.split(/\r?\n/)[0]))return dataView('That is a concerts file. Choose it under Concerts instead.');
+      if(/(^|,)"?setlist id"?(,|\r?\n)/i.test(txt.split(/\r?\n/)[0]))return dataView('That is a concerts file. Choose it under Concerts (CSV) instead.');
       const r=stage(txt);
       if(!r||!r.length)return dataView('No records found. Check that the file has artist and title columns.');
       staged=r;dataView()};
-    $('#exp').onclick=exportCSV;
-    $('#gimp').onclick=()=>$('#gfile').click();
-    $('#gfile').onchange=async e=>{const f=e.target.files[0];if(!f)return;
+    on('exp',exportCSV);
+    on('gimp',()=>$('#gfile').click());
+    if($('#gfile'))$('#gfile').onchange=async e=>{const f=e.target.files[0];if(!f)return;
       const g=stageGigs(await readText(f));
       if(!g||!g.length)return dataView('No concerts found. Choose the CSV that tools/setlistfm_export.py writes.');
       gigs=g;saveGigs();const a=new Set(g.map(x=>akey(x.a))).size,m=recs.filter(r=>gigsFor(r).length).length;
       dataView(`Imported ${g.length} concerts by ${a} artists. ${m} of your records are by artists you've seen live.`)};
-    if($('#gclr'))$('#gclr').onclick=async()=>{if(!await ask('Remove all imported concerts? Your records are not affected.','Remove concerts',true))return;gigs=[];saveGigs();dataView('Concerts removed.')};
-    $('#oyb').onclick=oyRun;
-    $('#arb').onclick=artRun;
-    $('#plb').onclick=plcRun;
-    $('#smb').onclick=smRun;
-    $('#dgb').onclick=dgRun;
-    $('#bpb').onclick=bpmRun;
-    $('#upd').onclick=async()=>{$('#updmsg').textContent='Checking...';const m=await checkUpdate(true);if($('#updmsg'))$('#updmsg').textContent=m};
-    $('#cvt').onclick=()=>{try{localStorage.setItem('vinylCoverOff',covOn()?'1':'0')}catch(e){}dataView()};
-    $('#cvd').onclick=async()=>{$('#cvmsg').textContent='Testing...';const m=await covDiag();if($('#cvmsg'))$('#cvmsg').textContent=m};
-    $('#cvc').onclick=clearCovers;
-    $('#addloc').onclick=()=>locSheet(null);
-    $('#clr').onclick=async()=>{if(!recs.length||!await ask(`Delete all ${recs.length} records and their placements? You can undo this in the Data tab.`,'Clear all records',true))return;
-      setUndo('clear',`Cleared ${recs.length} records.`);recs=[];save();render();window.scrollTo(0,0)};
+    on('gclr',async()=>{if(!await ask('Remove all imported concerts? Your records are not affected.','Remove concerts',true))return;gigs=[];saveGigs();dataView('Concerts removed.')});
+    on('oyb',oyRun);on('arb',artRun);on('plb',plcRun);on('smb',smRun);on('dgb',dgRun);on('bpb',bpmRun);on('lkall',runAll);
+    on('upd',async()=>{$('#updmsg').textContent='Checking...';const m=await checkUpdate(true);if($('#updmsg'))$('#updmsg').textContent=m});
+    on('cvt',()=>{try{localStorage.setItem('vinylCoverOff',covOn()?'1':'0')}catch(e){}dataView()});
+    on('cvd',async()=>{$('#cvmsg').textContent='Testing...';const m=await covDiag();if($('#cvmsg'))$('#cvmsg').textContent=m});
+    on('scc',async()=>{if(!await ask('Clear the saved album covers? They are fetched again as you browse.','Clear saved covers',true))return;clearCovers()});
+    on('dzu',async()=>{if(!await ask('Drop the undo copy? You can no longer undo the last import or clear.','Drop undo copy',true))return;dropUndo();dataView('Undo copy dropped.')});
+    on('clr',async()=>{if(!recs.length||!await ask(`Delete all ${recs.length} records and their placements? You can undo this in the Data tab.`,'Clear all records',true))return;
+      setUndo('clear',`Cleared ${recs.length} records.`);recs=[];save();render();window.scrollTo(0,0)});
   }
   if($('#und'))$('#und').onclick=async()=>{const u=getUndo();
     if(!await ask(`Go back to the ${u.n} records you had before the ${u.what=='clear'?'clear':'import'} on ${when(u.at)}? Changes you made since then are lost.`,`Undo ${u.what=='clear'?'clear':'import'}`))return;
@@ -2406,7 +2459,7 @@ function openRecSheet(id){
   const body=$('#sheetbody');body.innerHTML='';
   const draw=sheetDraw=()=>{
     const st={lid,sec,cm,gn},h=recSheetHTML(r,st);
-    if(!h){body.innerHTML='<p>Add a storage location in the Data tab first.</p><button class="btn" id="cx">Close</button>';$('#cx').onclick=closeSheet;return}
+    if(!h){body.innerHTML='<p>Add a storage location on the Storage tab first.</p><button class="btn" id="cx">Close</button>';$('#cx').onclick=closeSheet;return}
     sec=st.sec;
     body.innerHTML=h;
     body.querySelectorAll('[data-pl]').forEach(b=>b.onclick=()=>{lid=b.dataset.pl;sec=null;draw()});
@@ -2458,7 +2511,7 @@ function placeSheet(){
   let lid=placed(f)?f.loc:defaultLoc(f)?.id,sec=placed(f)?f.section:null,pos=null;
   const body=$('#sheetbody');
   const draw=()=>{
-    const l=L(lid);if(!l){body.innerHTML='<p>Add a storage location in the Data tab first.</p><button class="btn" id="cx">Close</button>';$('#cx').onclick=closeSheet;return}
+    const l=L(lid);if(!l){body.innerHTML='<p>Add a storage location on the Storage tab first.</p><button class="btn" id="cx">Close</button>';$('#cx').onclick=closeSheet;return}
     if(single(l))sec=1;
     // positions count only the records that stay where they are; the numbered ones are taken out first
     const others=sec?inSlot(l.id,sec).filter(x=>!ids.has(x.id)):[],n=others.length;
@@ -2655,6 +2708,8 @@ document.addEventListener('click',e=>{
   else if(d.qplace){placeSheet()}
   else if(d.share){shareSheet(d.share)}
   else if(d.fltopen){filterPage()}
+  else if(d.dtab){dTab=d.dtab;try{localStorage.setItem('vinylDataTab',dTab)}catch(e){}dataView();window.scrollTo(0,0)}
+  else if(d.lko){const k=d.lko,r=$('#lk-'+k);lkOpen.has(k)?lkOpen.delete(k):lkOpen.add(k);if(r){r.classList.toggle('open');t.setAttribute('aria-expanded',lkOpen.has(k))}}
   else if(d.gart){const id='a:'+d.gart;if(!grData().n.has(id))return;const b=t.getBoundingClientRect();t.style.visibility='hidden';  // the ball becomes the explosion
     graphBurst(b.left+b.width/2,b.top+b.height/2,()=>{
       if(grTrail[grTrail.length-1]!=id){grTrail=[...grTrail.filter(x=>x!=id),id].slice(-5)}grCenter=id;grPage=0;grSave();

@@ -30,7 +30,7 @@ A small installable web app for keeping track of where your records and CDs are 
 - Stats: counts by format, speed, genre and decade, records added per year, how full each storage location is, and, when the Discogs export has them, your ratings, top labels, where you bought your records and what you spent.
 - Album covers from MusicBrainz and the Cover Art Archive replace the disc icon on the cards when one is found. They are fetched as you scroll, saved on the phone, and can be switched off in the Data tab.
 - Back up and restore with a CSV export that includes every record's location, genre, comment, selection and plays.
-- Data tab: grouped into Collection, Storage, Lookups, Concerts and App, with the longer explanations folded behind **More**. Deleting, clearing and undoing ask for confirmation in the app's own style.
+- Data tab: three tabs, and it remembers the one you had open. **Collection** shows the numbers at a glance, both imports (records CSV and concerts CSV), the backup export, and the Undo box right after an import. **Lookups** is one panel: **Update everything** runs every lookup in turn (Discogs details, artist connections, places and events, samples, original years, tempos), one row per lookup with a progress bar and count, a striped bar on the one running, and an overall time estimate; tap a row for its explanation and its own Start. Pausing stops it, and pressing it again picks up where it stopped. Album covers are an on/off switch at the top. **App** has the storage meter, the version and **Check for updates**, and a red **Danger zone** with every button that removes something (each asks first). Storage locations are added and edited on the Storage tab, under **Edit storage locations**.
 - Phone storage (Data → App): how much space Crate uses on the phone and how much the browser allows, split into album covers, records, the undo copy, lookups, app files, and concerts and settings. A meter shows the text storage, the roughly 5 MB that records, the undo copy, lookups and concerts share (covers and app files are kept apart). It warns when it's getting full, and offers **Drop undo copy** and **Clear saved covers**. If a change ever can't be saved because that space is full, the app says so instead of failing silently.
 - The MusicBrainz release linked to each Discogs release is remembered on the phone, so covers, original years and tempos don't look it up again.
 - Page headings are in Japanese (レコード Records, 収納 Storage, 選択 Selected, 探索 Explore, データ Data) with the English name as a small tag on the right; the tabs at the bottom stay in English.
@@ -81,7 +81,7 @@ setlist.fm doesn't allow web apps to call its API, so the concerts come in as a 
    ```
 
    It asks for the API key without showing it (or reads it from the `SETLISTFM_API_KEY` environment variable), and writes `setlistfm-concerts.csv`. The key is never saved.
-3. Move the file to your phone and import it in **Data → Concerts → Choose concerts CSV**. Importing again replaces the list, so re-run the script when you've been to more concerts.
+3. Move the file to your phone and import it in **Data → Collection → Concerts (CSV) → Choose**. Importing again replaces the list, so re-run the script when you've been to more concerts.
 
 Concerts are matched to records by artist name. Accents and a leading "The" are ignored, and a record by "A / B", "A & B" or "A feat. B" matches concerts by either artist. Concerts are stored apart from your collection and aren't in the collection CSV export; keep the setlist.fm CSV as their backup.
 
@@ -111,7 +111,7 @@ It then opens full screen like an app and works offline.
 | `sw.js` | Caches the app so it opens offline |
 | `icon-cyber-192.png`, `icon-cyber-512.png` | App icons |
 | `icon-cyber.svg` | Source drawing for the app icons |
-| `tools/setlistfm_export.py` | Exports your attended concerts from setlist.fm to a CSV for **Data → Concerts** |
+| `tools/setlistfm_export.py` | Exports your attended concerts from setlist.fm to a CSV for **Data → Collection → Concerts (CSV)** |
 
 There is no build step and there are no dependencies. You can also open `index.html` directly in a browser, without installing, though the home screen icon and offline mode need the hosted version.
 
