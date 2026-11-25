@@ -231,9 +231,15 @@ label.ck input{width:20px;height:20px}
 .shd b{display:block;font-size:14px;font-weight:700;line-height:1.3}
 .shd span.s{display:block;margin-top:2px;font-size:11px;color:var(--mute);letter-spacing:.02em}
 .shd .tw{display:block;margin-top:2px}
-/* the artist on a full card opens the Artists graph */
-.shd .artl{display:block;margin-top:2px;padding:0;background:none;border:0;color:var(--ink);font:inherit;font-size:13px;letter-spacing:0;text-align:left;text-decoration:underline dotted var(--mute);text-underline-offset:4px}
-.shd .artl::after{content:" ›";color:var(--mute)}
+/* the full card's graph icon: a small pixel creature whose antennae and legs end in nodes, marching between two frames */
+.gico{flex:none;width:32px;height:32px;display:grid;place-items:center;margin-top:auto;padding:0;background:rgba(5,5,5,.75);border:1px solid var(--line2);cursor:pointer}
+.gico svg{width:22px;height:18px;shape-rendering:crispEdges}
+.gico .f1{animation:gico1 1s steps(1) infinite}.gico .f2{animation:gico2 1s steps(1) infinite}
+@keyframes gico1{0%{opacity:1}50%{opacity:0}}@keyframes gico2{0%{opacity:0}50%{opacity:1}}
+.gico:active{background:#000}
+@media(prefers-reduced-motion:reduce){.gico .f1{animation:none}.gico .f2{display:none}}
+/* the pixel wave that opens the graph */
+.pxw{position:fixed;inset:0;z-index:60;display:grid;overflow:hidden;pointer-events:none}.pxw i{background:var(--y);opacity:0}
 .chip.selc{min-height:30px;padding:5px 10px}
 /* Records filters: a Filter button beside the search, the filters in use as chips under it, and a full-screen filter page */
 .frow{display:flex;gap:8px}.frow input{flex:1;min-width:0}
@@ -377,7 +383,7 @@ label.ck input{width:20px;height:20px}
 <div id="sheet"><div id="sheetbody"></div></div>
 
 <script>
-const APP_VERSION=64,APP_DATE='24 Nov 2026';
+const APP_VERSION=65,APP_DATE='25 Nov 2026';
 const COVER_CACHE='vinyl-covers-2'; // must match COVERS in sw.js
 const DEFAULT_LOCS=[
  {id:'kallax',name:'Kallax shelf',mode:'grid',cols:3,rows:4,cap:0,formats:['lp']},
@@ -1850,6 +1856,21 @@ function qzDraw(){
   }
   if($('#qhome'))$('#qhome').onclick=()=>{qz={mode:'home'};qzDraw()};
 }
+// the full card's graph icon (not for Various)
+const GICO=[["XX.......XX","XX.......XX","..X.....X..","...XXXXX...","..XX.X.XX..","..XXXXXXX..","...X.X.X...","..X..X..X..",".XX..X..XX."],
+  ["..XX...XX..","..XX...XX..","...X...X...","...XXXXX...","..XX.X.XX..","..XXXXXXX..","...X.X.X...","...X.X.X...","..XX.X.XX.."]];
+const gicoSVG=GICO.map((f,i)=>`<g class="f${i+1}">${f.map((r,y)=>[...r].map((c,x)=>c=='X'?`<rect x="${x}" y="${y}" width="1" height="1"/>`:'').join('')).join('')}</g>`).join('');
+const graphIconHTML=r=>{const k=artKey(artName(r.artist));return isVarious(k)?'':`<button class="gico" data-gart="${esc(k)}" aria-label="Open ${esc(artName(r.artist))} in the artist graph"><svg viewBox="0 0 11 9" fill="#c6ff00" aria-hidden="true">${gicoSVG}</svg></button>`};
+// lime pixels ripple out from (x, y) across the screen and fall away; mid() runs under them, when the screen is covered
+function pixWave(x,y,mid){
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches){mid();return}
+  const S=20,W=innerWidth,H=innerHeight,cols=Math.ceil(W/S),rows=Math.ceil(H/S),o=document.createElement('div');
+  o.className='pxw';o.style.gridTemplateColumns=`repeat(${cols},${S}px)`;o.style.gridAutoRows=S+'px';o.innerHTML='<i></i>'.repeat(cols*rows);
+  document.body.appendChild(o);const max=Math.hypot(Math.max(x,W-x),Math.max(y,H-y));
+  o.querySelectorAll('i').forEach((c,j)=>{const d=Math.hypot((j%cols)*S+S/2-x,Math.floor(j/cols)*S+S/2-y)/max;
+    try{c.animate([{opacity:0},{opacity:1,offset:.35},{opacity:1,offset:.55},{opacity:0}],{duration:520,delay:d*280+Math.random()*40,easing:'steps(3,end)',fill:'both'})}catch(e){}});
+  setTimeout(mid,300);setTimeout(()=>o.remove(),950);
+}
 function artistsHTML(){
   return `<div class="seg gmode" role="tablist">${['graph','quiz'].map(k=>`<button class="${grMode==k?'on':''}" data-gmode="${k}" role="tab" aria-selected="${grMode==k}">${k=='graph'?'Graph':'Quiz'}</button>`).join('')}</div>`+
     (grMode=='quiz'?'<div id="qz"></div>':graphHTML());
@@ -2165,7 +2186,7 @@ function recSheetHTML(r,st){
   if(!single(l)){
     slots=`<label>${unitOf(l)[0].toUpperCase()+unitOf(l).slice(1)}</label>`+diagramHTML(l,{size:'pick',attr:'data-s',hi:new Set(sec?[sec]:[]),sel:sec});
   }
-  return `${shareArtHTML(r)}<div class="sh shd"><div><b>${esc(r.title)}</b>${isVarious(artKey(artName(r.artist)))?`<span class="s">${esc(r.artist)}</span>`:`<button class="s artl" data-gart="${esc(artKey(artName(r.artist)))}" aria-label="${esc(r.artist)}: open in the artist graph">${esc(r.artist)}</button>`}<span class="s">${metaHTML(r)}</span><span class="tw">${tagHTML(r)}${liveTag(r)}</span></div><div class="rcol">${bpmChip(r)}</div></div>
+  return `${shareArtHTML(r)}<div class="sh shd"><div><b>${esc(r.title)}</b><span class="s">${esc(r.artist)}</span><span class="s">${metaHTML(r)}</span><span class="tw">${tagHTML(r)}${liveTag(r)}</span></div><div class="rcol">${bpmChip(r)}${graphIconHTML(r)}</div></div>
     ${tagRowHTML(r)}
     <label>Selection</label>${selSegHTML(r)}
     ${tempoHTML(r)}
@@ -2432,9 +2453,11 @@ document.addEventListener('click',e=>{
   else if(d.qplace){placeSheet()}
   else if(d.share){shareSheet(d.share)}
   else if(d.fltopen){filterPage()}
-  else if(d.gart){const id='a:'+d.gart;if(!grData().n.has(id))return;
-    if(grTrail[grTrail.length-1]!=id){grTrail=[...grTrail.filter(x=>x!=id),id].slice(-5)}grCenter=id;grPage=0;grSave();
-    view='ex';exTab='graph';qOrder=[];closeSheet();render();window.scrollTo(0,0)}
+  else if(d.gart){const id='a:'+d.gart;if(!grData().n.has(id))return;const b=t.getBoundingClientRect();
+    pixWave(b.left+b.width/2,b.top+b.height/2,()=>{
+      if(grTrail[grTrail.length-1]!=id){grTrail=[...grTrail.filter(x=>x!=id),id].slice(-5)}grCenter=id;grPage=0;grSave();
+      grMode='graph';try{localStorage.setItem('vinylGraphMode','graph')}catch(e){}
+      view='ex';exTab='graph';qOrder=[];closeSheet();render();window.scrollTo(0,0)})}
   else if(d.gmode){grMode=d.gmode;try{localStorage.setItem('vinylGraphMode',grMode)}catch(e){}render()}
   else if(d.qgo){grOpen(d.qgo)}
   else if(d.gn){$('#gq').value='';$('#gres').innerHTML='';grGo(d.gn)}
