@@ -380,7 +380,7 @@ label.ck input{width:20px;height:20px}
 <div id="sheet"><div id="sheetbody"></div></div>
 
 <script>
-const APP_VERSION=70,APP_DATE='25 Nov 2026';
+const APP_VERSION=71,APP_DATE='25 Nov 2026';
 const COVER_CACHE='vinyl-covers-2'; // must match COVERS in sw.js
 const DEFAULT_LOCS=[
  {id:'kallax',name:'Kallax shelf',mode:'grid',cols:3,rows:4,cap:0,formats:['lp']},
@@ -1580,8 +1580,10 @@ const smState={run:false,stop:false,done:0,total:0,found:0,msg:''};let smT0=0;
 const smKey=r=>artKey(artName(r.artist))+'|'+fold(r.title).replace(/\s*\(.*?\)\s*/g,' ').trim();
 function smTodo(){
   const seen=new Set(),out=[],pri=r=>/hip hop|electro|drum|bass|breaks|house|techno|trip|funk|soul|disco/i.test((r.genre||'')+' '+(r.ds||[]).join(' '))?0:is12(r)?1:2;
+  // the albums already looked up, collected once (comparing every record with every other took seconds)
+  const done=new Set();recs.forEach(r=>{if(r.smd)done.add(smKey(r))});
   recs.forEach(r=>{if(isVarious(artKey(artName(r.artist))))return;const k=smKey(r);if(seen.has(k))return;seen.add(k);
-    if(!recs.some(x=>smKey(x)==k&&x.smd))out.push(r)});
+    if(!done.has(k))out.push(r)});
   return out.sort((a,b)=>pri(a)-pri(b));
 }
 async function smLookup(r){
