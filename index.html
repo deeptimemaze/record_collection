@@ -449,7 +449,7 @@ label.ck input{width:20px;height:20px}
 })();
 </script>
 <script id="crate-main" type="text/x-crate">
-const APP_VERSION=76,APP_DATE='26 Nov 2026';
+const APP_VERSION=77,APP_DATE='26 Nov 2026';
 const COVER_CACHE='vinyl-covers-2'; // must match COVERS in sw.js
 const DEFAULT_LOCS=[
  {id:'kallax',name:'Kallax shelf',mode:'grid',cols:3,rows:4,cap:0,formats:['lp']},
@@ -2254,12 +2254,23 @@ function mapApply(){const sv=$('#msvg'),w=$('#mapw');if(!sv||!w||!mapView)return
 // dots: merged when they'd overlap on screen, sized by how many artists (or nights)
 function mapDots(){const g=$('#mdots'),w=$('#mapw');if(!g||!w||!mapView)return;const u=mapView.w/w.clientWidth,cl=[];
   mapPts.map(p=>({p,xy:p.xy||(p.xy=mProj(p.ll[0],p.ll[1]))})).sort((a,b)=>b.p.n-a.p.n).forEach(({p,xy})=>{
-    const c=cl.find(c=>Math.hypot(c.x-xy[0],c.y-xy[1])/u<24);if(c){c.ps.push(p);c.n+=p.n}else cl.push({x:xy[0],y:xy[1],ps:[p],n:p.n})});
-  const col=mapLayer=='from'?'var(--hl)':'var(--p)';
-  g.innerHTML=cl.map((c,i)=>{const r=(4+Math.sqrt(c.n)*2.6)*u,sel=mapSel&&c.ps.some(p=>p.id==mapSel),big=c.ps[0];
-    const lbl=c.ps.length>1?`${big.name} +${c.ps.length-1}`:big.name,show=c.ps.length>1||c.n>=2||mapView.w<MW/6||sel;
-    return `<g class="mdot" data-mc="${i}"><circle cx="${c.x}" cy="${c.y}" r="${r+5*u}" fill="${col}" opacity=".14"/><circle cx="${c.x}" cy="${c.y}" r="${r}" fill="${col}" stroke="var(--bg)" stroke-width="${u}"${sel?` stroke="var(--ink)" stroke-width="${2*u}"`:''}/>`+
-      (show?`<text x="${c.x+r+3*u}" y="${c.y+3.5*u}" font-size="${10.5*u}" fill="var(--ink)">${esc(lbl)}</text>`:'')+`</g>`}).join('');
+    const c=cl.find(c=>Math.hypot(c.x-xy[0],c.y-xy[1])/u<20);if(c){c.ps.push(p);c.n+=p.n}else cl.push({x:xy[0],y:xy[1],ps:[p],n:p.n})});
+  // sizes on a gentle log scale against the biggest dot: one artist about 5 px across the radius, the biggest about 15
+  const col=mapLayer=='from'?'var(--hl)':'var(--p)',mx=Math.log(1+Math.max(1,...cl.map(c=>c.n)));
+  // names don't overlap each other or other dots: the busiest places get theirs first, the rest show as you zoom in
+  cl.sort((a,b)=>b.n-a.n);
+  const rad=c=>(3.5+11*Math.log(1+c.n)/Math.max(mx,Math.log(8)))*u,boxes=cl.map(c=>{const r=rad(c);return [c.x-r,c.y-r,c.x+r,c.y+r,c]});
+  g.innerHTML=cl.map((c,i)=>{const r=(3.5+11*Math.log(1+c.n)/Math.max(mx,Math.log(8)))*u,sel=mapSel&&c.ps.some(p=>p.id==mapSel),big=c.ps[0];
+    const lbl=c.ps.length>1?`${big.name} +${c.ps.length-1}`:big.name;
+    let show=c.ps.length>1||c.n>=2||mapView.w<MW/6||sel;
+    // the name goes right of the dot, or left when the right is taken
+    let left=false;
+    if(show){const w=lbl.length*6.6*u,x0=mapView.cx-mapView.w/2+4*u,x1=mapView.cx+mapView.w/2-4*u,
+        free=b=>b[0]>=x0&&b[2]<=x1&&!boxes.some(o=>o[4]!==c&&b[0]<o[2]&&b[2]>o[0]&&b[1]<o[3]&&b[3]>o[1]);  // on screen, and clear of the rest
+      const R=[c.x+r+3*u,c.y-6*u,c.x+r+3*u+w,c.y+6*u],Lb=[c.x-r-3*u-w,c.y-6*u,c.x-r-3*u,c.y+6*u];
+      if(sel||free(R))boxes.push(R);else if(free(Lb)){boxes.push(Lb);left=true}else show=false}
+    return `<g class="mdot" data-mc="${i}"><circle cx="${c.x}" cy="${c.y}" r="${r+3*u}" fill="${col}" opacity=".14"/><circle cx="${c.x}" cy="${c.y}" r="${r}" fill="${col}" stroke="var(--bg)" stroke-width="${u}"${sel?` stroke="var(--ink)" stroke-width="${2*u}"`:''}/>`+
+      (show?`<text x="${left?c.x-r-3*u:c.x+r+3*u}" y="${c.y+3.5*u}" font-size="${10.5*u}" fill="var(--ink)"${left?' text-anchor="end"':''}>${esc(lbl)}</text>`:'')+`</g>`}).join('');
   g.querySelectorAll('.mdot').forEach(e=>e.onclick=ev=>{ev.stopPropagation();const c=cl[+e.dataset.mc];
     if(c.ps.length>1){const la=c.ps.map(p=>p.ll[0]),lo=c.ps.map(p=>p.ll[1]),pd=Math.max(.05,(Math.max(...la)-Math.min(...la))*.3);mapFit([[Math.min(...la)-pd,Math.min(...lo)-pd],[Math.max(...la)+pd,Math.max(...lo)+pd]])}
     else{mapSel=c.ps[0].id;mapInfo(c.ps[0]);mapDots()}})}
