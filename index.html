@@ -398,7 +398,7 @@ label.ck input{width:20px;height:20px}
 <div id="sheet"><div id="sheetbody"></div></div>
 
 <script>
-const APP_VERSION=72,APP_DATE='25 Nov 2026';
+const APP_VERSION=73,APP_DATE='26 Nov 2026';
 const COVER_CACHE='vinyl-covers-2'; // must match COVERS in sw.js
 const DEFAULT_LOCS=[
  {id:'kallax',name:'Kallax shelf',mode:'grid',cols:3,rows:4,cap:0,formats:['lp']},
@@ -673,6 +673,40 @@ function finishImport(){
   const msg=`Imported ${recs.length} records, ${recs.filter(placed).length} placed, ${recs.filter(r=>r.genre).length} with a genre, ${recs.filter(r=>r.fav).length} selected.`+(gone?` ${gone} records that were not in the import were removed${lost?`, ${lost} of them placed`:''}.`:'');
   if(old)noteUndo(msg);
   return msg;
+}
+/* full backup: everything Crate keeps on this phone (the collection, every lookup, concerts, settings) in one JSON file,
+   to restore on a new phone or after clearing the browser. Not the undo copy, and not the cover images: those come back by themselves */
+const BK_SKIP=new Set(['vinylUndo','vinylBackupAt']);
+function backupData(){const o={};for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('vinyl')&&!BK_SKIP.has(k))o[k]=localStorage.getItem(k)}return o}
+const bkWhen=()=>{const t=+localStorage.getItem('vinylBackupAt')||0;return t?when(t):''};
+function exportFull(){
+  saveNow();save();saveArts();savePlc();saveEvt();
+  const d=new Date(),day=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const meta={app:'Crate',kind:'full backup',version:APP_VERSION,at:d.toISOString(),records:recs.length,artists:Object.values(arts).filter(a=>a.m).length,concerts:gigs.length};
+  const blob=new Blob([JSON.stringify({crate:meta,data:backupData()})],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`crate-backup-${day}.json`;document.body.appendChild(a);a.click();a.remove();
+  try{localStorage.setItem('vinylBackupAt',String(Date.now()))}catch(e){}
+  dataView(`Full backup saved as crate-backup-${day}.json (${fmtB(blob.size)}): ${recs.length} records, ${meta.artists} artists looked up, ${gigs.length} concerts.`);
+}
+// restoring replaces everything; if the backup doesn't fit, what was here is put back untouched
+async function restoreFull(txt){
+  let j=null;try{j=JSON.parse(txt)}catch(e){}
+  if(!j||!j.crate||!j.data||typeof j.data!='object'||!j.data.vinylRecs2)return dataView('That file is not a Crate full backup.');
+  const m=j.crate,at=Date.parse(m.at);
+  if(!await ask(`Replace everything in Crate on this phone with the backup from ${isNaN(at)?'an unknown date':when(at)}? It has ${plur(+m.records||0,'record')}, ${plur(+m.artists||0,'artist')} looked up and ${plur(+m.concerts||0,'concert')}. What's here now is replaced, and covers are fetched again as you browse.`,'Restore backup',true))return;
+  const old=backupData(),oldUndo=localStorage.getItem('vinylUndo');
+  try{
+    Object.keys(old).forEach(k=>localStorage.removeItem(k));localStorage.removeItem('vinylUndo');
+    const ks=Object.keys(j.data).filter(k=>k.startsWith('vinyl')&&!BK_SKIP.has(k)&&typeof j.data[k]=='string');
+    ks.sort((a,b)=>(b=='vinylRecs2')-(a=='vinylRecs2')||(b=='vinylLocs')-(a=='vinylLocs'));
+    ks.forEach(k=>localStorage.setItem(k,j.data[k]));
+  }catch(e){
+    Object.keys(j.data).forEach(k=>{try{localStorage.removeItem(k)}catch(_){}});
+    Object.entries(old).forEach(([k,v])=>{try{localStorage.setItem(k,v)}catch(_){}});if(oldUndo)try{localStorage.setItem('vinylUndo',oldUndo)}catch(_){}
+    return dataView("The backup didn't fit in this browser's storage, so nothing was changed.");
+  }
+  try{sessionStorage.setItem('crateRestored',JSON.stringify(m))}catch(e){}
+  location.reload();
 }
 function exportCSV(){
   const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
@@ -2169,7 +2203,10 @@ function dataView(msg=''){
       <div class="dimp"><div><b>Concerts (CSV)</b><span id="gigmsg">${gigs.length?`${gigs.length} concerts imported. ${recs.filter(r=>gigsFor(r).length).length} of your records are by artists you've seen live.`:'Concerts you marked as attended on setlist.fm. None imported yet.'}</span></div><button class="chip" id="gimp">Choose</button></div>
       ${more(`setlist.fm doesn't let web apps fetch them, so run <b>tools/setlistfm_export.py</b> on a computer (see the README) and choose the CSV it writes. Importing again replaces the list. They show as LIVE tags, on the record sheet, in Explore → Live and in the Artists graph.`)}
       <input type="file" id="file" accept=".csv,text/csv,text/plain" hidden><input type="file" id="gfile" accept=".csv,text/csv,text/plain" hidden>`+
-      sec('Back up')+`<p class="mute">A CSV with every record's location, genre, comment, selection and plays. You can import it again later.</p><button class="btn" id="exp">Export CSV</button>
+      sec('Back up')+`<div class="dimp"><div><b>Full backup</b><span>Everything Crate keeps on this phone in one file: your records and everything looked up (credits, samples, artist connections, places and events, original years, tempos), concerts and settings. Restore it on a new phone or after clearing the browser. Cover images aren't included; they come back by themselves. ${bkWhen()?`Last saved ${bkWhen()}.`:'Not saved yet.'}</span></div></div>
+      <button class="btn pri" id="bexp">Save full backup</button><button class="btn" id="bimp">Restore from backup</button><input type="file" id="bfile" accept=".json,application/json" hidden>
+      <div class="dimp"><div><b>Spreadsheet (CSV)</b><span>Every record's location, genre, comment, selection, plays, years and tempo, for spreadsheets or to import again. It leaves out credits, samples and artist connections.</span></div></div>
+      <button class="btn" id="exp">Export CSV</button>
       <p class="mute" style="margin-top:16px">Storage locations are added and edited on the Storage tab.</p>`;
     }else if(dTab=='lk'){
       const L2=lkStats(),left=L2.reduce((t,x)=>t+x.left*x.sec,0)/3600;
@@ -2202,11 +2239,13 @@ function dataView(msg=''){
     on('imp',()=>$('#file').click());
     if($('#file'))$('#file').onchange=async e=>{const f=e.target.files[0];if(!f)return;
       const txt=await readText(f);
+      if(/^\s*\{/.test(txt)&&txt.includes('"crate"'))return restoreFull(txt);
       if(/(^|,)"?setlist id"?(,|\r?\n)/i.test(txt.split(/\r?\n/)[0]))return dataView('That is a concerts file. Choose it under Concerts (CSV) instead.');
       const r=stage(txt);
       if(!r||!r.length)return dataView('No records found. Check that the file has artist and title columns.');
       staged=r;dataView()};
-    on('exp',exportCSV);
+    on('exp',exportCSV);on('bexp',exportFull);on('bimp',()=>$('#bfile').click());
+    if($('#bfile'))$('#bfile').onchange=async e=>{const f=e.target.files[0];if(f)restoreFull(await readText(f))};
     on('gimp',()=>$('#gfile').click());
     if($('#gfile'))$('#gfile').onchange=async e=>{const f=e.target.files[0];if(!f)return;
       const g=stageGigs(await readText(f));
@@ -2738,6 +2777,8 @@ document.addEventListener('click',e=>{
   else if(d.id){openRecSheet(d.id)}
 });
 load();
+try{const r=sessionStorage.getItem('crateRestored');if(r){sessionStorage.removeItem('crateRestored');const m=JSON.parse(r);
+  setTimeout(()=>toast(`Backup restored: ${recs.length} records, ${Object.values(arts).filter(a=>a.m).length} artists looked up, ${gigs.length} concerts.`),400)}}catch(e){}
 // the entry the app opened on stays empty: going back to it is what asks before closing
 try{history.replaceState({root:1},'');history.pushState(navState(),'')}catch(e){}navKeyLast=navKey();
 render();
