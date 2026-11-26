@@ -13,7 +13,7 @@ Then in Crate: Data → Concerts → Choose concerts CSV.
 import csv, getpass, json, os, subprocess, sys, time, urllib.parse
 
 API = 'https://api.setlist.fm/rest/1.0'
-COLUMNS = ['Date', 'Artist', 'Artist MBID', 'Venue', 'City', 'Country', 'Tour', 'Songs', 'Setlist ID', 'URL']
+COLUMNS = ['Date', 'Artist', 'Artist MBID', 'Venue', 'City', 'Country', 'Tour', 'Songs', 'Setlist ID', 'URL', 'City lat', 'City long']
 
 
 def fetch(path, key):
@@ -63,6 +63,9 @@ def row(s):
         'Songs': '; '.join(x for x in songs if x),
         'Setlist ID': s.get('id', ''),
         'URL': s.get('url', ''),
+        # setlist.fm gives the city's coordinates (not the venue's); Crate's map uses them
+        'City lat': (city.get('coords') or {}).get('lat', ''),
+        'City long': (city.get('coords') or {}).get('long', ''),
     }
 
 

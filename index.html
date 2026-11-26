@@ -86,12 +86,13 @@ input[type=checkbox]{accent-color:var(--y)}
 .ginfo{padding:12px 0 0;border-top:2px solid var(--hl)}
 .ginfo b{display:block;font:700 15px/1.3 var(--mono)}
 .ginfo .btn{margin-bottom:0}
-.gcred{margin:6px 0 0;padding-left:10px;border-left:2px solid var(--s2);font-size:12px}.gsm{border-left-color:var(--az)}
+.gcred{margin:6px 0 0;padding-left:10px;border-left:2px solid var(--s2);font-size:12px}.gsm{border-left-color:var(--az)}.gsim{border-left-color:var(--hl)}
 .seg.gmode{margin:12px 0 0;border-width:1px}
 .seg.mlay{margin:10px 0 0;border-width:1px}.seg.mlay button{min-height:32px;border-left-width:1px;font-size:10px}
 .mzc{margin:8px 0 0;gap:6px}.mzc .chip{min-height:30px;padding:4px 10px}
 .mapw{position:relative;margin:8px -14px 0;height:58vh;min-height:300px;background:var(--card);border-top:1px solid var(--line2);border-bottom:1px solid var(--line2);overflow:hidden}
-#msvg{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
+#msvg,#stc{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
+.seg.gmode button{letter-spacing:.08em}
 #msvg .mland{fill:var(--line)}#msvg .mline{fill:none;stroke:var(--line2);stroke-width:.8;vector-effect:non-scaling-stroke;stroke-linejoin:round}
 #msvg text{font-family:var(--mono);pointer-events:none;paint-order:stroke;stroke:var(--bg);stroke-width:3px;stroke-linejoin:round;vector-effect:non-scaling-stroke}
 .mdot{cursor:pointer}
@@ -449,7 +450,7 @@ label.ck input{width:20px;height:20px}
 })();
 </script>
 <script id="crate-main" type="text/x-crate">
-const APP_VERSION=77,APP_DATE='26 Nov 2026';
+const APP_VERSION=78,APP_DATE='26 Nov 2026';
 const COVER_CACHE='vinyl-covers-2'; // must match COVERS in sw.js
 const DEFAULT_LOCS=[
  {id:'kallax',name:'Kallax shelf',mode:'grid',cols:3,rows:4,cap:0,formats:['lp']},
@@ -1426,7 +1427,8 @@ function stageGigs(text){
   if(c('date')<0||c('artist')<0||(c('venue')<0&&c('setlist id')<0))return null;
   const g=(r,n)=>c(n)>=0?(r[c(n)]||'').trim():'';
   return rows.slice(1).map(r=>({d:g(r,'date'),a:g(r,'artist'),mb:g(r,'artist mbid'),v:g(r,'venue'),c:g(r,'city'),co:g(r,'country'),
-    t:g(r,'tour'),s:g(r,'songs')?g(r,'songs').split(/\s*;\s*/):[],id:g(r,'setlist id'),u:g(r,'url')})).filter(x=>x.a&&/^\d{4}/.test(x.d));
+    t:g(r,'tour'),s:g(r,'songs')?g(r,'songs').split(/\s*;\s*/):[],id:g(r,'setlist id'),u:g(r,'url'),
+    ...(+g(r,'city lat')||+g(r,'city long')?{cl:[+g(r,'city lat'),+g(r,'city long')]}:{})})).filter(x=>x.a&&/^\d{4}/.test(x.d));
 }
 const gigDate=d=>{const [y,m,dd]=d.split('-');return dd?`${+dd} ${MON[+m-1]} ${y}`:d};
 const gigPlace=g=>[g.v,g.c].filter(Boolean).join(', ');
@@ -1721,6 +1723,22 @@ const smRun=jobRunner({st:smState,todo:()=>{smT0=Date.now();return smTodo()},tex
   apply:(r,res)=>{const k=smKey(r);recs.forEach(x=>{if(smKey(x)!=k)return;x.smd=1;if(res&&res.length)x.sm=res;else delete x.sm});artsVer++;return !!(res&&res.length)},
   after:()=>{if(view=='ex')render()}});
 
+/* similar artists from ListenBrainz's open similar-artists data (based on what people listen to together). Kept on each
+   artist as sim: [[MusicBrainz id, name], …], the twelve closest */
+const siState={run:false,stop:false,done:0,total:0,found:0,msg:''};let lastLB=0;
+const siTodo=()=>[...artGroups().values()].filter(o=>{const a=arts[o.k];return a&&a.m&&!a.sim}).sort((a,b)=>b.rs.length-a.rs.length);
+async function siLookup(o){
+  const at=Math.max(lastLB+1200,Date.now());lastLB=at;if(at>Date.now())await sleep(at-Date.now());
+  let r;try{r=await fetch(`https://labs.api.listenbrainz.org/similar-artists/json?artist_mbids=${arts[o.k].m}&algorithm=session_based_days_7500_session_300_contribution_5_threshold_10_limit_100_filter_True_skip_30`)}catch(e){throw 'net'}
+  if(r.status==429)throw 'rate';if(!r.ok&&r.status!=404)throw 'busy';
+  const j=r.ok?await r.json():[];return (Array.isArray(j)?j:[]).filter(x=>x.artist_mbid&&x.name).slice(0,12).map(x=>[x.artist_mbid,x.name])}
+const siText=()=>{const g=[...artGroups().keys()],f=g.filter(k=>arts[k]&&arts[k].m).length,d=g.filter(k=>arts[k]&&arts[k].sim).length;
+  return `${d} of ${f} artists found on MusicBrainz have similar artists looked up.`+(siState.run?` Working: ${siState.done} of ${siState.total} this run.`:'')+(siState.msg?' '+siState.msg:'')};
+const siRun=jobRunner({st:siState,todo:siTodo,text:siText,prog:'siprog',btn:'sib',label:'Fetch similar artists',
+  work:siLookup,tries:4,wait:20000,every:10,saveMore:saveArts,slowMsg:'ListenBrainz asked us to slow down, waiting a moment.',
+  netMsg:'Could not reach ListenBrainz. Resume when you are online.',busyMsg:'ListenBrainz is busy. Resume in a few minutes.',
+  apply:(o,res)=>{arts[o.k].sim=res;artsVer++;return !!res.length},after:()=>{if(view=='ex')render()}});
+
 /* places: each MusicBrainz area is matched to Wikidata, then followed up through "located in" (P131) to the country,
    collecting the regions it's on (P706), such as Long Island. Kept on this phone:
    mb: MusicBrainz area id → Wikidata id (0: not on Wikidata); wd: Wikidata id → {n name, up parent, reg regions, co country, x water} */
@@ -1729,12 +1747,13 @@ const savePlc=()=>{try{KV.setItem('vinylPlace',JSON.stringify(plc))}catch(e){}};
 let plcVer=0;const plcState={run:false,msg:''};
 const WDAPI='https://www.wikidata.org/w/api.php?format=json&origin=*&';
 const WDCOUNTRY=new Set(['Q6256','Q3624078','Q7275','Q3024240','Q3336843']),WDWATER=new Set(['Q4022','Q23397','Q165','Q9430','Q5107','Q39594','Q35666','Q1322134','Q12284']);
-const evtTodo=()=>Object.values(arts).some(a=>a.wq&&!(a.wq in evt.a));
+const evtTodo=()=>Object.values(arts).some(a=>a.wq&&(!(a.wq in evt.a)||!(evt.f&&a.wq in evt.f)));
 // anything the place step still has to do: new areas, events, coordinates, concert cities
-const plcPending=()=>plcAreas().some(a=>!(a in plc.mb))||evtTodo()||Object.entries(plc.wd).some(([q,o])=>!('ll' in o)&&o.n!==q)||gigCities().some(k=>!(k in (plc.city||{})));
+const plcPending=()=>gigVenues().some(k=>!(k in (plc.venue||{})))||plcAreas().some(a=>!(a in plc.mb))||evtTodo()||Object.values(evt.f||{}).some(f=>f.b&&!plc.wd[f.b])||Object.entries(plc.wd).some(([q,o])=>!('ll' in o)&&o.n!==q)||gigCities().some(k=>!(k in (plc.city||{})));
 // concert cities: found on Wikidata by name, the one whose description names the country
 const gigCities=()=>[...new Set(gigs.filter(g=>g.c).map(g=>g.c+'|'+(g.co||'')))];
 async function cityRun(){plc.city=plc.city||{};
+  gigs.forEach(g=>{const k=g.c+'|'+(g.co||'');if(g.cl&&!(k in plc.city))plc.city[k]=g.cl});  // from the export, when it has them
   const todo=gigCities().filter(k=>!(k in plc.city)),pick={};
   for(const k of todo){const [c,co]=k.split('|');
     const j=await wdJSON(WDAPI+'action=wbsearchentities&type=item&language=en&limit=7&search='+encodeURIComponent(c));
@@ -1744,8 +1763,25 @@ async function cityRun(){plc.city=plc.city||{};
   for(let i=0;i<ids.length;i+=50){const es=(await wdJSON(WDAPI+'action=wbgetentities&props=claims&ids='+ids.slice(i,i+50).join('|'))).entities||{};
     Object.entries(pick).forEach(([k,q])=>{const en=es[q];if(!en)return;const c=(((en.claims||{}).P625||[])[0]||{}).mainsnak,v=c&&c.datavalue&&c.datavalue.value;
       plc.city[k]=v?[Math.round(v.latitude*1000)/1000,Math.round(v.longitude*1000)/1000]:0})}
-  savePlc();
+  savePlc();await venueRun();
 }
+// venues: found on Wikidata by name, taken only when the description names the city or the place it's in is that city
+const gigVenues=()=>[...new Set(gigs.filter(g=>g.v&&g.c).map(g=>g.v+'|'+g.c))];
+async function venueRun(){plc.venue=plc.venue||{};
+  const todo=gigVenues().filter(k=>!(k in plc.venue)),pick={};
+  for(const k of todo){const [v,c]=k.split('|'),name=v.replace(/\s+[-–]\s+.*$/,'').trim();  // "Nalen - Stora Salen" → "Nalen"
+    const inCity=r=>fold((r.description||'')+' '+(r.label||'')).includes(fold(c)),
+      find=rs=>rs.find(r=>inCity(r)&&/venue|club|hall|arena|theat|concert|music|stadium|church|park|bar|cinema|house|garden|building|festival|scene|center|centre|hotel|museum|square|island|restaurant|trädgård|restaurang|konserthus/i.test(r.description||''))||rs.find(inCity);
+    let hit=find((await wdJSON(WDAPI+'action=wbsearchentities&type=item&language=en&limit=10&search='+encodeURIComponent(name))).search||[]);
+    // local venues are often described only in the local language: try the phone's language too
+    const lang=(navigator.language||'en').slice(0,2).toLowerCase();
+    if(!hit&&lang!='en')hit=find((await wdJSON(WDAPI+`action=wbsearchentities&type=item&language=${lang}&uselang=${lang}&limit=10&search=`+encodeURIComponent(name))).search||[]);
+    if(hit)pick[k]=hit.id;else plc.venue[k]=0}
+  const ids=[...new Set(Object.values(pick))];
+  for(let i=0;i<ids.length;i+=50){const es=(await wdJSON(WDAPI+'action=wbgetentities&props=claims&ids='+ids.slice(i,i+50).join('|'))).entities||{};
+    Object.entries(pick).forEach(([k,q])=>{const en=es[q],c=en&&(((en.claims||{}).P625||[])[0]||{}).mainsnak,v=c&&c.datavalue&&c.datavalue.value;
+      plc.venue[k]=v?[Math.round(v.latitude*10000)/10000,Math.round(v.longitude*10000)/10000]:0})}
+  savePlc()}
 const plcAreas=()=>[...new Set(Object.values(arts).filter(a=>a.m&&(a.b||a.a)).map(a=>(a.b||a.a)[0]))];
 const plcText=()=>{const a=plcAreas(),m=a.filter(x=>x in plc.mb),f=a.filter(x=>plc.mb[x]),regs=new Set();
   Object.values(plc.wd).forEach(o=>(o.reg||[]).forEach(r=>{if(plc.wd[r]&&!plc.wd[r].x)regs.add(r)}));
@@ -1767,8 +1803,10 @@ async function plcRun(){
       const q=`SELECT ?item ?mb WHERE { VALUES ?mb { ${ch.map(x=>'"'+x+'"').join(' ')} } ?item wdt:P982 ?mb }`;
       const j=await wdJSON('https://query.wikidata.org/sparql?format=json&query='+encodeURIComponent(q));
       ch.forEach(x=>plc.mb[x]=0);(j.results.bindings||[]).forEach(b=>{plc.mb[b.mb.value]=b.item.value.split('/').pop()});savePlc();ui()}
+    plcState.msg='Connecting events, birthplaces and influences...';ui();await evtRun();
     // 2. up through the parents and regions, 50 places a request
     const need=new Set();Object.values(plc.mb).forEach(q=>{if(q&&!plc.wd[q])need.add(q)});
+    Object.values(evt.f||{}).forEach(f=>{if(f.b&&!plc.wd[f.b])need.add(f.b)});
     Object.values(plc.wd).forEach(o=>[o.up,...(o.reg||[])].forEach(x=>{if(x&&!plc.wd[x])need.add(x)}));
     Object.entries(plc.wd).forEach(([q,o])=>{if(!('ll' in o)&&o.n!==q)need.add(q)});  // places from before the map get their coordinates
     for(let k=0;need.size&&k<200;k++){
@@ -1782,8 +1820,7 @@ async function plcRun(){
         plc.wd[q]=o;[o.up,...o.reg].forEach(x=>{if(x&&!plc.wd[x])need.add(x)})});
       savePlc();ui();
     }
-    plcState.msg='Placing your concert cities...';ui();await cityRun();
-    plcState.msg='Connecting events...';ui();await evtRun();
+    plcState.msg='Placing your concert venues...';ui();await cityRun();
     plcState.msg='';
   }catch(e){plcState.msg=e=='net'?'Could not reach Wikidata. Try again when you are online.':'Wikidata is busy. Try again in a minute.'}
   plcVer++;plcState.run=false;ui();if(view=='ex')render();  // places and events
@@ -1792,15 +1829,22 @@ async function plcRun(){
    a: artist's Wikidata id → event ids; wd: event id → {n name, y year} */
 let evt={a:{},wd:{}};try{Object.assign(evt,JSON.parse(KV.getItem('vinylEvt')||'{}'))}catch(e){}
 const saveEvt=()=>{try{KV.setItem('vinylEvt',JSON.stringify(evt))}catch(e){}};
-async function evtRun(){
-  const qs=[...new Set(Object.values(arts).map(a=>a.wq).filter(q=>q&&!(q in evt.a)))];
+/* f: per artist's Wikidata id, b where it started (founded in, P740, or born in, P19), i influenced by (P737),
+   aw awards (P166), s and e the years it was active (P2031/P571 and P2032/P576) */
+async function evtRun(){evt.f=evt.f||{};
+  const qs=[...new Set(Object.values(arts).map(a=>a.wq).filter(q=>q&&(!(q in evt.a)||!(q in evt.f))))];
   for(let i=0;i<qs.length;i+=50){const ids=qs.slice(i,i+50),es=(await wdJSON(WDAPI+'action=wbgetentities&props=claims&ids='+ids.join('|'))).entities||{};
-    ids.forEach(q=>{evt.a[q]=es[q]?wdBest(es[q],'P1344').slice(0,20):[]});saveEvt()}
-  const need=[...new Set(Object.values(evt.a).flat().filter(q=>!evt.wd[q]))];
+    ids.forEach(q=>{const en=es[q];evt.a[q]=en?wdBest(en,'P1344').slice(0,20):[];
+      const yr=p=>{const c=((en&&en.claims||{})[p]||[]).find(c=>c.mainsnak.datavalue&&c.rank!='deprecated');return c?parseInt(String(c.mainsnak.datavalue.value.time||'').slice(1,5))||0:0};
+      evt.f[q]=en?{b:wdBest(en,'P740')[0]||wdBest(en,'P19')[0]||'',i:wdBest(en,'P737').slice(0,15),aw:wdBest(en,'P166').slice(0,15),s:yr('P2031')||yr('P571'),e:yr('P2032')||yr('P576')}:{}});saveEvt()}
+  const need=[...new Set([...Object.values(evt.a).flat(),...Object.values(evt.f).flatMap(f=>[...(f.i||[]),...(f.aw||[])])].filter(q=>!evt.wd[q]))];
   for(let i=0;i<need.length;i+=50){const ids=need.slice(i,i+50),es=(await wdJSON(WDAPI+'action=wbgetentities&props=labels|claims&languages=en&ids='+ids.join('|'))).entities||{};
     ids.forEach(q=>{const en=es[q],t=en&&((en.claims||{}).P585||(en.claims||{}).P580||[])[0],y=t&&t.mainsnak.datavalue?String(t.mainsnak.datavalue.value.time||'').slice(1,5):'';
       evt.wd[q]={n:en&&en.labels&&en.labels.en?en.labels.en.value:'',y}});saveEvt()}
 }
+function artPlace(k){const ar=arts[k];if(!ar||!ar.m)return null;const f=ar.wq&&evt.f&&evt.f[ar.wq],wb=f&&f.b&&plc.wd[f.b]?f.b:null;
+  const mq=x=>x&&plc.mb[x[0]]&&plc.wd[plc.mb[x[0]]]?plc.mb[x[0]]:null;
+  return mq(ar.b)||(wb&&!(ar.a&&mq(ar.a)&&!plc.wd[mq(ar.a)].co)?wb:null)||mq(ar.a)||wb}
 // a place's chain upwards (itself first) and every region along it, skipping water and loops
 function plcChain(q){const ch=[],reg=[];let x=q;
   while(x&&!ch.includes(x)&&ch.length<12){const o=plc.wd[x];if(!o)break;ch.push(x);(o.reg||[]).forEach(r=>{if(plc.wd[r]&&!plc.wd[r].x&&!reg.includes(r))reg.push(r)});x=o.up}
@@ -1813,6 +1857,15 @@ function grBuild(){
   const node=(id,t,name)=>{if(!n.has(id)){n.set(id,{id,t,name,c:0});adj.set(id,new Map())}
     (nm[id]||(nm[id]={}))[name]=(nm[id][name]||0)+1;return n.get(id)};
   const link=(a,b,k,mo)=>{const e=adj.get(a).get(b)||{w:0,k,mo};e.w++;if(mo)e.mo=mo;adj.get(a).set(b,e);adj.get(b).set(a,e)};
+  // collaborations in names: "A feat. B", "A vs. B" and "A with B" always count; "A & B", "A / B" and "A, B" only when
+  // A or B has records of their own here, so bands like Echo & the Bunnymen stay whole
+  const collabs=[];
+  groups.forEach(o=>{const nm=o.name,hard=nm.split(/\s+(?:feat\.?|featuring|ft\.?|vs\.?|versus|with|starring|presents)\s+/i);
+    let parts=hard.length>1?hard:[];
+    const soft=(hard.length>1?hard:[nm]).flatMap(x=>x.split(/\s+(?:&|and|\+|\/)\s+|\s*,\s+/i));
+    if(soft.length>1&&soft.some(x=>groups.has(artKey(artName(x)))))parts=soft;
+    parts=[...new Set(parts.map(x=>artName(x)).filter(x=>x&&artKey(x)!=o.k&&!isVarious(artKey(x))&&x.length>1))];
+    if(parts.length)collabs.push([o,parts])});
   groups.forEach(o=>{const a=node('a:'+o.k,'a',o.name);a.c=o.rs.length;
     o.rs.forEach(r=>{
       uniqList(r.label).split(', ').forEach(x=>{const k=labKey(x);if(!k||/^(not on label|no label|self-released)/.test(k))return;
@@ -1826,13 +1879,25 @@ function grBuild(){
     const e=adj.get(id).get(t)||{w:0,k:k=='f'?'c':'x',rs:[],pr:t,on:id};if(!adj.get(id).has(t)){adj.get(id).set(t,e);adj.get(t).set(id,e)}
     e.w++;const what=`${k=='p'?'produced':k=='r'?'remixed':'featured on'} ${r.title}`;if(!e.rs.includes(what)&&e.rs.length<6)e.rs.push(what);
     if(t[0]=='k')n.get(t).c++}))});
+  collabs.forEach(([o,parts])=>parts.forEach(x=>{const k=artKey(x),t=groups.has(k)?'a:'+k:'b:n:'+k;if(!n.has(t))node(t,'b',x);link('a:'+o.k,t,'c')}));
+  // influences (an arrow from the influence), awards, the decade an artist started, and similar artists from ListenBrainz
+  const byWq={};groups.forEach(o=>{const ar=arts[o.k];if(ar&&ar.wq)byWq[ar.wq]='a:'+o.k});
+  groups.forEach(o=>{const ar=arts[o.k],id='a:'+o.k,f=ar&&ar.wq&&evt.f&&evt.f[ar.wq];if(!f)return;
+    (f.i||[]).forEach(q=>{const w=evt.wd[q];if(!w||!w.n)return;const t=byWq[q]||'b:w:'+q;if(t==id)return;if(!n.has(t))node(t,'b',w.n);
+      let e=adj.get(id).get(t);if(!e){e={w:1,k:'i',src:t,dst:id,rs:[]};adj.get(id).set(t,e);adj.get(t).set(id,e)}else if(e.k=='i'&&e.src!=t)e.both=1});
+    (f.aw||[]).forEach(q=>{const w=evt.wd[q];if(!w||!w.n)return;const t='w:'+q,nd=node(t,'w',w.n);if(!adj.get(id).has(t))nd.c++;link(id,t,'aw')});
+    if(f.s>1800){const d=Math.floor(f.s/10)*10,t='d:'+d,nd=node(t,'d',d+'s');if(!adj.get(id).has(t))nd.c++;link(id,t,'era')}
+    n.get(id).yrs=f.s?(f.e?`${f.s}–${f.e}`:`since ${f.s}`):''});
+  const byM2={};groups.forEach(o=>{const ar=arts[o.k];if(ar&&ar.m)byM2[ar.m]='a:'+o.k});
+  groups.forEach(o=>{const ar=arts[o.k],id='a:'+o.k;(ar&&ar.sim||[]).forEach(([mid,nm])=>{const t=byM2[mid];if(t&&t!=id&&!adj.get(id).has(t))link(id,t,'sim')})});
   // samples
   const byMid={};groups.forEach(o=>{const ar=arts[o.k];if(ar&&ar.m)byMid[ar.m]='a:'+o.k});
   groups.forEach(o=>{const id='a:'+o.k;o.rs.forEach(r=>(r.sm||[]).forEach(([d,mt,ot,oa,oid])=>{
     const ak=artKey(artName(oa)),t=(oid&&byMid[oid])||(groups.has(ak)?'a:'+ak:'q:'+ak);if(t==id)return;
     if(!n.has(t))node(t,'q',artName(oa));else if(t[0]=='q')node(t,'q',artName(oa));
     const src=d=='>'?t:id,dst=d=='>'?id:t,key=src+'>'+dst;
-    let e=adj.get(id).get(t);if(!e){e={w:0,k:'s',rs:[],src,dst};adj.get(id).set(t,e);adj.get(t).set(id,e)}
+    let e=adj.get(id).get(t);if(e&&e.k!='s')return;  // already linked another way (collaboration, similar…)
+    if(!e){e={w:0,k:'s',rs:[],src,dst};adj.get(id).set(t,e);adj.get(t).set(id,e)}
     else if(e.k=='s'&&e.src!=src)e.both=1;
     e.w++;const txt=d=='>'?`“${ot}” → “${mt}”`:`“${mt}” → “${ot}”`;if(!e.rs.includes(txt)&&e.rs.length<6)e.rs.push(txt);
     if(t[0]=='q'&&e.w==1)n.get(t).c++}))});
@@ -1855,8 +1920,8 @@ function grBuild(){
         cl.forEach(g=>{const a=akey(g.a),t=ak.has(a)?'a:'+ak.get(a):'v:'+a;if(!n.has(t))node(t,'v',g.a);if(!adj.get(yid).has(t))y.c++;link(t,yid,'y')})}cl=[]};
       list.forEach(g=>{if(cl.length&&(Date.parse(g.d)-Date.parse(cl[cl.length-1].d))>3*864e5)flush();cl.push(g)});flush()})}
   groups.forEach(o=>{const ar=arts[o.k];if(!ar||!ar.m)return;const id='a:'+o.k;
-    const pl=ar.b||ar.a;if(pl){const q=plc.mb[pl[0]];
-      if(!q||!plc.wd[q]){const p=node('p:'+pl[0],'p',pl[1]);p.c++;link(id,p.id,'p')}
+    const pl=ar.b||ar.a,q=artPlace(o.k);if(pl||q){
+      if(!q){const p=node('p:'+pl[0],'p',pl[1]);p.c++;link(id,p.id,'p')}
       else{
         // the artist links to its own place, the regions it's on and the state; the places link to each other up to the country
         const {ch,reg}=plcChain(q),pn=x=>node('p:'+x,'p',plc.wd[x].n);
@@ -1873,7 +1938,7 @@ function grBuild(){
   n.forEach((o,id)=>{o.name=Object.entries(nm[id]).sort((x,y)=>y[1]-x[1])[0][0]});
   return grCache={n,adj,at:grKey()};
 }
-const grKey=()=>gigs.length+':'+Object.keys(evt.wd).length+':'+recs.length+':'+recs.reduce((s,r)=>s+(r.genre||'').length,0)+':'+artsVer+':'+Object.keys(arts).length+':'+plcVer+':'+Object.keys(plc.wd).length;
+const grKey=()=>Object.keys(evt.f||{}).length+':'+Object.values(arts).filter(a=>a.sim).length+':'+gigs.length+':'+Object.keys(evt.wd).length+':'+recs.length+':'+recs.reduce((s,r)=>s+(r.genre||'').length,0)+':'+artsVer+':'+Object.keys(arts).length+':'+plcVer+':'+Object.keys(plc.wd).length;
 const grData=()=>grCache&&grCache.at==grKey()?grCache:grBuild();
 // a node's neighbours: members and groups first, then collaborations, places, labels, genres; most shared records first
 // members and groups keep MusicBrainz's order (founders first); the first page mixes four of them, two featured artists and two producers with the place, labels and genres
@@ -1886,7 +1951,7 @@ function grNbrs(id){
     down.sort((x,y)=>n.get(y[0]).c-n.get(x[0]).c);
     if(up.length+down.length+ar.length<=GPAGE)return [...up,...down,...ar].map(x=>x[0]);
     const ds=down.slice(0,4);return [...up,...ds,...ar,...down.slice(4)].map(x=>x[0])}
-  const m=by('m').sort((x,y)=>(n.get(y[0]).t=='a')-(n.get(x[0]).t=='a')),c=by('c'),rest=[...by('p'),...by('w'),...by('y'),...by('v'),...srt(by('l')),...srt(by('g'))];
+  const m=by('m').sort((x,y)=>(n.get(y[0]).t=='a')-(n.get(x[0]).t=='a')),c=by('c'),rest=[...by('p'),...by('w'),...by('era'),...by('i'),...by('y'),...by('v'),...by('aw'),...srt(by('l')),...srt(by('g')),...by('sim')];
   const x=srt(by('x')),sm=srt(by('s')),ms=m.slice(0,3),cs=c.slice(0,2),xs=x.slice(0,2),ss=sm.slice(0,2);
   if(m.length+c.length+x.length+sm.length+rest.length<=GPAGE)return [...m,...c,...x,...sm,...rest].map(e=>e[0]);
   return [...ms,...cs,...xs,...ss,...rest,...m.slice(ms.length),...c.slice(cs.length),...x.slice(xs.length),...sm.slice(ss.length)].map(e=>e[0]);
@@ -1913,6 +1978,13 @@ function grDesc(id){
   const list=a=>a.slice(0,3).join(', ')+(a.length>3?' and more':'');
   if(o.t=='k')parts.push(`on ${plur(o.c,'record')} in your collection`);
   if(o.t=='q')parts.push('sampled or sampling; no records of their own here');
+  if(o.t=='a'&&o.yrs)parts.push('active '+o.yrs);
+  if(o.t=='w')parts.push(`award · ${plur(es.length,'artist')} from your collection received it`);
+  if(o.t=='d')parts.push(`${plur(es.length,'artist')} in your collection started in the ${o.name}`);
+  const inf=es.filter(([x,e])=>e.k=='i'&&e.dst==id).map(([x])=>n.get(x).name),infd=es.filter(([x,e])=>e.k=='i'&&e.src==id).map(([x])=>n.get(x).name);
+  if(inf.length)parts.push('influenced by '+inf.slice(0,3).join(', ')+(inf.length>3?' and more':''));if(infd.length)parts.push('an influence on '+infd.slice(0,3).join(', ')+(infd.length>3?' and more':''));
+  const col=es.filter(([x,e])=>e.k=='c').map(([x])=>n.get(x).name);if(col.length)parts.push('with '+col.slice(0,3).join(', ')+(col.length>3?' and more':''));
+  const aws=es.filter(([x,e])=>e.k=='aw').length;if(o.t=='a'&&aws)parts.push(plur(aws,'award'));
   const smo=es.filter(([x,e])=>e.k=='s'&&e.dst==id).length,smb=es.filter(([x,e])=>e.k=='s'&&e.src==id).length;
   if(smo)parts.push(`samples ${plur(smo,'artist')}`);if(smb)parts.push(`sampled by ${plur(smb,'artist')}`);
   if(made.length)parts.push(`produced or remixed ${list(made)}`);
@@ -1931,15 +2003,15 @@ function grDesc(id){
     const na=es.filter(([x,e])=>e.k=='p'||e.k=='w').length;parts.push(`${plur(na,'artist')} from here in your collection`)}
   const s=parts.join(' · ');return s[0].toUpperCase()+s.slice(1);
 }
-const GES={s:'stroke="var(--az)" stroke-width="1.8"',v:'stroke="var(--ink)" stroke-width="1.4" stroke-dasharray="1 3"',y:'stroke="var(--hl)" stroke-width="1.8" stroke-dasharray="1 3"',x:'stroke="var(--s2)" stroke-width="1.6" stroke-dasharray="6 3"',m:'stroke="var(--hl)" stroke-width="2"',c:'stroke="var(--hl)" stroke-width="1.5" stroke-dasharray="5 3"',p:'stroke="var(--ink)" stroke-width="1.5" stroke-dasharray="2 3"',
+const GES={i:'stroke="var(--s3)" stroke-width="1.6" stroke-dasharray="6 3"',aw:'stroke="var(--ink)" stroke-width="1" stroke-dasharray="1 2"',era:'stroke="var(--mute)" stroke-width="1" stroke-dasharray="3 3"',sim:'stroke="var(--hl)" stroke-width="1.2" stroke-dasharray="1 4"',s:'stroke="var(--az)" stroke-width="1.8"',v:'stroke="var(--ink)" stroke-width="1.4" stroke-dasharray="1 3"',y:'stroke="var(--hl)" stroke-width="1.8" stroke-dasharray="1 3"',x:'stroke="var(--s2)" stroke-width="1.6" stroke-dasharray="6 3"',m:'stroke="var(--hl)" stroke-width="2"',c:'stroke="var(--hl)" stroke-width="1.5" stroke-dasharray="5 3"',p:'stroke="var(--ink)" stroke-width="1.5" stroke-dasharray="2 3"',
   l:'stroke="var(--mute)" stroke-width="1.5"',w:'stroke="var(--mute)" stroke-width="1.5" stroke-dasharray="2 3"',u:'stroke="var(--ink)" stroke-width="1"',g:'stroke="var(--mute)" stroke-width="1.2" stroke-dasharray="6 4"'};
 function grDraw(P,A){
   const g=$('#gsvg');if(!g)return;const {n,adj}=grData();let h='';
   const ids=Object.keys(P),seen=new Set(ids);
   ids.forEach(a=>{if(a=='+more')return;adj.get(a)&&adj.get(a).forEach((e,b)=>{if(a<b&&seen.has(b)&&(a==grCenter||b==grCenter)){const al=Math.min(A[a]||0,A[b]||0);if(al<.02)return;
     h+=`<line x1="${P[a].x.toFixed(1)}" y1="${P[a].y.toFixed(1)}" x2="${P[b].x.toFixed(1)}" y2="${P[b].y.toFixed(1)}" ${GES[e.k]} opacity="${al.toFixed(2)}"/>`;
-    if(e.k=='s'){const arrow=(f,t)=>{const dx=P[t].x-P[f].x,dy=P[t].y-P[f].y,l=Math.hypot(dx,dy)||1,ux=dx/l,uy=dy/l,ex=P[t].x-ux*(t==grCenter?17:12),ey=P[t].y-uy*(t==grCenter?17:12);
-      return `<polygon points="${(ex+ux*7).toFixed(1)},${(ey+uy*7).toFixed(1)} ${(ex-uy*4).toFixed(1)},${(ey+ux*4).toFixed(1)} ${(ex+uy*4).toFixed(1)},${(ey-ux*4).toFixed(1)}" fill="var(--az)" opacity="${al.toFixed(2)}"/>`};
+    if(e.k=='s'||e.k=='i'){const ac=e.k=='i'?'var(--s3)':'var(--az)',arrow=(f,t)=>{const dx=P[t].x-P[f].x,dy=P[t].y-P[f].y,l=Math.hypot(dx,dy)||1,ux=dx/l,uy=dy/l,ex=P[t].x-ux*(t==grCenter?17:12),ey=P[t].y-uy*(t==grCenter?17:12);
+      return `<polygon points="${(ex+ux*7).toFixed(1)},${(ey+uy*7).toFixed(1)} ${(ex-uy*4).toFixed(1)},${(ey+ux*4).toFixed(1)} ${(ex+uy*4).toFixed(1)},${(ey-ux*4).toFixed(1)}" fill="${ac}" opacity="${al.toFixed(2)}"/>`};
       h+=arrow(e.src,e.dst);if(e.both)h+=arrow(e.dst,e.src)}}})});
   if(P['+more']&&(A['+more']||0)>.02){const m=P['+more'];h+=`<line x1="${GC.x}" y1="${GC.y}" x2="${m.x.toFixed(1)}" y2="${m.y.toFixed(1)}" stroke="var(--line2)" stroke-width="1" stroke-dasharray="1 4" opacity="${A['+more'].toFixed(2)}"/>`}
   ids.forEach(id=>{const al=A[id]||0;if(al<.02)return;const {x,y}=P[id],c=id==grCenter,r=c?13:8;let sh,lbl;
@@ -1950,6 +2022,8 @@ function grDraw(P,A){
       else if(o.t=='e'||o.t=='y'){const w=r*2.4,h=r*1.6,c=o.t=='y'?'var(--hl)':'var(--ink)';
         sh=`<path d="M${x-w/2} ${y-h/2}h${w}v${h*.32}a${h*.18} ${h*.18} 0 0 0 0 ${h*.36}v${h*.32}h${-w}v${-h*.32}a${h*.18} ${h*.18} 0 0 0 0 ${-h*.36}z" fill="var(--bg)" stroke="${c}" stroke-width="2"/><line x1="${x-w*.18}" y1="${y-h/2+2}" x2="${x-w*.18}" y2="${y+h/2-2}" stroke="${c}" stroke-width="1" stroke-dasharray="1.5 2"/>`}
       else if(o.t=='v')sh=`<circle cx="${x}" cy="${y}" r="${r-1}" fill="var(--bg)" stroke="var(--ink)" stroke-width="1.5"/>`;
+      else if(o.t=='w')sh=`<polygon points="${[...Array(10)].map((_,i)=>{const a=-Math.PI/2+i*Math.PI/5,rr=i%2?r*.45:r+1;return (x+Math.cos(a)*rr).toFixed(1)+','+(y+Math.sin(a)*rr).toFixed(1)}).join(' ')}" fill="var(--bg)" stroke="var(--ink)" stroke-width="1.5"/>`;
+      else if(o.t=='d')sh=`<circle cx="${x}" cy="${y}" r="${r-1}" fill="var(--bg)" stroke="var(--mute)" stroke-width="1.5" stroke-dasharray="2 2"/><circle cx="${x}" cy="${y}" r="1.8" fill="var(--mute)"/>`;
       else if(o.t=='q')sh=`<circle cx="${x}" cy="${y}" r="${r-1}" fill="var(--bg)" stroke="var(--az)" stroke-width="2"/>`;
       else if(o.t=='k')sh=`<circle cx="${x}" cy="${y}" r="${r-1}" fill="var(--bg)" stroke="var(--s2)" stroke-width="2"/>`;
       else if(o.t=='p')sh=`<rect x="${x-r+2}" y="${y-r+2}" width="${2*r-4}" height="${2*r-4}" transform="rotate(45 ${x} ${y})" fill="var(--bg)" stroke="var(--ink)" stroke-width="2"/>`;
@@ -1969,11 +2043,22 @@ function grInfo(){
   // "Steely Dan “Peg” → De La Soul “Eye Know”"
   const sm=[...grData().adj.get(grCenter).entries()].filter(([x,e])=>e.k=='s').slice(0,4).map(([x,e])=>{const [f,t]=e.rs[0].split(' → ');
     return `${esc(n.get(e.src).name)} ${esc(cut(f))} → ${esc(n.get(e.dst).name)} ${esc(cut(t))}${e.rs.length>1?` and ${e.rs.length-1} more`:''}`});
-  $('#ginfo').innerHTML=`<b>${esc(o.name)}</b><p class="mute" style="margin:4px 0 0">${esc(grDesc(grCenter))}${all>GPAGE?` · showing ${grPage*GPAGE+1}–${Math.min(all,(grPage+1)*GPAGE)} of ${all}, ${(grPage+1)*GPAGE>=all?'tap +more to start over':'tap +more for the next'}`:''}</p>${cr.length?`<p class="mute gcred">${cr.join('<br>')}</p>`:''}${sm.length?`<p class="mute gcred gsm">${sm.join('<br>')}</p>`:''}${btn?`<button class="btn" data-gshow="${esc(grCenter)}">${btn}</button>`:''}`;
+  const ar0=o.t=='a'&&arts[grCenter.slice(2)],own=new Set(Object.values(arts).map(a=>a.m).filter(Boolean)),dig=ar0&&ar0.sim?ar0.sim.filter(([m])=>!own.has(m)).slice(0,6).map(x=>x[1]):[];
+  $('#ginfo').innerHTML=`<b>${esc(o.name)}</b><p class="mute" style="margin:4px 0 0">${esc(grDesc(grCenter))}${all>GPAGE?` · showing ${grPage*GPAGE+1}–${Math.min(all,(grPage+1)*GPAGE)} of ${all}, ${(grPage+1)*GPAGE>=all?'tap +more to start over':'tap +more for the next'}`:''}</p>${cr.length?`<p class="mute gcred">${cr.join('<br>')}</p>`:''}${sm.length?`<p class="mute gcred gsm">${sm.join('<br>')}</p>`:''}${dig.length?`<p class="mute gcred gsim">Similar, not in your collection: ${esc(dig.join(', '))}</p>`:''}${btn?`<button class="btn" data-gshow="${esc(grCenter)}">${btn}</button>`:''}`;
   $('#gcrumb').innerHTML=grTrail.map((id,i)=>i==grTrail.length-1?`<b>${esc(n.get(id).name)}</b>`:`<button data-gtr="${i}">${esc(n.get(id).name)}</button>`).join(' › ');
 }
 // make a node the centre; the trail remembers the last few steps
-function grGo(id,samePage){
+/* Wander: the graph moves on by itself every few seconds, to a neighbour it hasn't just visited (artists more often than
+   labels or genres). Tapping anything, or leaving the graph, stops it */
+let wanderT=0;
+function wanderStop(){clearInterval(wanderT);wanderT=0;const b=$('#gwan');if(b){b.classList.remove('on');b.textContent='Wander ›'}}
+function wanderStep(){if(view!='ex'||exTab!='graph'||grMode!='graph'||!$('#gsvg')||sheetOpen){wanderStop();return}
+  const {n}=grData(),recent=new Set(grTrail.slice(-5)),all=grNbrs(grCenter).filter(x=>n.has(x)),pool=all.filter(x=>!recent.has(x));
+  const c=pool.length?pool:all;if(!c.length)return;
+  const w=x=>{const t=n.get(x).t;return t=='a'?6:'bkqeywd'.includes(t)?2:t=='p'?2:1};
+  grGo(wpick(c,w),false,true)}
+function wanderToggle(){if(wanderT){wanderStop();return}wanderT=setInterval(wanderStep,4200);const b=$('#gwan');if(b){b.classList.add('on');b.textContent='Stop wandering'}wanderStep()}
+function grGo(id,samePage,byWander){if(!byWander&&wanderT)wanderStop();
   const {n}=grData();if(!n.has(id))return;
   if(!samePage)grPage=0;
   if(grTrail[grTrail.length-1]!=id){const j=grTrail.indexOf(id);grTrail=j>=0?grTrail.slice(0,j+1):[...grTrail,id];if(grTrail.length>5)grTrail=grTrail.slice(-5)}
@@ -1990,10 +2075,11 @@ function grGo(id,samePage){
 function graphHTML(){
   return `<input type="search" id="gq" placeholder="Find an artist, label or genre" aria-label="Find an artist, label or genre" autocomplete="off" autocapitalize="off" enterkeyhint="search" style="margin-top:14px">
   <div class="chips" id="gres" style="margin:8px 0 0"></div>
+  <div class="chips" style="margin:8px 0 0"><button class="chip${wanderT?' on':''}" id="gwan" data-gwan="1">${wanderT?'Stop wandering':'Wander ›'}</button></div>
   <div class="gcrumb" id="gcrumb"></div>
   <svg id="gsvg" viewBox="0 0 ${GW} ${GH}" role="group" aria-label="Graph of artists, labels and genres"></svg>
   <div class="ginfo" id="ginfo"></div>
-  <div class="gkey"><span><svg width="14" height="14"><circle cx="7" cy="7" r="6" fill="var(--hl)"/></svg>Artist</span><span><svg width="14" height="14"><rect x="1" y="1" width="12" height="12" fill="var(--thumb)" stroke="var(--mute)" stroke-width="1.5"/></svg>Label</span><span><svg width="16" height="16"><polygon points="14,8 11,13.2 5,13.2 2,8 5,2.8 11,2.8" fill="none" stroke="var(--ink)" stroke-width="1.5"/></svg>Genre</span><span><svg width="14" height="14"><circle cx="7" cy="7" r="5" fill="none" stroke="var(--hl)" stroke-width="2"/></svg>Member or group, no records here</span><span><svg width="14" height="14"><rect x="3" y="3" width="8" height="8" transform="rotate(45 7 7)" fill="none" stroke="var(--ink)" stroke-width="2"/></svg>Place</span><span><svg width="14" height="14"><circle cx="7" cy="7" r="5" fill="none" stroke="var(--s2)" stroke-width="2"/></svg>Producer or remixer</span><span><svg width="18" height="14"><path d="M2 3h14v2.5a1.5 1.5 0 0 0 0 3v2.5h-14v-2.5a1.5 1.5 0 0 0 0-3z" fill="none" stroke="var(--ink)" stroke-width="1.5"/></svg>Special event</span><span><svg width="18" height="14"><path d="M2 3h14v2.5a1.5 1.5 0 0 0 0 3v2.5h-14v-2.5a1.5 1.5 0 0 0 0-3z" fill="none" stroke="var(--hl)" stroke-width="1.5"/></svg>Your concert</span><span><svg width="22" height="14"><line x1="2" y1="7" x2="15" y2="7" stroke="var(--az)" stroke-width="1.8"/><polygon points="20,7 14,4 14,10" fill="var(--az)"/></svg>Sampled into</span></div>
+  <div class="gkey"><span><svg width="14" height="14"><circle cx="7" cy="7" r="6" fill="var(--hl)"/></svg>Artist</span><span><svg width="14" height="14"><rect x="1" y="1" width="12" height="12" fill="var(--thumb)" stroke="var(--mute)" stroke-width="1.5"/></svg>Label</span><span><svg width="16" height="16"><polygon points="14,8 11,13.2 5,13.2 2,8 5,2.8 11,2.8" fill="none" stroke="var(--ink)" stroke-width="1.5"/></svg>Genre</span><span><svg width="14" height="14"><circle cx="7" cy="7" r="5" fill="none" stroke="var(--hl)" stroke-width="2"/></svg>Member or group, no records here</span><span><svg width="14" height="14"><rect x="3" y="3" width="8" height="8" transform="rotate(45 7 7)" fill="none" stroke="var(--ink)" stroke-width="2"/></svg>Place</span><span><svg width="14" height="14"><circle cx="7" cy="7" r="5" fill="none" stroke="var(--s2)" stroke-width="2"/></svg>Producer or remixer</span><span><svg width="18" height="14"><path d="M2 3h14v2.5a1.5 1.5 0 0 0 0 3v2.5h-14v-2.5a1.5 1.5 0 0 0 0-3z" fill="none" stroke="var(--ink)" stroke-width="1.5"/></svg>Special event</span><span><svg width="18" height="14"><path d="M2 3h14v2.5a1.5 1.5 0 0 0 0 3v2.5h-14v-2.5a1.5 1.5 0 0 0 0-3z" fill="none" stroke="var(--hl)" stroke-width="1.5"/></svg>Your concert</span><span><svg width="22" height="14"><line x1="2" y1="7" x2="15" y2="7" stroke="var(--az)" stroke-width="1.8"/><polygon points="20,7 14,4 14,10" fill="var(--az)"/></svg>Sampled into</span><span><svg width="22" height="14"><line x1="2" y1="7" x2="15" y2="7" stroke="var(--s3)" stroke-width="1.6" stroke-dasharray="4 2"/><polygon points="20,7 14,4 14,10" fill="var(--s3)"/></svg>Influenced</span><span><svg width="16" height="16"><polygon points="8,1 9.8,6 15,6 10.8,9.2 12.4,14.5 8,11.3 3.6,14.5 5.2,9.2 1,6 6.2,6" fill="none" stroke="var(--ink)" stroke-width="1.3"/></svg>Award</span><span><svg width="14" height="14"><circle cx="7" cy="7" r="5" fill="none" stroke="var(--mute)" stroke-width="1.5" stroke-dasharray="2 2"/></svg>Decade started</span><span><svg width="22" height="14"><line x1="2" y1="7" x2="20" y2="7" stroke="var(--hl)" stroke-width="1.4" stroke-dasharray="1 3"/></svg>Similar</span></div>
   <p class="mute" style="margin:10px 0 0;font-size:12px">${(()=>{const g=artGroups();let d=0;g.forEach((o,k)=>{if(arts[k])d++});return d<g.size?`Band members, groups and places come from <b>Data → Artist connections</b>: ${d} of ${g.size} artists looked up so far.`:'Band members, groups and places come from MusicBrainz.'})()}</p>`;
 }
 function grMount(){
@@ -2191,10 +2277,73 @@ function graphBurst(ox,oy,go){
   requestAnimationFrame(step);
 }
 function artistsHTML(){
-  return `<div class="seg gmode" role="tablist">${['graph','map','quiz'].map(k=>`<button class="${grMode==k?'on':''}" data-gmode="${k}" role="tab" aria-selected="${grMode==k}">${k[0].toUpperCase()+k.slice(1)}</button>`).join('')}</div>`+
-    (grMode=='quiz'?'<div id="qz"></div>':grMode=='map'?mapHTML():graphHTML());
+  return `<div class="seg gmode" role="tablist">${['graph','stars','map','quiz'].map(k=>`<button class="${grMode==k?'on':''}" data-gmode="${k}" role="tab" aria-selected="${grMode==k}">${k[0].toUpperCase()+k.slice(1)}</button>`).join('')}</div>`+
+    (grMode=='quiz'?'<div id="qz"></div>':grMode=='map'?mapHTML():grMode=='stars'?starsHTML():graphHTML());
 }
-function artistsMount(){if(grMode=='quiz')qzDraw();else if(grMode=='map')mapMount();else grMount()}
+function artistsMount(){if(wanderT&&grMode!='graph')wanderStop();if(grMode=='quiz')qzDraw();else if(grMode=='map')mapMount();else if(grMode=='stars')stMount();else grMount()}
+
+/* Explore → Artists → Stars: the whole collection at once. Every artist is a star, sized by its records, grouped in a
+   cluster per genre (the clusters packed in a spiral, biggest in the middle). Tap a star to light up its connections:
+   members, collaborators, producers, samples, influences, similar artists, and artists from the same town or event */
+let stCache=null,stView=null,stSel=null;
+function stLayout(){const key=grKey();if(stCache&&stCache.key==key)return stCache;
+  const g=artGroups(),cl=new Map();
+  g.forEach(o=>{const gc={};o.rs.forEach(r=>{const k=r.genre||'No genre';gc[k]=(gc[k]||0)+1});const gen=Object.entries(gc).sort((a,b)=>b[1]-a[1])[0][0];
+    if(!cl.has(gen))cl.set(gen,[]);cl.get(gen).push(o)});
+  const stars=[],placed=[];
+  [...cl.entries()].sort((a,b)=>b[1].length-a[1].length).forEach(([gen,list])=>{const R=7*Math.sqrt(list.length)+10;let x=0,y=0;
+    for(let t=0;t<20000;t++){const a=t*.31,r=t*.9;x=Math.cos(a)*r;y=Math.sin(a)*r;if(placed.every(p=>Math.hypot(p.x-x,p.y-y)>p.R+R+16))break}
+    placed.push({x,y,R,gen,n:list.length});
+    list.sort((a,b)=>b.rs.length-a.rs.length).forEach((o,j)=>{const a=j*2.39996,r=R*Math.sqrt((j+.5)/list.length);
+      stars.push({k:o.k,name:o.name,c:o.rs.length,gen,x:x+Math.cos(a)*r,y:y+Math.sin(a)*r})})});
+  return stCache={key,stars,clusters:placed,byK:new Map(stars.map(s=>[s.k,s]))}}
+// a star's connections: other artists linked directly, or through a member, producer, place or event they share
+function stLinks(k){const {n,adj}=grData(),id='a:'+k,out=new Set();if(!adj.has(id))return [];
+  adj.get(id).forEach((e,x)=>{if(x.startsWith('a:'))out.add(x);else if('bkqeywp'.includes(n.get(x).t)){let c=0;adj.get(x).forEach((e2,y)=>{if(y!=id&&y.startsWith('a:')&&c++<12)out.add(y)})}});
+  return [...out].slice(0,80).map(x=>x.slice(2))}
+function starsHTML(){return `<div class="chips mzc"><button class="chip" data-stfit="1">Whole sky</button></div>
+  <div class="mapw" id="stw"><canvas id="stc" aria-label="Every artist in your collection as a star, grouped by genre"></canvas>
+    <div class="mzb"><button class="fx" data-stz="1" aria-label="Zoom in">+</button><button class="fx" data-stz="-1" aria-label="Zoom out">−</button></div></div>
+  <div class="ginfo" id="stinfo"></div>`}
+function stFit(){const L=stLayout(),w=$('#stw');if(!w||!L.clusters.length)return;const xs=L.clusters.flatMap(c=>[c.x-c.R,c.x+c.R]),ys=L.clusters.flatMap(c=>[c.y-c.R,c.y+c.R]);
+  const ar=w.clientHeight/w.clientWidth,bw=Math.max(...xs)-Math.min(...xs),bh=Math.max(...ys)-Math.min(...ys);
+  stView={cx:(Math.max(...xs)+Math.min(...xs))/2,cy:(Math.max(...ys)+Math.min(...ys))/2,w:Math.max(bw,bh/ar)*1.08};stDraw()}
+let stRaf=0;const stQueue=()=>{if(!stRaf)stRaf=requestAnimationFrame(()=>{stRaf=0;stDraw()})};
+function stDraw(){const c=$('#stc');if(!c||!stView)return;const w=c.clientWidth,h=c.clientHeight,d=devicePixelRatio||1;
+  if(c.width!=Math.round(w*d)||c.height!=Math.round(h*d)){c.width=Math.round(w*d);c.height=Math.round(h*d)}
+  const x=c.getContext('2d'),L=stLayout(),s=w/stView.w,ox=stView.cx-stView.w/2,oy=stView.cy-h/s/2,P=p=>[(p.x-ox)*s,(p.y-oy)*s];
+  const ink=cssVar('--ink'),hl=cssVar('--hl'),mute=cssVar('--mute');x.setTransform(d,0,0,d,0,0);x.clearRect(0,0,w,h);
+  const lit=new Set(stSel?stLinks(stSel):[]),sel=stSel&&L.byK.get(stSel);
+  if(sel){const [sx,sy]=P(sel);x.strokeStyle=hl;x.lineWidth=1;lit.forEach(k=>{const t=L.byK.get(k);if(!t)return;const [tx,ty]=P(t);x.globalAlpha=.35;x.beginPath();x.moveTo(sx,sy);x.lineTo(tx,ty);x.stroke()});x.globalAlpha=1}
+  const zr=Math.min(2.4,Math.max(.7,s/1.6));
+  L.stars.forEach(st=>{const [px,py]=P(st);if(px<-8||px>w+8||py<-8||py>h+8)return;const r=(.7+Math.log2(1+st.c)*.55)*zr,on=st.k==stSel||lit.has(st.k);
+    x.globalAlpha=on?1:stSel?.35:.55+Math.min(.45,st.c/20);x.fillStyle=on?hl:ink;x.beginPath();x.arc(px,py,on?r+1:r,0,7);x.fill()});
+  x.globalAlpha=1;x.font=`600 10px ${cssVar('--mono')||'monospace'}`;x.textAlign='center';
+  L.clusters.forEach(cl=>{const [px,py]=P({x:cl.x,y:cl.y-cl.R-5});if(cl.R*s<10||px<-60||px>w+60||py<-10||py>h+20)return;x.fillStyle=mute;x.fillText(cl.gen.toUpperCase(),px,py)});
+  // names once zoomed in, or for the lit stars
+  if(s>2.2||sel){x.textAlign='left';x.font=`500 10px ${cssVar('--mono')||'monospace'}`;
+    L.stars.forEach(st=>{const on=st.k==stSel||lit.has(st.k);if(!on&&!(s>2.2&&(st.c>=3||s>5)))return;const [px,py]=P(st);if(px<-40||px>w||py<0||py>h)return;
+      x.fillStyle=on?hl:ink;x.globalAlpha=on?1:.75;x.fillText(st.name.length>22?st.name.slice(0,21)+'…':st.name,px+5,py+3.5)});x.globalAlpha=1}}
+function stInfo(){const el=$('#stinfo');if(!el)return;const L=stLayout();
+  if(!stSel){el.innerHTML=`<b>Your collection as stars</b><p class="mute" style="margin:4px 0 0">${L.stars.length} artists in ${plur(L.clusters.length,'genre')}. Bigger stars, more records. Tap a star to light up its connections; pinch or scroll to zoom.</p>`;return}
+  const st=L.byK.get(stSel),lit=stLinks(stSel);
+  el.innerHTML=`<b>${esc(st.name)}</b><p class="mute" style="margin:4px 0 0">${plur(st.c,'record')} · ${esc(st.gen)} · ${lit.length?`connected to ${plur(lit.length,'artist')} here`:'no connections found yet'}</p>
+    ${lit.length?`<p class="mute" style="margin:6px 0 0">${lit.slice(0,8).map(k=>esc(L.byK.get(k)?.name||'')).join(', ')}${lit.length>8?' and more':''}</p>`:''}<button class="btn" data-qgo="a:${esc(stSel)}">Open in the graph</button>`}
+function stMount(){stInfo();if(!stView)stFit();else stDraw();
+  const c=$('#stc'),pts=new Map();let last=null,moved=0;
+  const toW=(cx,cy)=>{const r=c.getBoundingClientRect(),s=r.width/stView.w;return [stView.cx-stView.w/2+(cx-r.left)/s,stView.cy-r.height/s/2+(cy-r.top)/s]};
+  const zoomAt=(f,cx,cy)=>{const [ux,uy]=toW(cx,cy),nw=Math.max(20,Math.min(20000,stView.w/f)),k=nw/stView.w;stView.cx=ux-(ux-stView.cx)*k;stView.cy=uy-(uy-stView.cy)*k;stView.w=nw;stQueue()};
+  c.onpointerdown=e=>{try{c.setPointerCapture(e.pointerId)}catch(_){}pts.set(e.pointerId,[e.clientX,e.clientY]);last=null;moved=0};
+  c.onpointermove=e=>{if(!pts.has(e.pointerId))return;const pv=pts.get(e.pointerId);pts.set(e.pointerId,[e.clientX,e.clientY]);moved+=Math.abs(e.clientX-pv[0])+Math.abs(e.clientY-pv[1]);
+    if(pts.size==1){const s=c.getBoundingClientRect().width/stView.w;stView.cx-=(e.clientX-pv[0])/s;stView.cy-=(e.clientY-pv[1])/s;stQueue()}
+    else if(pts.size==2){const [a,b]=[...pts.values()],dd=Math.hypot(a[0]-b[0],a[1]-b[1]);if(last)zoomAt(dd/last,(a[0]+b[0])/2,(a[1]+b[1])/2);last=dd}};
+  c.onpointerup=c.onpointercancel=e=>{const tap=pts.size==1&&moved<8;pts.delete(e.pointerId);last=null;
+    if(tap){const [wx,wy]=toW(e.clientX,e.clientY),s=c.getBoundingClientRect().width/stView.w;let best=null,bd=18/s;
+      stLayout().stars.forEach(st=>{const dd=Math.hypot(st.x-wx,st.y-wy);if(dd<bd){bd=dd;best=st}});stSel=best?best.k:null;stInfo();stDraw()}};
+  c.onwheel=e=>{e.preventDefault();zoomAt(Math.exp(-e.deltaY/300),e.clientX,e.clientY)};
+  document.querySelectorAll('[data-stz]').forEach(b=>b.onclick=()=>{const r=c.getBoundingClientRect();zoomAt(+b.dataset.stz>0?1.8:1/1.8,r.left+r.width/2,r.top+r.height/2)});
+  const f=document.querySelector('[data-stfit]');if(f)f.onclick=()=>{stSel=null;stInfo();stFit()};
+}
 
 /* Explore → Artists → Map: where your artists come from, and where you saw them live, on an outline of the world kept
    inside the app (Natural Earth, simplified; world.json). Places get their coordinates from Wikidata with the place lookup,
@@ -2221,13 +2370,14 @@ async function mapLoad(){
 }
 // where each artist comes from: its own place, or the nearest place above it that has coordinates
 function mapFrom(){const g=artGroups(),by=new Map();
-  g.forEach(o=>{const ar=arts[o.k],pl=ar&&ar.m&&(ar.b||ar.a);if(!pl)return;const q=plc.mb[pl[0]];if(!q||!plc.wd[q])return;
+  g.forEach(o=>{const q=artPlace(o.k);if(!q)return;
     const ch=plcChain(q).ch,at=ch.find(x=>plc.wd[x]&&plc.wd[x].ll);if(!at)return;
     if(!by.has(at))by.set(at,{id:'p:'+at,q:at,name:plc.wd[at].n,ll:plc.wd[at].ll,items:[]});by.get(at).items.push({k:o.k,name:o.name,c:o.rs.length})});
   return [...by.values()].map(p=>({...p,n:p.items.length}))}
 // where you saw them: one dot per concert city
 function mapSeen(){const by=new Map(),own=new Map();artGroups().forEach(o=>own.set(akey(o.name),o.k));
-  gigs.forEach(g=>{const k=g.c+'|'+(g.co||''),ll=(plc.city||{})[k];if(!ll)return;if(!by.has(k))by.set(k,{id:'c:'+k,name:g.c,ll,items:[],nights:new Map()});
+  gigs.forEach(g=>{const vk=g.v+'|'+g.c,vl=(plc.venue||{})[vk],k=vl?vk:g.c+'|'+(g.co||''),ll=vl||(plc.city||{})[k]||g.cl;if(!ll)return;
+    if(!by.has(k))by.set(k,{id:'c:'+k,name:vl?g.v:g.c,ll,items:[],nights:new Map()});
     const c=by.get(k),nk=g.v+'|'+g.d;if(!c.nights.has(nk))c.nights.set(nk,{v:g.v,d:g.d,acts:[]});c.nights.get(nk).acts.push({a:g.a,k:own.get(akey(g.a))})});
   return [...by.values()].map(c=>({...c,n:c.nights.size,items:[...c.nights.values()].sort((a,b)=>a.d<b.d?1:-1)}))}
 function mapHTML(){
@@ -2294,7 +2444,7 @@ async function mapMount(){
   const pts=new Map();let last=null;
   const toU=(cx,cy)=>{const r=sv.getBoundingClientRect(),u=mapView.w/r.width,h=mapView.w*r.height/r.width;return [mapView.cx-mapView.w/2+(cx-r.left)*u,mapView.cy-h/2+(cy-r.top)*u]};
   const zoomAt=(f,cx,cy)=>{const [ux,uy]=toU(cx,cy),nw=Math.max(.3,Math.min(MW*1.6,mapView.w/f)),k=nw/mapView.w;mapView.cx=ux-(ux-mapView.cx)*k;mapView.cy=uy-(uy-mapView.cy)*k;mapView.w=nw;mapApply()};
-  sv.onpointerdown=e=>{sv.setPointerCapture(e.pointerId);pts.set(e.pointerId,[e.clientX,e.clientY]);last=null};
+  sv.onpointerdown=e=>{try{sv.setPointerCapture(e.pointerId)}catch(_){}pts.set(e.pointerId,[e.clientX,e.clientY]);last=null};
   sv.onpointermove=e=>{if(!pts.has(e.pointerId))return;const prev=pts.get(e.pointerId);pts.set(e.pointerId,[e.clientX,e.clientY]);
     if(pts.size==1){const r=sv.getBoundingClientRect(),u=mapView.w/r.width;mapView.cx-=(e.clientX-prev[0])*u;mapView.cy-=(e.clientY-prev[1])*u;mapApply()}
     else if(pts.size==2){const [a,b]=[...pts.values()],d=Math.hypot(a[0]-b[0],a[1]-b[1]);if(last)zoomAt(d/last,(a[0]+b[0])/2,(a[1]+b[1])/2);last=d}};
@@ -2330,6 +2480,9 @@ function lkStats(){
     {id:'pl',name:'Places and events',done:pd,total:pa.length,unit:'places',sec:.5,st:null,prog:'plprog',btn:'plb',label:'Connect places and events',text:plcText,dep:'Runs by itself after artist connections',
       what:'Which region, state and country each place is in (Amityville is on Long Island, in New York), and what artists took part in, such as Live Aid.',
       more:`From Wikidata, a minute or so at a time. It sends only place and artist ids to Wikidata.`},
+    {id:'si',name:'Similar artists',done:[...g.keys()].filter(k=>arts[k]&&arts[k].sim).length,total:[...g.keys()].filter(k=>arts[k]&&arts[k].m).length,unit:'artists',sec:1.4,st:siState,run:siRun,prog:'siprog',btn:'sib',label:'Fetch similar artists',text:siText,dep:'After artist connections',
+      what:'Artists people often listen to together with yours, from ListenBrainz. Ones in your collection are linked in the graph; others are suggested under an artist, to dig for next.',
+      more:`From ListenBrainz's open similar-artists data, one artist a second or so. It sends MusicBrainz artist ids to ListenBrainz.`},
     {id:'sm',name:'Samples',done:done.sm.size,total:albums.size,unit:'albums',sec:7,st:smState,run:smRun,prog:'smprog',btn:'smb',label:'Fetch samples',text:smText,
       what:'Which tracks your records sample, and who sampled them, for the Artists graph.',
       more:`Looked up on MusicBrainz one album at a time (one pressing of each), hip hop, electronic and dance first; it keeps going where it left off. MusicBrainz knows samples well for well-known hip hop and electronic records and less elsewhere. This sends Discogs numbers, artist names and titles to MusicBrainz.`},
@@ -2439,7 +2592,7 @@ function dataView(msg=''){
       gigs=g;saveGigs();const a=new Set(g.map(x=>akey(x.a))).size,m=recs.filter(r=>gigsFor(r).length).length;
       dataView(`Imported ${g.length} concerts by ${a} artists. ${m} of your records are by artists you've seen live.`)};
     on('gclr',async()=>{if(!await ask('Remove all imported concerts? Your records are not affected.','Remove concerts',true))return;gigs=[];saveGigs();dataView('Concerts removed.')});
-    on('oyb',oyRun);on('arb',artRun);on('plb',plcRun);on('smb',smRun);on('dgb',dgRun);on('bpb',bpmRun);on('lkall',runAll);
+    on('oyb',oyRun);on('arb',artRun);on('plb',plcRun);on('smb',smRun);on('sib',siRun);on('dgb',dgRun);on('bpb',bpmRun);on('lkall',runAll);
     on('upd',async()=>{$('#updmsg').textContent='Checking...';const m=await checkUpdate(true);if($('#updmsg'))$('#updmsg').textContent=m});
     on('cvt',()=>{try{KV.setItem('vinylCoverOff',covOn()?'1':'0')}catch(e){}dataView()});
     on('cvd',async()=>{$('#cvmsg').textContent='Testing...';const m=await covDiag();if($('#cvmsg'))$('#cvmsg').textContent=m});
@@ -2861,7 +3014,8 @@ $('#sheet').onclick=e=>{if(e.target.id=='sheet')closeSheet()};
   const still=()=>matchMedia('(prefers-reduced-motion: reduce)').matches;
   let sw=null,busy=false;
   const curId=()=>sheetOpen?sb.querySelector('.shb')?.dataset.share:null;
-  const nbr=(cur,dir)=>{const ids=[...new Set([...document.querySelectorAll('#app .rec[data-id]')].map(e=>e.dataset.id))],i=ids.indexOf(cur);return i<0?null:ids[i+dir]||null};
+  // Records and Selected: the whole list in its order, past the records drawn so far; elsewhere the cards on the page
+  const nbr=(cur,dir)=>{const ids=(view=='rec'||view=='fav')&&$('#list')?matches().map(r=>r.id):[...new Set([...document.querySelectorAll('#app .rec[data-id]')].map(e=>e.dataset.id))],i=ids.indexOf(cur);return i<0?null:ids[i+dir]||null};
   // the neighbouring card, drawn as it will open, beside the current one
   const mkPeek=id=>{const r=recs.find(x=>x.id==id),h=r&&recSheetHTML(r,recState(r));if(!h)return null;
     const p=document.createElement('div');p.className='peek';p.inert=true;p.setAttribute('aria-hidden','true');p.innerHTML=h;
@@ -2941,6 +3095,7 @@ document.addEventListener('click',e=>{
       grMode='graph';try{KV.setItem('vinylGraphMode','graph')}catch(e){}
       view='ex';exTab='graph';qOrder=[];sheetGone();try{history.replaceState(navState(),'')}catch(e){}navKeyLast=navKey();render();window.scrollTo(0,0)})}
   else if(d.mlay){mapLayer=d.mlay;mapSel=null;mapView=null;mapSave();render()}
+  else if(d.gwan){wanderToggle()}
   else if(d.gmode){grMode=d.gmode;try{KV.setItem('vinylGraphMode',grMode)}catch(e){}render()}
   else if(d.qgo){grOpen(d.qgo)}
   else if(d.gn){$('#gq').value='';$('#gres').innerHTML='';grGo(d.gn)}
