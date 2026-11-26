@@ -96,8 +96,12 @@ input[type=checkbox]{accent-color:var(--y)}
 #msvg .mland{fill:var(--line)}#msvg .mline{fill:none;stroke:var(--line2);stroke-width:.8;vector-effect:non-scaling-stroke;stroke-linejoin:round}
 #msvg text{font-family:var(--mono);pointer-events:none;paint-order:stroke;stroke:var(--bg);stroke-width:3px;stroke-linejoin:round;vector-effect:non-scaling-stroke}
 .mdot{cursor:pointer}
-.mzb{position:absolute;right:10px;bottom:10px;display:flex;flex-direction:column;gap:6px}.mzb .fx{width:38px;height:38px;background:var(--bg)}
+.mzb{position:absolute;right:10px;top:10px;display:flex;flex-direction:column;gap:6px}.mzb .fx{width:38px;height:38px;background:var(--bg)}
 .mfail{position:absolute;left:12px;top:12px;right:12px}
+.mcard{position:absolute;left:0;right:0;bottom:0;max-height:62%;overflow:auto;overscroll-behavior:contain;padding:12px 14px 12px;background:var(--bg);border-top:2px solid var(--hl);box-shadow:0 -8px 24px rgba(0,0,0,.35)}
+.mcard>b{display:block;padding-right:44px;font:700 15px/1.3 var(--mono)}.mcard>p{margin:4px 0 0;padding-right:44px}
+.mcx{position:absolute;top:8px;right:8px;width:36px;height:36px;font-size:15px}
+.mbtns{display:flex;gap:8px;margin-top:10px}.mbtns .btn{flex:1;margin:0;width:auto;padding:10px 6px;font-size:11px;letter-spacing:.1em}.mbtns .btn.pri{box-shadow:none}
 .mlist{margin:8px 0 0}.mlist button{display:flex;justify-content:space-between;gap:10px;width:100%;padding:8px 0;background:none;border:0;border-bottom:1px solid var(--line);color:var(--ink);font:500 13px/1.3 var(--mono);text-align:left}
 .mlist em{font-style:normal;color:var(--mute)}.mnight{padding:7px 0;border-bottom:1px solid var(--line);font-size:12px;line-height:1.5}.mnight span{display:block;color:var(--mute)}
 .mnight button{display:inline;width:auto;padding:0;border:0;color:var(--hl-t);text-decoration:underline dotted;font:inherit}.mnight i{font-style:normal}.seg.gmode button{min-height:34px;border-left-width:1px;font-size:11px;letter-spacing:.14em}
@@ -450,7 +454,7 @@ label.ck input{width:20px;height:20px}
 })();
 </script>
 <script id="crate-main" type="text/x-crate">
-const APP_VERSION=78,APP_DATE='26 Nov 2026';
+const APP_VERSION=80,APP_DATE='26 Nov 2026';
 const COVER_CACHE='vinyl-covers-2'; // must match COVERS in sw.js
 const DEFAULT_LOCS=[
  {id:'kallax',name:'Kallax shelf',mode:'grid',cols:3,rows:4,cap:0,formats:['lp']},
@@ -954,7 +958,7 @@ function matches(){
 }
 /* Records filters: a full-screen page of chip groups. Several chips in one group mean either (LP or 7");
    the groups narrow each other down (LP and Jazz). The list behind follows every tap. Search works on top */
-const FG=['pl','cat','rpm','gen','bpm','dec','lab'],FGN={pl:'Placement',cat:'Format',rpm:'Speed',gen:'Genre',bpm:'Tempo',dec:'Decade',lab:'Label'};
+const FG=['pl','cat','rpm','gen','from','bpm','dec','lab','art'],FGN={pl:'Placement',cat:'Format',rpm:'Speed',gen:'Genre',from:'From',bpm:'Tempo',dec:'Decade',lab:'Label',art:'Artist'};
 const ff={yr:'first'};FG.forEach(g=>ff[g]=new Set());
 const fOn=()=>FG.reduce((n,g)=>n+ff[g].size,0);
 const fClear=()=>FG.forEach(g=>ff[g].clear());
@@ -968,11 +972,18 @@ const labsOf=r=>{const s=r.label||'';let v=labMemo.get(s);if(!v){v=[...new Set(u
 // decade of first release (the pressing's year when that's unknown), or of this pressing
 const decOf=r=>{const y=parseInt(ff.yr=='first'?origY(r)||r.year:r.year);return y>1800?[String(Math.floor(y/10)*10)]:[]};
 const fVals=(r,g)=>g=='pl'?[placed(r)?r.loc:'none']:g=='cat'?[r.cat]:g=='rpm'?(rpmOf(r)?rpmOf(r).split('/'):[]):g=='gen'?[gkey(r)]
-  :g=='bpm'?(binOf(r)>=0?[String(binOf(r))]:[]):g=='dec'?decOf(r):labsOf(r);
+  :g=='bpm'?(binOf(r)>=0?[String(binOf(r))]:[]):g=='dec'?decOf(r):g=='from'?fromOf(r):g=='art'?[artKey(artName(r.artist))]:labsOf(r);
+// artist names by key, built once per change in the collection
+let anMemo=null,anAt='';const artNames=()=>{const at=recs.length+':'+artsVer;if(!anMemo||anAt!=at){anMemo=new Map();artGroups().forEach((o,k)=>anMemo.set(k,o.name));anAt=at}return anMemo};
+// every place an artist is from, at every level, so "From: Long Island" also finds Amityville; kept per artist until the places change
+let fromMemo=new Map(),fromAt='';
+function fromOf(r){const at=Object.keys(plc.wd).length+':'+Object.keys(arts).length+':'+Object.keys(evt.f||{}).length;if(at!=fromAt){fromMemo=new Map();fromAt=at}
+  const k=artKey(artName(r.artist));if(fromMemo.has(k))return fromMemo.get(k);
+  const q=artPlace(k),v=q?(({ch,reg})=>[...ch,...reg])(plcChain(q)):[];fromMemo.set(k,v);return v}
 const fOK=(r,g)=>!ff[g].size||fVals(r,g).some(v=>ff[g].has(v));
 const fMatch=r=>FG.every(g=>fOK(r,g));
 const fName=(g,v)=>g=='pl'?(v=='none'?'Not placed':L(v)?.name||'Removed location'):g=='cat'?SHORT[v]||v:g=='rpm'?rpmTxt(v):g=='gen'?(v=='__none'?'No genre':v)
-  :g=='bpm'?binName(BPMBINS[+v])+' BPM':g=='dec'?v+'s':labName[v]||v;
+  :g=='bpm'?binName(BPMBINS[+v])+' BPM':g=='dec'?v+'s':g=='from'?(plc.wd[v]&&plc.wd[v].n||v):g=='art'?(artNames().get(v)||v):labName[v]||v;
 // for every group: each value in the searched records, with [how many a tap would show given the other groups, how many in all]
 function fStats(){
   const w=qWords(),base=recs.filter(r=>w.every(x=>r.k.includes(x))),st={},sp={};FG.forEach(g=>st[g]=new Map());let n=0;
@@ -1003,7 +1014,9 @@ function filterPage(){
   sheetDraw=null;const body=$('#sheetbody');$('#sheet').classList.add('full');
   const {st,n}=fStats(),sc=sheetOpen?body.scrollTop:0;
   let h=`<div class="fpt"><b class="sht">Filters</b><button class="fx" id="fx" aria-label="Close filters">✕</button></div>`;
-  FG.forEach(g=>{let vs=fOrder(g,st[g]),more='';if(!vs.length)return;
+  FG.forEach(g=>{if(g=='art')return;let vs=fOrder(g,st[g]),more='';if(!vs.length)return;
+    // From: one chip per name (Wikidata has two Essexes), no countries, the ten places most records come from
+    if(g=='from'){const seenN=new Set();vs=vs.filter(v=>{if(ff.from.has(v))return true;if(plc.wd[v]&&plc.wd[v].co)return false;const nm=fName('from',v);if(seenN.has(nm))return false;seenN.add(nm);return true});vs=[...vs.slice(0,10),...vs.slice(10).filter(v=>ff.from.has(v))]}
     if(g=='lab'&&vs.length>8){vs=[...vs.slice(0,6),...vs.slice(6).filter(v=>ff.lab.has(v))];more=`<button class="chip" id="flab">All ${st.lab.size} labels ›</button>`}
     h+=`<label>${FGN[g]}${g=='dec'?`<span class="fyr" role="group" aria-label="Which year counts">${[['first','First released'],['press','Pressing']].map(([k,t])=>`<button class="${ff.yr==k?'on':''}" data-fyr="${k}" aria-pressed="${ff.yr==k}">${t}</button>`).join('')}</span>`:''}</label>
     <div class="chips fgr">${vs.map(v=>fChip(g,v,st[g].get(v))).join('')}${more}</div>`});
@@ -1116,7 +1129,7 @@ function render(){
     const qIn=`<input type="search" id="q" placeholder="Search" aria-label="Search artist, title, label or notes" value="${esc(q)}" autocomplete="off" autocapitalize="off" enterkeyhint="search">`,nf=fOn();
     app.innerHTML=`<div class="stick">${fo?`${qIn}<div id="stabs"></div>${filterSel('fc','fg',rf,recs.filter(inSelTab))}`:
       `<div class="frow">${qIn}<button class="chip fbtn${nf?' on':''}" data-fltopen="1" aria-label="Filters${nf?`, ${nf} in use`:''}">Filter${nf?`<i>${nf}</i>`:''}</button></div>${fActHTML()}`}</div>
-    <div id="mini"></div><div id="list"></div>${fo?'<div class="qbar" id="qbar"></div>':''}`;
+    <div id="list"></div><div id="mini"></div>${fo?'<div class="qbar" id="qbar"></div>':''}`;
     fillList();
     $('#q').oninput=e=>{q=e.target.value;lim=100;fillList()};
     $('#q').onkeydown=e=>{if(e.key=='Enter')e.target.blur()};
@@ -2348,7 +2361,7 @@ function stMount(){stInfo();if(!stView)stFit();else stDraw();
 /* Explore → Artists → Map: where your artists come from, and where you saw them live, on an outline of the world kept
    inside the app (Natural Earth, simplified; world.json). Places get their coordinates from Wikidata with the place lookup,
    concert cities by name. Pinch or scroll to zoom, drag to pan; dots that are close together merge until you zoom in */
-let mapLayer='from',mapView=null,mapWorld=null,mapPts=[],mapSel=null;
+let mapLayer='from',mapView=null,mapWorld=null,mapPts=[],mapSel=null,mapCl=[],mapTapC=()=>{};
 try{const m=JSON.parse(KV.getItem('vinylMap')||'{}');if(m.l)mapLayer=m.l;if(m.v)mapView=m.v}catch(e){}
 const mapSave=()=>{try{KV.setItem('vinylMap',JSON.stringify({l:mapLayer,v:mapView}))}catch(e){}};
 const MW=1000;  // the world is 1000 units wide, Web Mercator
@@ -2421,17 +2434,27 @@ function mapDots(){const g=$('#mdots'),w=$('#mapw');if(!g||!w||!mapView)return;c
       if(sel||free(R))boxes.push(R);else if(free(Lb)){boxes.push(Lb);left=true}else show=false}
     return `<g class="mdot" data-mc="${i}"><circle cx="${c.x}" cy="${c.y}" r="${r+3*u}" fill="${col}" opacity=".14"/><circle cx="${c.x}" cy="${c.y}" r="${r}" fill="${col}" stroke="var(--bg)" stroke-width="${u}"${sel?` stroke="var(--ink)" stroke-width="${2*u}"`:''}/>`+
       (show?`<text x="${left?c.x-r-3*u:c.x+r+3*u}" y="${c.y+3.5*u}" font-size="${10.5*u}" fill="var(--ink)"${left?' text-anchor="end"':''}>${esc(lbl)}</text>`:'')+`</g>`}).join('');
-  g.querySelectorAll('.mdot').forEach(e=>e.onclick=ev=>{ev.stopPropagation();const c=cl[+e.dataset.mc];
+  mapCl=cl.map(c=>({...c,r:(3.5+11*Math.log(1+c.n)/Math.max(mx,Math.log(8)))*u}));
+  mapTapC=c=>{if(!c){if(mapSel){mapSel=null;mapInfo(null);mapDots()}return}
     if(c.ps.length>1){const la=c.ps.map(p=>p.ll[0]),lo=c.ps.map(p=>p.ll[1]),pd=Math.max(.05,(Math.max(...la)-Math.min(...la))*.3);mapFit([[Math.min(...la)-pd,Math.min(...lo)-pd],[Math.max(...la)+pd,Math.max(...lo)+pd]])}
-    else{mapSel=c.ps[0].id;mapInfo(c.ps[0]);mapDots()}})}
-function mapInfo(p){const el=$('#minfo');if(!el)return;
-  if(!p){el.innerHTML=`<b>${mapLayer=='from'?'Where your artists come from':'Where you saw them'}</b><p class="mute" style="margin:4px 0 0">${mapPts.length?`${mapPts.length} ${mapLayer=='from'?'places':'cities'} · ${mapPts.reduce((t,x)=>t+x.n,0)} ${mapLayer=='from'?'artists':'concert nights'}. Tap a dot; dots close together merge until you zoom in.`:'Nothing on the map yet.'}</p>${mapStatus()}`;
-    if($('#mplc'))$('#mplc').onclick=async()=>{$('#mplc').textContent='Placing…';await plcRun();if(grMode=='map'&&view=='ex')render()};return}
-  if(mapLayer=='from'){const w=plc.wd[p.q],up=plcChain(p.q).ch.slice(1,4).map(x=>plc.wd[x].n),ons=plcChain(p.q).reg.map(x=>plc.wd[x].n);
-    el.innerHTML=`<b>${esc(p.name)}</b><p class="mute" style="margin:4px 0 0">${plur(p.n,'artist')} from here${up.length?' · in '+esc(up.join(', ')):''}${ons.length?' · on '+esc(ons.join(', ')):''}</p>
-      <div class="mlist">${p.items.sort((a,b)=>b.c-a.c).slice(0,12).map(a=>`<button data-qgo="a:${esc(a.k)}"><span>${esc(a.name)}</span><em>${plur(a.c,'record')}</em></button>`).join('')}${p.items.length>12?`<p class="mute">And ${p.items.length-12} more.</p>`:''}</div>
-      <button class="btn" data-qgo="${esc(p.id)}">Open ${esc(p.name)} in the graph</button>`}
-  else el.innerHTML=`<b>${esc(p.name)}</b><p class="mute" style="margin:4px 0 0">${plur(p.n,'concert night')} here</p><div class="mlist">${p.items.slice(0,10).map(nt=>`<div class="mnight"><span>${esc(nt.v)} · ${esc(gigDate(nt.d))}</span>${nt.acts.map(a=>a.k?`<button data-qgo="a:${esc(a.k)}">${esc(a.a)}</button>`:`<i>${esc(a.a)}</i>`).join(', ')}</div>`).join('')}</div>`}
+    else{mapSel=c.ps[0].id;mapInfo(c.ps[0]);mapDots()}}}
+// below the map: what it shows, and anything still to be placed; the tapped dot gets the card over the map
+function mapInfo(p){const el=$('#minfo');if(!el)return;mapCard(p);
+  {el.innerHTML=`<b>${mapLayer=='from'?'Where your artists come from':'Where you saw them'}</b><p class="mute" style="margin:4px 0 0">${mapPts.length?`${mapPts.length} ${mapLayer=='from'?'places':'cities'} · ${mapPts.reduce((t,x)=>t+x.n,0)} ${mapLayer=='from'?'artists':'concert nights'}. Tap a dot; dots close together merge until you zoom in.`:'Nothing on the map yet.'}</p>${mapStatus()}`;
+    if($('#mplc'))$('#mplc').onclick=async()=>{$('#mplc').textContent='Placing…';await plcRun();if(grMode=='map'&&view=='ex')render()}}}
+// the card for a tapped dot, over the bottom of the map so the dot stays in view
+function mapCard(p){const w=$('#mapw');if(!w)return;let el=$('#mcard');if(!p){if(el)el.remove();return}
+  if(!el){el=document.createElement('div');el.id='mcard';el.className='mcard';w.appendChild(el)}
+  const x='<button class="fx mcx" data-mclose="1" aria-label="Close">✕</button>';
+  if(mapLayer=='from'){const up=plcChain(p.q).ch.slice(1,4).map(q=>plc.wd[q].n),ons=plcChain(p.q).reg.map(q=>plc.wd[q].n),its=p.items.slice().sort((a,b)=>b.c-a.c);
+    el.innerHTML=`${x}<b>${esc(p.name)}</b><p class="mute">${plur(p.n,'artist')} from here${up.length?' · in '+esc(up.join(', ')):''}${ons.length?' · on '+esc(ons.join(', ')):''}</p>
+      <div class="mlist">${its.slice(0,30).map(a=>`<button data-qgo="a:${esc(a.k)}"><span>${esc(a.name)}</span><em>${plur(a.c,'record')}</em></button>`).join('')}${its.length>30?`<p class="mute">And ${its.length-30} more.</p>`:''}</div>
+      <div class="mbtns"><button class="btn pri" data-mshow="from:${esc(p.q)}">Show records</button><button class="btn" data-qgo="${esc(p.id)}">Open in the graph</button></div>`}
+  else{const own=[...new Set(p.items.flatMap(nt=>nt.acts.filter(a=>a.k).map(a=>a.k)))];
+    el.innerHTML=`${x}<b>${esc(p.name)}</b><p class="mute">${plur(p.n,'concert night')} here${own.length?` · ${plur(own.length,'act')} you own records by`:''}</p>
+      <div class="mlist">${p.items.slice(0,20).map(nt=>`<div class="mnight"><span>${esc(nt.v)} · ${esc(gigDate(nt.d))}</span>${nt.acts.map(a=>a.k?`<button data-qgo="a:${esc(a.k)}">${esc(a.a)}</button>`:`<i>${esc(a.a)}</i>`).join(', ')}</div>`).join('')}</div>
+      ${own.length?`<div class="mbtns"><button class="btn pri" data-mshow="art:${esc(own.join('|'))}">Show records</button></div>`:''}`}
+  el.scrollTop=0}
 async function mapMount(){
   mapPts=mapLayer=='from'?mapFrom():mapSeen();mapInfo(mapSel&&mapPts.find(p=>p.id==mapSel)||null);
   // places looked up before the map have no coordinates yet: fetch them now, and redraw when they arrive
@@ -2444,14 +2467,18 @@ async function mapMount(){
   const pts=new Map();let last=null;
   const toU=(cx,cy)=>{const r=sv.getBoundingClientRect(),u=mapView.w/r.width,h=mapView.w*r.height/r.width;return [mapView.cx-mapView.w/2+(cx-r.left)*u,mapView.cy-h/2+(cy-r.top)*u]};
   const zoomAt=(f,cx,cy)=>{const [ux,uy]=toU(cx,cy),nw=Math.max(.3,Math.min(MW*1.6,mapView.w/f)),k=nw/mapView.w;mapView.cx=ux-(ux-mapView.cx)*k;mapView.cy=uy-(uy-mapView.cy)*k;mapView.w=nw;mapApply()};
-  sv.onpointerdown=e=>{try{sv.setPointerCapture(e.pointerId)}catch(_){}pts.set(e.pointerId,[e.clientX,e.clientY]);last=null};
-  sv.onpointermove=e=>{if(!pts.has(e.pointerId))return;const prev=pts.get(e.pointerId);pts.set(e.pointerId,[e.clientX,e.clientY]);
+  let moved=0;
+  sv.onpointerdown=e=>{try{sv.setPointerCapture(e.pointerId)}catch(_){}pts.set(e.pointerId,[e.clientX,e.clientY]);last=null;if(pts.size==1)moved=0};
+  sv.onpointermove=e=>{if(!pts.has(e.pointerId))return;const prev=pts.get(e.pointerId);pts.set(e.pointerId,[e.clientX,e.clientY]);moved+=Math.abs(e.clientX-prev[0])+Math.abs(e.clientY-prev[1]);
     if(pts.size==1){const r=sv.getBoundingClientRect(),u=mapView.w/r.width;mapView.cx-=(e.clientX-prev[0])*u;mapView.cy-=(e.clientY-prev[1])*u;mapApply()}
     else if(pts.size==2){const [a,b]=[...pts.values()],d=Math.hypot(a[0]-b[0],a[1]-b[1]);if(last)zoomAt(d/last,(a[0]+b[0])/2,(a[1]+b[1])/2);last=d}};
-  sv.onpointerup=sv.onpointercancel=e=>{pts.delete(e.pointerId);last=null};
+  // a tap (no drag): the dot under the finger, with a little room around it; nothing there closes the panel
+  sv.onpointerup=e=>{const tap=pts.size==1&&moved<10;pts.delete(e.pointerId);last=null;if(!tap)return;
+    const [ux,uy]=toU(e.clientX,e.clientY),u=mapView.w/sv.getBoundingClientRect().width;let best=null,bd=Infinity;
+    mapCl.forEach(c=>{const dd=Math.hypot(c.x-ux,c.y-uy);if(dd<c.r+12*u&&dd<bd){bd=dd;best=c}});mapTapC(best)};
+  sv.onpointercancel=e=>{pts.delete(e.pointerId);last=null};
   sv.onwheel=e=>{e.preventDefault();zoomAt(Math.exp(-e.deltaY/300),e.clientX,e.clientY)};
   sv.ondblclick=e=>zoomAt(2,e.clientX,e.clientY);
-  sv.onclick=e=>{if(e.target==sv||e.target.tagName=='path'){mapSel=null;mapInfo(null);mapDots()}};
   document.querySelectorAll('[data-mz]').forEach(b=>b.onclick=()=>{const k=b.dataset.mz;k=='fit'?mapFitDots():mapFit(BOX[k])});
   document.querySelectorAll('[data-mzi]').forEach(b=>b.onclick=()=>{const r=sv.getBoundingClientRect();zoomAt(+b.dataset.mzi>0?1.8:1/1.8,r.left+r.width/2,r.top+r.height/2)});
 }
@@ -3094,6 +3121,9 @@ document.addEventListener('click',e=>{
       if(grTrail[grTrail.length-1]!=id){grTrail=[...grTrail.filter(x=>x!=id),id].slice(-5)}grCenter=id;grPage=0;grSave();
       grMode='graph';try{KV.setItem('vinylGraphMode','graph')}catch(e){}
       view='ex';exTab='graph';qOrder=[];sheetGone();try{history.replaceState(navState(),'')}catch(e){}navKeyLast=navKey();render();window.scrollTo(0,0)})}
+  else if(d.mclose){mapSel=null;mapInfo(null);mapDots()}
+  else if(d.mshow){const [g,v]=[d.mshow.slice(0,d.mshow.indexOf(':')),d.mshow.slice(d.mshow.indexOf(':')+1)];fClear();q='';
+    v.split('|').forEach(x=>ff[g].add(x));view='rec';qOrder=[];lim=100;render();window.scrollTo(0,0)}
   else if(d.mlay){mapLayer=d.mlay;mapSel=null;mapView=null;mapSave();render()}
   else if(d.gwan){wanderToggle()}
   else if(d.gmode){grMode=d.gmode;try{KV.setItem('vinylGraphMode',grMode)}catch(e){}render()}
