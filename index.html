@@ -398,7 +398,46 @@ label.ck input{width:20px;height:20px}
 <div id="sheet"><div id="sheetbody"></div></div>
 
 <script>
-const APP_VERSION=73,APP_DATE='26 Nov 2026';
+/* Crate's data lives in the browser's database (IndexedDB), which has room for far more than the 5 MB of localStorage.
+   The app reads it through KV, a copy kept in memory and filled before the app starts; changes are written back
+   straight away (and at the latest when the app goes to the background). The first time, everything is moved over
+   from localStorage and then removed there. Without IndexedDB, KV is simply localStorage. */
+(function(){
+  const mem=new Map();let db=null,pend=new Map(),tm=0,warned=false;
+  function flush(){clearTimeout(tm);tm=0;if(!db||!pend.size)return Promise.resolve(true);const w=pend;pend=new Map();
+    return new Promise(res=>{let tx;try{tx=db.transaction('kv','readwrite')}catch(e){w.forEach((v,k)=>{if(!pend.has(k))pend.set(k,v)});return res(false)}
+      const st=tx.objectStore('kv');w.forEach((v,k)=>v===null?st.delete(k):st.put(v,k));
+      tx.oncomplete=()=>res(true);
+      tx.onerror=tx.onabort=e=>{if(e&&e.preventDefault)e.preventDefault();w.forEach((v,k)=>{if(!pend.has(k))pend.set(k,v)});
+        if(!warned){warned=true;try{toast("Couldn't save your changes on this phone. See Data → App → Phone storage.",true)}catch(_){}}res(false)}})}
+  // when the app is going to the background, write at once: the phone may freeze it before a timer runs
+  const sched=()=>{if(document.visibilityState=='hidden'){flush();return}if(!tm)tm=setTimeout(flush,0)};
+  const idbKV={backend:'idb',flush,getItem:k=>mem.has(k)?mem.get(k):null,
+    setItem:(k,v)=>{v=String(v);mem.set(k,v);pend.set(k,v);sched()},removeItem:k=>{if(!mem.has(k))return;mem.delete(k);pend.set(k,null);sched()},
+    key:i=>[...mem.keys()][i]??null,get length(){return mem.size}};
+  const lsKV={backend:'ls',flush:()=>Promise.resolve(true),getItem:k=>localStorage.getItem(k),setItem:(k,v)=>localStorage.setItem(k,v),
+    removeItem:k=>localStorage.removeItem(k),key:i=>localStorage.key(i),get length(){return localStorage.length}};
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='hidden')flush()});
+  addEventListener('pagehide',()=>flush());
+  let started=false;
+  const start=kv=>{if(started)return;started=true;window.KV=kv;const m=document.getElementById('crate-main'),sc=document.createElement('script');sc.textContent=m.textContent;document.body.appendChild(sc)};
+  let rq;try{rq=indexedDB.open('crate',1)}catch(e){return start(lsKV)}
+  rq.onupgradeneeded=()=>rq.result.createObjectStore('kv');
+  rq.onerror=rq.onblocked=()=>start(lsKV);
+  setTimeout(()=>{if(!db)start(lsKV)},4000);  // a database that doesn't answer shouldn't keep the app from starting
+  rq.onsuccess=()=>{if(started){rq.result.close();return}db=rq.result;
+    let cur;try{cur=db.transaction('kv','readonly').objectStore('kv').openCursor()}catch(e){db=null;return start(lsKV)}
+    cur.onerror=()=>{db=null;start(lsKV)};
+    cur.onsuccess=()=>{const c=cur.result;if(c){mem.set(c.key,c.value);c.continue();return}
+      // the first time: move the data over from localStorage, and free it there once it's safely in the database
+      const old=[];try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('vinyl')&&!mem.has(k))old.push(k)}}catch(e){}
+      if(old.length){old.forEach(k=>{const v=localStorage.getItem(k);mem.set(k,v);pend.set(k,v)});
+        flush().then(ok=>{if(ok)old.forEach(k=>{try{localStorage.removeItem(k)}catch(e){}})})}
+      start(idbKV)}};
+})();
+</script>
+<script id="crate-main" type="text/x-crate">
+const APP_VERSION=74,APP_DATE='26 Nov 2026';
 const COVER_CACHE='vinyl-covers-2'; // must match COVERS in sw.js
 const DEFAULT_LOCS=[
  {id:'kallax',name:'Kallax shelf',mode:'grid',cols:3,rows:4,cap:0,formats:['lp']},
@@ -450,7 +489,11 @@ const saveNow=()=>{if(saveT){clearTimeout(saveT);saveT=0;save()}};
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='hidden')saveNow()});
 // a save that doesn't fit used to fail silently; now it says so (once per session)
 let saveWarned=false;
-function save(){try{localStorage.setItem('vinylRecs2',JSON.stringify(recs));localStorage.setItem('vinylLocs',JSON.stringify(locs))}
+// a record as saved: no search text or sort key (rebuilt on load) and no empty fields, about half the size
+const KEEP0=new Set(['price','pos','section']);
+function slimRec(r){const o={};for(const k in r){const v=r[k];if(k=='k'||k=='sk'||v===''||v==null||v===false)continue;
+  if(Array.isArray(v)&&!v.length)continue;if(v===0&&!KEEP0.has(k))continue;o[k]=v}return o}
+function save(){try{KV.setItem('vinylRecs2',JSON.stringify(recs.map(slimRec)));KV.setItem('vinylLocs',JSON.stringify(locs))}
   catch(e){if(!saveWarned){saveWarned=true;toast("Couldn't save your changes: Crate's storage on this phone is full. See Data → Phone storage.",true)}}}
 function toast(text,err=false){const t=document.createElement('div');t.className='toast'+(err?' err':'');t.setAttribute('role','alert');t.textContent=text;
   document.body.appendChild(t);setTimeout(()=>t.remove(),err?9000:4000)}
@@ -463,7 +506,7 @@ const LS_LIMIT=5e6;
 async function cacheSize(name){let n=0,b=0;try{const c=await caches.open(name);for(const k of await c.keys()){const r=await c.match(k);if(r){n++;b+=(await r.blob()).size}}}catch(e){}return {n,b}}
 async function storageHTML(){
   const ls={};let lsTot=0;
-  try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i),v=localStorage.getItem(k)||'';ls[k]=k.length+v.length;lsTot+=ls[k]}}catch(e){}
+  try{for(let i=0;i<KV.length;i++){const k=KV.key(i),v=KV.getItem(k)||'';ls[k]=k.length+v.length;lsTot+=ls[k]}}catch(e){}
   const g=(...ks)=>ks.reduce((t,k)=>t+(ls[k]||0),0);
   const cv='caches' in window?await cacheSize(COVER_CACHE):{n:0,b:0};
   let app=0;try{for(const k of await caches.keys())if(k!==COVER_CACHE)app+=(await cacheSize(k)).b}catch(e){}
@@ -481,10 +524,11 @@ async function storageHTML(){
     `<p class="mute" style="margin:2px 0 0">${est&&est.quota?`Of about ${fmtB(est.quota)} this browser allows. `:''}${pers===true?'Kept permanently.':pers===false?'The browser may clear it when the phone runs low on space.':''}</p>`+
     `<div class="sbar">${parts.filter(x=>x[2]>0).map(x=>`<i style="width:${(x[2]/sum*100).toFixed(2)}%;background:${x[3]}" title="${esc(x[0])}"></i>`).join('')}</div>`+
     parts.map(([t,d,b,c])=>`<div class="srow"><span class="sw" style="background:${c}"></span><span>${esc(t)}<em>${esc(d)}</em></span><b>${fmtB(b)}</b></div>`).join('')+
+    (KV.backend=='idb'?`<label>Room for your data</label><p class="mute" style="margin:0">Your records, lookups, concerts and settings (${fmtB(lsTot)}) are kept in the browser's database on this phone, which has room for far more than the 5 MB of simple storage${est&&est.quota?`: about ${fmtB(est.quota)} here, shared with the album covers`:''}.</p>`:
     `<label>Text storage limit</label><p class="mute" style="margin:0">Records, the undo copy, lookups and concerts share one space of about 5 MB. Album covers and app files are kept apart and don't count.</p>`+
-    `<div class="smeter${pct>=.8?' hi':''}"><i style="width:${Math.min(100,pct*100).toFixed(1)}%"></i></div><div class="smk"><span>${fmtB(lsTot)} used</span><span>about 5 MB</span></div>`;
+    `<div class="smeter${pct>=.8?' hi':''}"><i style="width:${Math.min(100,pct*100).toFixed(1)}%"></i></div><div class="smk"><span>${fmtB(lsTot)} used</span><span>about 5 MB</span></div>`);
   if(u&&!undoB)h+=`<div class="box warn">The undo copy didn't fit, so it's only kept until the app closes.</div>`;
-  if(pct>=.8)h+=`<div class="box warn"><b>${pct>=.95?'Almost full':'Getting full'}.</b>${undoB?` Dropping the undo copy frees ${fmtB(undoB)}.`:''} When it's full, changes can't be saved.</div>`;
+  if(KV.backend!='idb'&&pct>=.8)h+=`<div class="box warn"><b>${pct>=.95?'Almost full':'Getting full'}.</b>${undoB?` Dropping the undo copy frees ${fmtB(undoB)}.`:''} When it's full, changes can't be saved.</div>`;
   return h;
 }
 let storRun=0;
@@ -493,8 +537,8 @@ async function fillStorage(){
 }
 async function clearCovers(){cov={};saveCov();try{await caches.delete(COVER_CACHE)}catch(e){}dataView('Saved covers cleared. They will be fetched again as you browse.')}
 function load(){
-  try{recs=JSON.parse(localStorage.getItem('vinylRecs2')||'[]')}catch(e){recs=[]}
-  try{locs=JSON.parse(localStorage.getItem('vinylLocs')||'null')}catch(e){locs=null}
+  try{recs=JSON.parse(KV.getItem('vinylRecs2')||'[]')}catch(e){recs=[]}
+  try{locs=JSON.parse(KV.getItem('vinylLocs')||'null')}catch(e){locs=null}
   if(!Array.isArray(locs)||!locs.length)locs=JSON.parse(JSON.stringify(DEFAULT_LOCS));
   recs.forEach(norm);
   locs.forEach(l=>{if(l.id=='string'&&l.mode=='units'&&((l.cols==8&&!l.stack)||(l.cols==4&&l.stack==2))){l.cols=1;l.stack=8}});
@@ -630,14 +674,14 @@ function planImport(){
 
 /* undo: a copy of the collection from just before the last import or clear */
 let undoMem=null;
-function getUndo(){if(undoMem)return undoMem;try{return JSON.parse(localStorage.getItem('vinylUndo')||'null')}catch(e){return null}}
+function getUndo(){if(undoMem)return undoMem;try{return JSON.parse(KV.getItem('vinylUndo')||'null')}catch(e){return null}}
 function setUndo(what,note=''){
-  undoMem={what,note,at:Date.now(),n:recs.length,recs:recs.map(({k,sk,...r})=>r)};
+  undoMem={what,note,at:Date.now(),n:recs.length,recs:recs.map(slimRec)};
   // kept in memory as well, in case the copy doesn't fit in storage
-  try{localStorage.setItem('vinylUndo',JSON.stringify(undoMem))}catch(e){try{localStorage.removeItem('vinylUndo')}catch(e2){}}
+  try{KV.setItem('vinylUndo',JSON.stringify(undoMem))}catch(e){try{KV.removeItem('vinylUndo')}catch(e2){}}
 }
-function noteUndo(note){const s=getUndo();if(!s)return;s.note=note;undoMem=s;try{localStorage.setItem('vinylUndo',JSON.stringify(s))}catch(e){}}
-function dropUndo(){undoMem=null;try{localStorage.removeItem('vinylUndo')}catch(e){}}
+function noteUndo(note){const s=getUndo();if(!s)return;s.note=note;undoMem=s;try{KV.setItem('vinylUndo',JSON.stringify(s))}catch(e){}}
+function dropUndo(){undoMem=null;try{KV.removeItem('vinylUndo')}catch(e){}}
 function restoreUndo(){
   const s=getUndo();if(!s)return '';
   recs=s.recs.map(r=>({...r}));recs.forEach(norm);
@@ -677,15 +721,15 @@ function finishImport(){
 /* full backup: everything Crate keeps on this phone (the collection, every lookup, concerts, settings) in one JSON file,
    to restore on a new phone or after clearing the browser. Not the undo copy, and not the cover images: those come back by themselves */
 const BK_SKIP=new Set(['vinylUndo','vinylBackupAt']);
-function backupData(){const o={};for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('vinyl')&&!BK_SKIP.has(k))o[k]=localStorage.getItem(k)}return o}
-const bkWhen=()=>{const t=+localStorage.getItem('vinylBackupAt')||0;return t?when(t):''};
+function backupData(){const o={};for(let i=0;i<KV.length;i++){const k=KV.key(i);if(k&&k.startsWith('vinyl')&&!BK_SKIP.has(k))o[k]=KV.getItem(k)}return o}
+const bkWhen=()=>{const t=+KV.getItem('vinylBackupAt')||0;return t?when(t):''};
 function exportFull(){
   saveNow();save();saveArts();savePlc();saveEvt();
   const d=new Date(),day=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   const meta={app:'Crate',kind:'full backup',version:APP_VERSION,at:d.toISOString(),records:recs.length,artists:Object.values(arts).filter(a=>a.m).length,concerts:gigs.length};
   const blob=new Blob([JSON.stringify({crate:meta,data:backupData()})],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`crate-backup-${day}.json`;document.body.appendChild(a);a.click();a.remove();
-  try{localStorage.setItem('vinylBackupAt',String(Date.now()))}catch(e){}
+  try{KV.setItem('vinylBackupAt',String(Date.now()))}catch(e){}
   dataView(`Full backup saved as crate-backup-${day}.json (${fmtB(blob.size)}): ${recs.length} records, ${meta.artists} artists looked up, ${gigs.length} concerts.`);
 }
 // restoring replaces everything; if the backup doesn't fit, what was here is put back untouched
@@ -694,15 +738,16 @@ async function restoreFull(txt){
   if(!j||!j.crate||!j.data||typeof j.data!='object'||!j.data.vinylRecs2)return dataView('That file is not a Crate full backup.');
   const m=j.crate,at=Date.parse(m.at);
   if(!await ask(`Replace everything in Crate on this phone with the backup from ${isNaN(at)?'an unknown date':when(at)}? It has ${plur(+m.records||0,'record')}, ${plur(+m.artists||0,'artist')} looked up and ${plur(+m.concerts||0,'concert')}. What's here now is replaced, and covers are fetched again as you browse.`,'Restore backup',true))return;
-  const old=backupData(),oldUndo=localStorage.getItem('vinylUndo');
+  const old=backupData(),oldUndo=KV.getItem('vinylUndo');
   try{
-    Object.keys(old).forEach(k=>localStorage.removeItem(k));localStorage.removeItem('vinylUndo');
+    Object.keys(old).forEach(k=>KV.removeItem(k));KV.removeItem('vinylUndo');
     const ks=Object.keys(j.data).filter(k=>k.startsWith('vinyl')&&!BK_SKIP.has(k)&&typeof j.data[k]=='string');
     ks.sort((a,b)=>(b=='vinylRecs2')-(a=='vinylRecs2')||(b=='vinylLocs')-(a=='vinylLocs'));
-    ks.forEach(k=>localStorage.setItem(k,j.data[k]));
+    ks.forEach(k=>KV.setItem(k,j.data[k]));
+    if(!await KV.flush())throw 'full';
   }catch(e){
-    Object.keys(j.data).forEach(k=>{try{localStorage.removeItem(k)}catch(_){}});
-    Object.entries(old).forEach(([k,v])=>{try{localStorage.setItem(k,v)}catch(_){}});if(oldUndo)try{localStorage.setItem('vinylUndo',oldUndo)}catch(_){}
+    Object.keys(j.data).forEach(k=>{try{KV.removeItem(k)}catch(_){}});
+    Object.entries(old).forEach(([k,v])=>{try{KV.setItem(k,v)}catch(_){}});if(oldUndo)try{KV.setItem('vinylUndo',oldUndo)}catch(_){}await KV.flush();
     return dataView("The backup didn't fit in this browser's storage, so nothing was changed.");
   }
   try{sessionStorage.setItem('crateRestored',JSON.stringify(m))}catch(e){}
@@ -1091,9 +1136,9 @@ function render(){
 }
 
 /* album covers: MusicBrainz id lookup + Cover Art Archive image */
-let cov={};try{cov=JSON.parse(localStorage.getItem('vinylCov')||'{}')}catch(e){cov={}}
-const saveCov=()=>{try{localStorage.setItem('vinylCov',JSON.stringify(cov))}catch(e){}};
-const covOn=()=>{try{return localStorage.getItem('vinylCoverOff')!='1'}catch(e){return true}};
+let cov={};try{cov=JSON.parse(KV.getItem('vinylCov')||'{}')}catch(e){cov={}}
+const saveCov=()=>{try{KV.setItem('vinylCov',JSON.stringify(cov))}catch(e){}};
+const covOn=()=>{try{return KV.getItem('vinylCoverOff')!='1'}catch(e){return true}};
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const MB='https://musicbrainz.org/ws/2/',relURL=m=>`https://coverartarchive.org/release/${m}/front-250`,rgURL=g=>`https://coverartarchive.org/release-group/${g}/front-250`;
 let lastMB=0;
@@ -1110,13 +1155,13 @@ async function mb(path,tries=0){
 }
 // the MusicBrainz release linked to a Discogs release. Covers, original years and tempos all start here, and MusicBrainz
 // allows about one request a second, so a found link is kept on this phone (a missing one only until the app is closed)
-let mbRel={};try{mbRel=JSON.parse(localStorage.getItem('vinylMbRel')||'{}')}catch(e){mbRel={}}
+let mbRel={};try{mbRel=JSON.parse(KV.getItem('vinylMbRel')||'{}')}catch(e){mbRel={}}
 const mbMiss=new Set();
 async function mbRelease(rid){
   if(mbRel[rid])return mbRel[rid];if(mbMiss.has(rid))return null;
   const j=await mb(`url?resource=${encodeURIComponent('https://www.discogs.com/release/'+rid)}&inc=release-rels`);
   const m=(j.relations||[]).map(x=>x.release&&x.release.id).find(Boolean)||null;
-  if(m){mbRel[rid]=m;try{localStorage.setItem('vinylMbRel',JSON.stringify(mbRel))}catch(e){}}else mbMiss.add(rid);
+  if(m){mbRel[rid]=m;try{KV.setItem('vinylMbRel',JSON.stringify(mbRel))}catch(e){}}else mbMiss.add(rid);
   return m;
 }
 const imgOK=u=>new Promise(res=>{const i=new Image();i.crossOrigin='anonymous';const t=setTimeout(()=>{i.src='';res(false)},12000);i.onload=()=>{clearTimeout(t);res(true)};i.onerror=()=>{clearTimeout(t);res(false)};i.src=u});
@@ -1210,8 +1255,8 @@ function jobRunner(o){
 }
 
 /* original release year: MusicBrainz release group, first release date */
-let oyNone={};try{oyNone=JSON.parse(localStorage.getItem('vinylOyNone')||'{}')}catch(e){oyNone={}}
-const saveOyNone=()=>{try{localStorage.setItem('vinylOyNone',JSON.stringify(oyNone))}catch(e){}};
+let oyNone={};try{oyNone=JSON.parse(KV.getItem('vinylOyNone')||'{}')}catch(e){oyNone={}}
+const saveOyNone=()=>{try{KV.setItem('vinylOyNone',JSON.stringify(oyNone))}catch(e){}};
 const oyState={run:false,stop:false,done:0,total:0,found:0,msg:''};
 function oyTodo(){const seen=new Set(),out=[];
   const has=new Set();recs.forEach(r=>{if(oyOK(r.oy))has.add(ridOf(r))});
@@ -1352,9 +1397,9 @@ const bpmRun=jobRunner({st:bpState,todo:bpmTodo,text:bpText,prog:'bpprog',btn:'b
 
 /* concerts from setlist.fm. The setlist.fm API can't be called from a web page, so tools/setlistfm_export.py
    writes a CSV on a computer and this imports it. Stored apart from the collection; importing again replaces the list. */
-let gigs=[];try{gigs=JSON.parse(localStorage.getItem('vinylGigs')||'[]')}catch(e){gigs=[]}
+let gigs=[];try{gigs=JSON.parse(KV.getItem('vinylGigs')||'[]')}catch(e){gigs=[]}
 let gigIx=null;
-const saveGigs=()=>{gigIx=null;try{localStorage.setItem('vinylGigs',JSON.stringify(gigs))}catch(e){}};
+const saveGigs=()=>{gigIx=null;try{KV.setItem('vinylGigs',JSON.stringify(gigs))}catch(e){}};
 const akey=a=>fold(a).replace(/\(\d+\)/g,' ').replace(/[^a-z0-9]+/g,' ').trim().replace(/^the /,''); // "Larsson (2)" is Discogs' way to tell artists apart
 // "A / B", "A & B", "A Featuring B", "A vs. B": each name can match a concert, as can the whole
 const aParts=a=>[...new Set([a,...String(a||'').split(/\s+(?:\/|&|feat\.?|featuring|ft\.?|vs\.?)\s+|\s*,\s+/i)].map(akey).filter(x=>x.length>1))];
@@ -1556,8 +1601,8 @@ function exploreView(){
    you gave them. Members, groups and places come later from MusicBrainz. Nodes: a: artist, l: label, g: genre */
 let grCenter=null,grTrail=[],grPage=0,grPos={},grAlpha={},grAnim=0,grCache=null;
 // where the graph was left is kept on this phone, so it reopens there
-try{const g=JSON.parse(localStorage.getItem('vinylGraph')||'{}');if(g.c){grCenter=g.c;grTrail=Array.isArray(g.t)?g.t:[]}}catch(e){}
-const grSave=()=>{try{localStorage.setItem('vinylGraph',JSON.stringify({c:grCenter,t:grTrail}))}catch(e){}};
+try{const g=JSON.parse(KV.getItem('vinylGraph')||'{}');if(g.c){grCenter=g.c;grTrail=Array.isArray(g.t)?g.t:[]}}catch(e){}
+const grSave=()=>{try{KV.setItem('vinylGraph',JSON.stringify({c:grCenter,t:grTrail}))}catch(e){}};
 const artKey=s=>fold(s).replace(/\s*\(\d+\)\s*$/,'').replace(/\*$/,'').replace(/\s+/g,' ').trim();
 const artName=s=>(s||'').replace(/\s*\(\d+\)/g,'').replace(/\*$/,'').replace(/\s+/g,' ').trim();
 const isVarious=k=>!k||/^various( artists)?$/.test(k);
@@ -1565,9 +1610,9 @@ const isVarious=k=>!k||/^various( artists)?$/.test(k);
 /* artist connections from MusicBrainz, kept on this phone per artist:
    m: MusicBrainz id (0: not found), t: P person or G group, a / b: area and begin area [id, name, type],
    r: relations [kind, id, name] where kind is mem> (member of), mem< (has member), col, per or sub, with > or < */
-let arts={};try{arts=JSON.parse(localStorage.getItem('vinylArt')||'{}')}catch(e){arts={}}
+let arts={};try{arts=JSON.parse(KV.getItem('vinylArt')||'{}')}catch(e){arts={}}
 let artsVer=0;
-const saveArts=()=>{try{localStorage.setItem('vinylArt',JSON.stringify(arts))}catch(e){}};
+const saveArts=()=>{try{KV.setItem('vinylArt',JSON.stringify(arts))}catch(e){}};
 const AREL={'member of band':'mem','is person':'per','collaboration':'col','subgroup':'sub'};
 function artGroups(){
   const g=new Map();
@@ -1667,8 +1712,8 @@ const smRun=jobRunner({st:smState,todo:()=>{smT0=Date.now();return smTodo()},tex
 /* places: each MusicBrainz area is matched to Wikidata, then followed up through "located in" (P131) to the country,
    collecting the regions it's on (P706), such as Long Island. Kept on this phone:
    mb: MusicBrainz area id → Wikidata id (0: not on Wikidata); wd: Wikidata id → {n name, up parent, reg regions, co country, x water} */
-let plc={mb:{},wd:{}};try{Object.assign(plc,JSON.parse(localStorage.getItem('vinylPlace')||'{}'))}catch(e){}
-const savePlc=()=>{try{localStorage.setItem('vinylPlace',JSON.stringify(plc))}catch(e){}};
+let plc={mb:{},wd:{}};try{Object.assign(plc,JSON.parse(KV.getItem('vinylPlace')||'{}'))}catch(e){}
+const savePlc=()=>{try{KV.setItem('vinylPlace',JSON.stringify(plc))}catch(e){}};
 let plcVer=0;const plcState={run:false,msg:''};
 const WDAPI='https://www.wikidata.org/w/api.php?format=json&origin=*&';
 const WDCOUNTRY=new Set(['Q6256','Q3624078','Q7275','Q3024240','Q3336843']),WDWATER=new Set(['Q4022','Q23397','Q165','Q9430','Q5107','Q39594','Q35666','Q1322134','Q12284']);
@@ -1714,8 +1759,8 @@ async function plcRun(){
 }
 /* events from Wikidata: what each artist "participated in" (P1344), such as Live Aid or a Eurovision contest. Kept on this phone:
    a: artist's Wikidata id → event ids; wd: event id → {n name, y year} */
-let evt={a:{},wd:{}};try{Object.assign(evt,JSON.parse(localStorage.getItem('vinylEvt')||'{}'))}catch(e){}
-const saveEvt=()=>{try{localStorage.setItem('vinylEvt',JSON.stringify(evt))}catch(e){}};
+let evt={a:{},wd:{}};try{Object.assign(evt,JSON.parse(KV.getItem('vinylEvt')||'{}'))}catch(e){}
+const saveEvt=()=>{try{KV.setItem('vinylEvt',JSON.stringify(evt))}catch(e){}};
 async function evtRun(){
   const qs=[...new Set(Object.values(arts).map(a=>a.wq).filter(q=>q&&!(q in evt.a)))];
   for(let i=0;i<qs.length;i+=50){const ids=qs.slice(i,i+50),es=(await wdJSON(WDAPI+'action=wbgetentities&props=claims&ids='+ids.join('|'))).entities||{};
@@ -1934,9 +1979,9 @@ function grMount(){
 /* Explore → Artists → Quiz: two games built fresh from the graph each time.
    Three of a kind: nine names, three groups of three (members of a band, from a place, on a label, a genre).
    Five questions: which band, where from, which label, which year, which one doesn't belong. */
-let grMode='graph';try{grMode=localStorage.getItem('vinylGraphMode')=='quiz'?'quiz':'graph'}catch(e){}
-let qzStat={best:0,games:0,grids:0};try{Object.assign(qzStat,JSON.parse(localStorage.getItem('vinylQuiz')||'{}'))}catch(e){}
-const qzSave=()=>{try{localStorage.setItem('vinylQuiz',JSON.stringify(qzStat))}catch(e){}};
+let grMode='graph';try{grMode=KV.getItem('vinylGraphMode')=='quiz'?'quiz':'graph'}catch(e){}
+let qzStat={best:0,games:0,grids:0};try{Object.assign(qzStat,JSON.parse(KV.getItem('vinylQuiz')||'{}'))}catch(e){}
+const qzSave=()=>{try{KV.setItem('vinylQuiz',JSON.stringify(qzStat))}catch(e){}};
 let qz={mode:'home'};
 const shuf=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const rnd=a=>a[Math.floor(Math.random()*a.length)];
@@ -2122,8 +2167,8 @@ function artistsMount(){if(grMode=='quiz')qzDraw();else grMount()}
 // from a quiz answer or group straight to the graph
 function grOpen(id){if(!grData().n.has(id))return;
   if(grTrail[grTrail.length-1]!=id)grTrail=[...grTrail.filter(x=>x!=id),id].slice(-5);
-  grCenter=id;grPage=0;grSave();grMode='graph';try{localStorage.setItem('vinylGraphMode','graph')}catch(e){}render();window.scrollTo(0,0)}
-let dTab='col';try{dTab=localStorage.getItem('vinylDataTab')||'col'}catch(e){}
+  grCenter=id;grPage=0;grSave();grMode='graph';try{KV.setItem('vinylGraphMode','graph')}catch(e){}render();window.scrollTo(0,0)}
+let dTab='col';try{dTab=KV.getItem('vinylDataTab')||'col'}catch(e){}
 const lkOpen=new Set();let lkAll=false;
 function lkStats(){
   const rids=new Set(),albums=new Set(),done={dg:0,oy:0,sm:new Set()},oyHas=new Set(),bp12=new Set(),bpDone=new Set();
@@ -2255,7 +2300,7 @@ function dataView(msg=''){
     on('gclr',async()=>{if(!await ask('Remove all imported concerts? Your records are not affected.','Remove concerts',true))return;gigs=[];saveGigs();dataView('Concerts removed.')});
     on('oyb',oyRun);on('arb',artRun);on('plb',plcRun);on('smb',smRun);on('dgb',dgRun);on('bpb',bpmRun);on('lkall',runAll);
     on('upd',async()=>{$('#updmsg').textContent='Checking...';const m=await checkUpdate(true);if($('#updmsg'))$('#updmsg').textContent=m});
-    on('cvt',()=>{try{localStorage.setItem('vinylCoverOff',covOn()?'1':'0')}catch(e){}dataView()});
+    on('cvt',()=>{try{KV.setItem('vinylCoverOff',covOn()?'1':'0')}catch(e){}dataView()});
     on('cvd',async()=>{$('#cvmsg').textContent='Testing...';const m=await covDiag();if($('#cvmsg'))$('#cvmsg').textContent=m});
     on('scc',async()=>{if(!await ask('Clear the saved album covers? They are fetched again as you browse.','Clear saved covers',true))return;clearCovers()});
     on('dzu',async()=>{if(!await ask('Drop the undo copy? You can no longer undo the last import or clear.','Drop undo copy',true))return;dropUndo();dataView('Undo copy dropped.')});
@@ -2389,7 +2434,7 @@ function tempoHTML(r){
 }
 /* sharing a record: plain text that works in any app, plus an optional picture card with the cover.
    Where the record is stored is never shared. The choices are remembered on this phone */
-let shareOpt={cov:1,disc:1,gb:1,cm:0,pl:0};try{Object.assign(shareOpt,JSON.parse(localStorage.getItem('vinylShare')||'{}'))}catch(e){}
+let shareOpt={cov:1,disc:1,gb:1,cm:0,pl:0};try{Object.assign(shareOpt,JSON.parse(KV.getItem('vinylShare')||'{}'))}catch(e){}
 function shareText(r){
   const o=shareOpt,f=(r.fmt||'').split(',')[0].trim(),oy=origY(r),b=bpmOf(r);
   const yr=r.year&&oy&&oy!=String(r.year)?`${r.year} (first released ${oy})`:(r.year||oy||'');
@@ -2443,7 +2488,7 @@ function shareSheet(id){
     <button class="btn" id="sbk">Back</button>`;
   const txt=()=>{$('#shtx').textContent=shareText(r)};txt();pic();
   body.querySelectorAll('[data-so]').forEach(i=>i.onchange=()=>{shareOpt[i.dataset.so]=i.checked?1:0;
-    try{localStorage.setItem('vinylShare',JSON.stringify(shareOpt))}catch(e){}txt();if(i.dataset.so!='cm'&&i.dataset.so!='pl')pic()});
+    try{KV.setItem('vinylShare',JSON.stringify(shareOpt))}catch(e){}txt();if(i.dataset.so!='cm'&&i.dataset.so!='pl')pic()});
   const copy=async()=>{try{await navigator.clipboard.writeText(shareText(r));toast('Copied.')}catch(e){toast("Couldn't copy the text.",true)}};
   $('#scp').onclick=copy;
   $('#sbk').onclick=()=>{done();openRecSheet(id)};
@@ -2747,14 +2792,14 @@ document.addEventListener('click',e=>{
   else if(d.qplace){placeSheet()}
   else if(d.share){shareSheet(d.share)}
   else if(d.fltopen){filterPage()}
-  else if(d.dtab){dTab=d.dtab;try{localStorage.setItem('vinylDataTab',dTab)}catch(e){}dataView();window.scrollTo(0,0)}
+  else if(d.dtab){dTab=d.dtab;try{KV.setItem('vinylDataTab',dTab)}catch(e){}dataView();window.scrollTo(0,0)}
   else if(d.lko){const k=d.lko,r=$('#lk-'+k);lkOpen.has(k)?lkOpen.delete(k):lkOpen.add(k);if(r){r.classList.toggle('open');t.setAttribute('aria-expanded',lkOpen.has(k))}}
   else if(d.gart){const id='a:'+d.gart;if(!grData().n.has(id))return;const b=t.getBoundingClientRect();t.style.visibility='hidden';  // the ball becomes the explosion
     graphBurst(b.left+b.width/2,b.top+b.height/2,()=>{
       if(grTrail[grTrail.length-1]!=id){grTrail=[...grTrail.filter(x=>x!=id),id].slice(-5)}grCenter=id;grPage=0;grSave();
-      grMode='graph';try{localStorage.setItem('vinylGraphMode','graph')}catch(e){}
+      grMode='graph';try{KV.setItem('vinylGraphMode','graph')}catch(e){}
       view='ex';exTab='graph';qOrder=[];sheetGone();try{history.replaceState(navState(),'')}catch(e){}navKeyLast=navKey();render();window.scrollTo(0,0)})}
-  else if(d.gmode){grMode=d.gmode;try{localStorage.setItem('vinylGraphMode',grMode)}catch(e){}render()}
+  else if(d.gmode){grMode=d.gmode;try{KV.setItem('vinylGraphMode',grMode)}catch(e){}render()}
   else if(d.qgo){grOpen(d.qgo)}
   else if(d.gn){$('#gq').value='';$('#gres').innerHTML='';grGo(d.gn)}
   else if(d.gtr!=null){const i=+d.gtr,id=grTrail[i];grTrail=grTrail.slice(0,i);grGo(id)}
@@ -2793,7 +2838,7 @@ async function applyUpdate(v){
   document.body.appendChild(t);
   try{(await navigator.serviceWorker.getRegistrations()).forEach(r=>r.unregister())}catch(e){}
   try{(await caches.keys()).filter(k=>k!==COVER_CACHE).forEach(k=>caches.delete(k))}catch(e){}
-  setTimeout(()=>location.reload(),600);
+  await KV.flush();setTimeout(()=>location.reload(),600);
 }
 async function checkUpdate(manual){
   if(!/^https?:/.test(location.protocol))return manual?'Updates only apply to the hosted app.':'';
@@ -2812,7 +2857,7 @@ try{if('serviceWorker' in navigator&&/^https?:/.test(location.protocol)){
   const had=!!navigator.serviceWorker.controller;let reloading=false;
   navigator.serviceWorker.addEventListener('controllerchange',()=>{
     if(!had||reloading)return;reloading=true;
-    const go=()=>sheetOpen?setTimeout(go,4000):location.reload();go()});
+    const go=()=>sheetOpen?setTimeout(go,4000):KV.flush().then(()=>location.reload());go()});
   navigator.serviceWorker.register('sw.js').then(reg=>{
     document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')reg.update().catch(()=>{})})}).catch(()=>{});
 }}catch(e){}
