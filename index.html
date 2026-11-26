@@ -87,7 +87,19 @@ input[type=checkbox]{accent-color:var(--y)}
 .ginfo b{display:block;font:700 15px/1.3 var(--mono)}
 .ginfo .btn{margin-bottom:0}
 .gcred{margin:6px 0 0;padding-left:10px;border-left:2px solid var(--s2);font-size:12px}.gsm{border-left-color:var(--az)}
-.seg.gmode{margin:12px 0 0;border-width:1px}.seg.gmode button{min-height:34px;border-left-width:1px;font-size:11px;letter-spacing:.14em}
+.seg.gmode{margin:12px 0 0;border-width:1px}
+.seg.mlay{margin:10px 0 0;border-width:1px}.seg.mlay button{min-height:32px;border-left-width:1px;font-size:10px}
+.mzc{margin:8px 0 0;gap:6px}.mzc .chip{min-height:30px;padding:4px 10px}
+.mapw{position:relative;margin:8px -14px 0;height:58vh;min-height:300px;background:var(--card);border-top:1px solid var(--line2);border-bottom:1px solid var(--line2);overflow:hidden}
+#msvg{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
+#msvg .mland{fill:var(--line)}#msvg .mline{fill:none;stroke:var(--line2);stroke-width:.8;vector-effect:non-scaling-stroke;stroke-linejoin:round}
+#msvg text{font-family:var(--mono);pointer-events:none;paint-order:stroke;stroke:var(--bg);stroke-width:3px;stroke-linejoin:round;vector-effect:non-scaling-stroke}
+.mdot{cursor:pointer}
+.mzb{position:absolute;right:10px;bottom:10px;display:flex;flex-direction:column;gap:6px}.mzb .fx{width:38px;height:38px;background:var(--bg)}
+.mfail{position:absolute;left:12px;top:12px;right:12px}
+.mlist{margin:8px 0 0}.mlist button{display:flex;justify-content:space-between;gap:10px;width:100%;padding:8px 0;background:none;border:0;border-bottom:1px solid var(--line);color:var(--ink);font:500 13px/1.3 var(--mono);text-align:left}
+.mlist em{font-style:normal;color:var(--mute)}.mnight{padding:7px 0;border-bottom:1px solid var(--line);font-size:12px;line-height:1.5}.mnight span{display:block;color:var(--mute)}
+.mnight button{display:inline;width:auto;padding:0;border:0;color:var(--hl-t);text-decoration:underline dotted;font:inherit}.mnight i{font-style:normal}.seg.gmode button{min-height:34px;border-left-width:1px;font-size:11px;letter-spacing:.14em}
 .seg.gmode button.on{background:var(--ink);color:var(--bg);box-shadow:none}
 #qz{margin-top:14px}
 .qzc{margin:0 0 12px;padding:14px;border:2px solid var(--line2);background:var(--card)}.qzc b{display:block;font:700 14px/1.3 var(--mono);text-transform:uppercase;letter-spacing:.08em}
@@ -437,7 +449,7 @@ label.ck input{width:20px;height:20px}
 })();
 </script>
 <script id="crate-main" type="text/x-crate">
-const APP_VERSION=74,APP_DATE='26 Nov 2026';
+const APP_VERSION=75,APP_DATE='26 Nov 2026';
 const COVER_CACHE='vinyl-covers-2'; // must match COVERS in sw.js
 const DEFAULT_LOCS=[
  {id:'kallax',name:'Kallax shelf',mode:'grid',cols:3,rows:4,cap:0,formats:['lp']},
@@ -1669,7 +1681,7 @@ const artRun=jobRunner({st:artState,todo:()=>{artT0=Date.now();return artTodo()}
   work:artLookup,tries:4,wait:12000,every:5,saveMore:saveArts,slowMsg:'MusicBrainz asked us to slow down, waiting a moment.',
   netMsg:'Could not reach MusicBrainz. Resume when you are online.',busyMsg:'MusicBrainz is busy. Resume in a few minutes.',
   apply:(it,res)=>{arts[it.k]={...res,n:Date.now()};artsVer++;return !!res.m},
-  after:()=>{if(plcAreas().some(a=>!(a in plc.mb))||evtTodo())plcRun();else if(view=='ex')render()}});
+  after:()=>{if(plcPending())plcRun();else if(view=='ex')render()}});
 
 /* samples from MusicBrainz: for each release, its tracks' "samples material" links, both ways. Kept on the record as
    r.sm: [direction (> this track samples the other, < the other samples this track), this track, other track, other artist], kept short for phone storage.
@@ -1718,6 +1730,22 @@ let plcVer=0;const plcState={run:false,msg:''};
 const WDAPI='https://www.wikidata.org/w/api.php?format=json&origin=*&';
 const WDCOUNTRY=new Set(['Q6256','Q3624078','Q7275','Q3024240','Q3336843']),WDWATER=new Set(['Q4022','Q23397','Q165','Q9430','Q5107','Q39594','Q35666','Q1322134','Q12284']);
 const evtTodo=()=>Object.values(arts).some(a=>a.wq&&!(a.wq in evt.a));
+// anything the place step still has to do: new areas, events, coordinates, concert cities
+const plcPending=()=>plcAreas().some(a=>!(a in plc.mb))||evtTodo()||Object.entries(plc.wd).some(([q,o])=>!('ll' in o)&&o.n!==q)||gigCities().some(k=>!(k in (plc.city||{})));
+// concert cities: found on Wikidata by name, the one whose description names the country
+const gigCities=()=>[...new Set(gigs.filter(g=>g.c).map(g=>g.c+'|'+(g.co||'')))];
+async function cityRun(){plc.city=plc.city||{};
+  const todo=gigCities().filter(k=>!(k in plc.city)),pick={};
+  for(const k of todo){const [c,co]=k.split('|');
+    const j=await wdJSON(WDAPI+'action=wbsearchentities&type=item&language=en&limit=7&search='+encodeURIComponent(c));
+    const rs=j.search||[],hit=rs.find(r=>co&&fold(r.description||'').includes(fold(co)))||rs.find(r=>/city|town|capital|municipality|village|borough/i.test(r.description||''))||rs[0];
+    if(hit)pick[k]=hit.id;else plc.city[k]=0}
+  const ids=[...new Set(Object.values(pick))];
+  for(let i=0;i<ids.length;i+=50){const es=(await wdJSON(WDAPI+'action=wbgetentities&props=claims&ids='+ids.slice(i,i+50).join('|'))).entities||{};
+    Object.entries(pick).forEach(([k,q])=>{const en=es[q];if(!en)return;const c=(((en.claims||{}).P625||[])[0]||{}).mainsnak,v=c&&c.datavalue&&c.datavalue.value;
+      plc.city[k]=v?[Math.round(v.latitude*1000)/1000,Math.round(v.longitude*1000)/1000]:0})}
+  savePlc();
+}
 const plcAreas=()=>[...new Set(Object.values(arts).filter(a=>a.m&&(a.b||a.a)).map(a=>(a.b||a.a)[0]))];
 const plcText=()=>{const a=plcAreas(),m=a.filter(x=>x in plc.mb),f=a.filter(x=>plc.mb[x]),regs=new Set();
   Object.values(plc.wd).forEach(o=>(o.reg||[]).forEach(r=>{if(plc.wd[r]&&!plc.wd[r].x)regs.add(r)}));
@@ -1742,6 +1770,7 @@ async function plcRun(){
     // 2. up through the parents and regions, 50 places a request
     const need=new Set();Object.values(plc.mb).forEach(q=>{if(q&&!plc.wd[q])need.add(q)});
     Object.values(plc.wd).forEach(o=>[o.up,...(o.reg||[])].forEach(x=>{if(x&&!plc.wd[x])need.add(x)}));
+    Object.entries(plc.wd).forEach(([q,o])=>{if(!('ll' in o)&&o.n!==q)need.add(q)});  // places from before the map get their coordinates
     for(let k=0;need.size&&k<200;k++){
       const ids=[...need].slice(0,50);ids.forEach(x=>need.delete(x));
       const es=(await wdJSON(WDAPI+'action=wbgetentities&props=labels|claims&languages=en&ids='+ids.join('|'))).entities||{};
@@ -1749,9 +1778,11 @@ async function plcRun(){
         const t=wdBest(en,'P31'),co=t.some(x=>WDCOUNTRY.has(x));
         const o={n:(en.labels&&en.labels.en||{}).value||q,up:co?'':(wdBest(en,'P131')[0]||''),reg:co?[]:wdBest(en,'P706').slice(0,3)};
         if(co)o.co=1;if(t.some(x=>WDWATER.has(x)))o.x=1;
+        const c=(((en.claims||{}).P625||[])[0]||{}).mainsnak,v=c&&c.datavalue&&c.datavalue.value;o.ll=v?[Math.round(v.latitude*1000)/1000,Math.round(v.longitude*1000)/1000]:0;
         plc.wd[q]=o;[o.up,...o.reg].forEach(x=>{if(x&&!plc.wd[x])need.add(x)})});
       savePlc();ui();
     }
+    plcState.msg='Placing your concert cities...';ui();await cityRun();
     plcState.msg='Connecting events...';ui();await evtRun();
     plcState.msg='';
   }catch(e){plcState.msg=e=='net'?'Could not reach Wikidata. Try again when you are online.':'Wikidata is busy. Try again in a minute.'}
@@ -2160,10 +2191,101 @@ function graphBurst(ox,oy,go){
   requestAnimationFrame(step);
 }
 function artistsHTML(){
-  return `<div class="seg gmode" role="tablist">${['graph','quiz'].map(k=>`<button class="${grMode==k?'on':''}" data-gmode="${k}" role="tab" aria-selected="${grMode==k}">${k=='graph'?'Graph':'Quiz'}</button>`).join('')}</div>`+
-    (grMode=='quiz'?'<div id="qz"></div>':graphHTML());
+  return `<div class="seg gmode" role="tablist">${['graph','map','quiz'].map(k=>`<button class="${grMode==k?'on':''}" data-gmode="${k}" role="tab" aria-selected="${grMode==k}">${k[0].toUpperCase()+k.slice(1)}</button>`).join('')}</div>`+
+    (grMode=='quiz'?'<div id="qz"></div>':grMode=='map'?mapHTML():graphHTML());
 }
-function artistsMount(){if(grMode=='quiz')qzDraw();else grMount()}
+function artistsMount(){if(grMode=='quiz')qzDraw();else if(grMode=='map')mapMount();else grMount()}
+
+/* Explore → Artists → Map: where your artists come from, and where you saw them live, on an outline of the world kept
+   inside the app (Natural Earth, simplified; world.json). Places get their coordinates from Wikidata with the place lookup,
+   concert cities by name. Pinch or scroll to zoom, drag to pan; dots that are close together merge until you zoom in */
+let mapLayer='from',mapView=null,mapWorld=null,mapPts=[],mapSel=null;
+try{const m=JSON.parse(KV.getItem('vinylMap')||'{}');if(m.l)mapLayer=m.l;if(m.v)mapView=m.v}catch(e){}
+const mapSave=()=>{try{KV.setItem('vinylMap',JSON.stringify({l:mapLayer,v:mapView}))}catch(e){}};
+const MW=1000;  // the world is 1000 units wide, Web Mercator
+const mProj=(lat,lon)=>{const la=Math.max(-80,Math.min(84,lat))*Math.PI/180;return [(lon+180)/360*MW,(1-Math.log(Math.tan(Math.PI/4+la/2))/Math.PI)/2*MW]};
+async function mapLoad(){
+  if(mapWorld)return mapWorld;
+  const w=await (await fetch('world.json')).json(),Q=w.q,arcs=w.a.split(';').map(a=>{const n=a.split(',').map(Number),out=[];let x=0,y=0;
+    for(let i=0;i<n.length;i+=2){x+=n[i];y+=n[i+1];out.push(mProj(y/Q,x/Q))}return out});
+  const pt=p=>p[0].toFixed(1)+' '+p[1].toFixed(1);
+  // borders and coasts: every arc once; land: rings made of arcs (a negative number is an arc read backwards)
+  const lines=arcs.map(a=>'M'+a.map(pt).join('L')).join('');
+  const land=w.land.map(r=>{let pts=[];r.forEach((i,j)=>{let a=i<0?arcs[~i].slice().reverse():arcs[i];if(j)a=a.slice(1);pts=pts.concat(a)});return 'M'+pts.map(pt).join('L')+'Z'}).join('');
+  return mapWorld={lines,land};
+}
+// where each artist comes from: its own place, or the nearest place above it that has coordinates
+function mapFrom(){const g=artGroups(),by=new Map();
+  g.forEach(o=>{const ar=arts[o.k],pl=ar&&ar.m&&(ar.b||ar.a);if(!pl)return;const q=plc.mb[pl[0]];if(!q||!plc.wd[q])return;
+    const ch=plcChain(q).ch,at=ch.find(x=>plc.wd[x]&&plc.wd[x].ll);if(!at)return;
+    if(!by.has(at))by.set(at,{id:'p:'+at,q:at,name:plc.wd[at].n,ll:plc.wd[at].ll,items:[]});by.get(at).items.push({k:o.k,name:o.name,c:o.rs.length})});
+  return [...by.values()].map(p=>({...p,n:p.items.length}))}
+// where you saw them: one dot per concert city
+function mapSeen(){const by=new Map(),own=new Map();artGroups().forEach(o=>own.set(akey(o.name),o.k));
+  gigs.forEach(g=>{const k=g.c+'|'+(g.co||''),ll=(plc.city||{})[k];if(!ll)return;if(!by.has(k))by.set(k,{id:'c:'+k,name:g.c,ll,items:[],nights:new Map()});
+    const c=by.get(k),nk=g.v+'|'+g.d;if(!c.nights.has(nk))c.nights.set(nk,{v:g.v,d:g.d,acts:[]});c.nights.get(nk).acts.push({a:g.a,k:own.get(akey(g.a))})});
+  return [...by.values()].map(c=>({...c,n:c.nights.size,items:[...c.nights.values()].sort((a,b)=>a.d<b.d?1:-1)}))}
+function mapHTML(){
+  return `<div class="seg mlay" role="tablist">${[['from',"Where they're from"],['seen','Where you saw them']].map(([k,t])=>`<button class="${mapLayer==k?'on':''}" data-mlay="${k}" role="tab" aria-selected="${mapLayer==k}">${t}</button>`).join('')}</div>
+  <div class="chips mzc">${[['world','World'],['eu','Europe'],['na','N. America'],['fit','All dots']].map(([k,t])=>`<button class="chip" data-mz="${k}">${t}</button>`).join('')}</div>
+  <div class="mapw" id="mapw"><svg id="msvg" role="img" aria-label="Map"><path class="mland"/><path class="mline"/><g id="mdots"></g></svg>
+    <div class="mzb"><button class="fx" data-mzi="1" aria-label="Zoom in">+</button><button class="fx" data-mzi="-1" aria-label="Zoom out">−</button></div></div>
+  <div class="ginfo" id="minfo"></div>`;
+}
+function mapStatus(){const miss=plcAreas().filter(a=>!(a in plc.mb)).length+Object.entries(plc.wd).filter(([q,o])=>!('ll' in o)&&o.n!==q).length,
+    cities=gigCities().filter(k=>!(k in (plc.city||{}))).length,need=mapLayer=='from'?miss:cities;
+  if(!Object.keys(arts).length)return '<p class="mute">The map fills in as <b>Data → Lookups → Artist connections</b> finds where your artists come from.</p>';
+  return need?`<p class="mute">${need} ${mapLayer=='from'?'places':'concert cities'} not on the map yet.</p><button class="btn" id="mplc">${plcState.run?'Placing…':'Place them now'}</button>`:''}
+const BOX={world:[[-60,-170],[75,180]],eu:[[35,-11],[64,32]],na:[[24,-128],[52,-65]]};
+function mapFit(bb){const w=$('#mapw');if(!w)return;const [a,b]=[mProj(bb[1][0],bb[0][1]),mProj(bb[0][0],bb[1][1])],vw=Math.max(.4,b[0]-a[0]),vh=Math.max(.4,b[1]-a[1]),ar=w.clientHeight/w.clientWidth;
+  const W=Math.max(vw,vh/ar)*1.1;mapView={cx:(a[0]+b[0])/2,cy:(a[1]+b[1])/2,w:W};mapApply()}
+// all dots, with room around them for the dots themselves and their names
+function mapFitDots(){if(!mapPts.length)return mapFit(BOX.world);const la=mapPts.map(p=>p.ll[0]),lo=mapPts.map(p=>p.ll[1]);
+  const pa=Math.max(.6,(Math.max(...la)-Math.min(...la))*.12),po=Math.max(1,(Math.max(...lo)-Math.min(...lo))*.18);
+  mapFit([[Math.min(...la)-pa,Math.min(...lo)-po*.5],[Math.max(...la)+pa,Math.max(...lo)+po*1.5]])}
+function mapApply(){const sv=$('#msvg'),w=$('#mapw');if(!sv||!w||!mapView)return;const ar=w.clientHeight/w.clientWidth;
+  mapView.w=Math.max(.3,Math.min(MW*1.6,mapView.w));const h=mapView.w*ar;sv.setAttribute('viewBox',`${mapView.cx-mapView.w/2} ${mapView.cy-h/2} ${mapView.w} ${h}`);mapDots();mapSave()}
+// dots: merged when they'd overlap on screen, sized by how many artists (or nights)
+function mapDots(){const g=$('#mdots'),w=$('#mapw');if(!g||!w||!mapView)return;const u=mapView.w/w.clientWidth,cl=[];
+  mapPts.map(p=>({p,xy:p.xy||(p.xy=mProj(p.ll[0],p.ll[1]))})).sort((a,b)=>b.p.n-a.p.n).forEach(({p,xy})=>{
+    const c=cl.find(c=>Math.hypot(c.x-xy[0],c.y-xy[1])/u<24);if(c){c.ps.push(p);c.n+=p.n}else cl.push({x:xy[0],y:xy[1],ps:[p],n:p.n})});
+  const col=mapLayer=='from'?'var(--hl)':'var(--p)';
+  g.innerHTML=cl.map((c,i)=>{const r=(4+Math.sqrt(c.n)*2.6)*u,sel=mapSel&&c.ps.some(p=>p.id==mapSel),big=c.ps[0];
+    const lbl=c.ps.length>1?`${big.name} +${c.ps.length-1}`:big.name,show=c.ps.length>1||c.n>=2||mapView.w<MW/6||sel;
+    return `<g class="mdot" data-mc="${i}"><circle cx="${c.x}" cy="${c.y}" r="${r+5*u}" fill="${col}" opacity=".14"/><circle cx="${c.x}" cy="${c.y}" r="${r}" fill="${col}" stroke="var(--bg)" stroke-width="${u}"${sel?` stroke="var(--ink)" stroke-width="${2*u}"`:''}/>`+
+      (show?`<text x="${c.x+r+3*u}" y="${c.y+3.5*u}" font-size="${10.5*u}" fill="var(--ink)">${esc(lbl)}</text>`:'')+`</g>`}).join('');
+  g.querySelectorAll('.mdot').forEach(e=>e.onclick=ev=>{ev.stopPropagation();const c=cl[+e.dataset.mc];
+    if(c.ps.length>1){const la=c.ps.map(p=>p.ll[0]),lo=c.ps.map(p=>p.ll[1]),pd=Math.max(.05,(Math.max(...la)-Math.min(...la))*.3);mapFit([[Math.min(...la)-pd,Math.min(...lo)-pd],[Math.max(...la)+pd,Math.max(...lo)+pd]])}
+    else{mapSel=c.ps[0].id;mapInfo(c.ps[0]);mapDots()}})}
+function mapInfo(p){const el=$('#minfo');if(!el)return;
+  if(!p){el.innerHTML=`<b>${mapLayer=='from'?'Where your artists come from':'Where you saw them'}</b><p class="mute" style="margin:4px 0 0">${mapPts.length?`${mapPts.length} ${mapLayer=='from'?'places':'cities'} · ${mapPts.reduce((t,x)=>t+x.n,0)} ${mapLayer=='from'?'artists':'concert nights'}. Tap a dot; dots close together merge until you zoom in.`:'Nothing on the map yet.'}</p>${mapStatus()}`;
+    if($('#mplc'))$('#mplc').onclick=async()=>{$('#mplc').textContent='Placing…';await plcRun();if(grMode=='map'&&view=='ex')render()};return}
+  if(mapLayer=='from'){const w=plc.wd[p.q],up=plcChain(p.q).ch.slice(1,4).map(x=>plc.wd[x].n),ons=plcChain(p.q).reg.map(x=>plc.wd[x].n);
+    el.innerHTML=`<b>${esc(p.name)}</b><p class="mute" style="margin:4px 0 0">${plur(p.n,'artist')} from here${up.length?' · in '+esc(up.join(', ')):''}${ons.length?' · on '+esc(ons.join(', ')):''}</p>
+      <div class="mlist">${p.items.sort((a,b)=>b.c-a.c).slice(0,12).map(a=>`<button data-qgo="a:${esc(a.k)}"><span>${esc(a.name)}</span><em>${plur(a.c,'record')}</em></button>`).join('')}${p.items.length>12?`<p class="mute">And ${p.items.length-12} more.</p>`:''}</div>
+      <button class="btn" data-qgo="${esc(p.id)}">Open ${esc(p.name)} in the graph</button>`}
+  else el.innerHTML=`<b>${esc(p.name)}</b><p class="mute" style="margin:4px 0 0">${plur(p.n,'concert night')} here</p><div class="mlist">${p.items.slice(0,10).map(nt=>`<div class="mnight"><span>${esc(nt.v)} · ${esc(gigDate(nt.d))}</span>${nt.acts.map(a=>a.k?`<button data-qgo="a:${esc(a.k)}">${esc(a.a)}</button>`:`<i>${esc(a.a)}</i>`).join(', ')}</div>`).join('')}</div>`}
+async function mapMount(){
+  mapPts=mapLayer=='from'?mapFrom():mapSeen();mapInfo(mapSel&&mapPts.find(p=>p.id==mapSel)||null);
+  const wd=await mapLoad().catch(()=>null),sv=$('#msvg');if(!sv)return;
+  if(!wd){$('#mapw').insertAdjacentHTML('beforeend','<p class="mute mfail">The map outline could not be loaded. It needs to be online once.</p>')}
+  else{sv.querySelector('.mland').setAttribute('d',wd.land);sv.querySelector('.mline').setAttribute('d',wd.lines)}
+  if(!mapView)mapFitDots();else mapApply();
+  // drag to pan, two fingers or the wheel to zoom
+  const pts=new Map();let last=null;
+  const toU=(cx,cy)=>{const r=sv.getBoundingClientRect(),u=mapView.w/r.width,h=mapView.w*r.height/r.width;return [mapView.cx-mapView.w/2+(cx-r.left)*u,mapView.cy-h/2+(cy-r.top)*u]};
+  const zoomAt=(f,cx,cy)=>{const [ux,uy]=toU(cx,cy),nw=Math.max(.3,Math.min(MW*1.6,mapView.w/f)),k=nw/mapView.w;mapView.cx=ux-(ux-mapView.cx)*k;mapView.cy=uy-(uy-mapView.cy)*k;mapView.w=nw;mapApply()};
+  sv.onpointerdown=e=>{sv.setPointerCapture(e.pointerId);pts.set(e.pointerId,[e.clientX,e.clientY]);last=null};
+  sv.onpointermove=e=>{if(!pts.has(e.pointerId))return;const prev=pts.get(e.pointerId);pts.set(e.pointerId,[e.clientX,e.clientY]);
+    if(pts.size==1){const r=sv.getBoundingClientRect(),u=mapView.w/r.width;mapView.cx-=(e.clientX-prev[0])*u;mapView.cy-=(e.clientY-prev[1])*u;mapApply()}
+    else if(pts.size==2){const [a,b]=[...pts.values()],d=Math.hypot(a[0]-b[0],a[1]-b[1]);if(last)zoomAt(d/last,(a[0]+b[0])/2,(a[1]+b[1])/2);last=d}};
+  sv.onpointerup=sv.onpointercancel=e=>{pts.delete(e.pointerId);last=null};
+  sv.onwheel=e=>{e.preventDefault();zoomAt(Math.exp(-e.deltaY/300),e.clientX,e.clientY)};
+  sv.ondblclick=e=>zoomAt(2,e.clientX,e.clientY);
+  sv.onclick=e=>{if(e.target==sv||e.target.tagName=='path'){mapSel=null;mapInfo(null);mapDots()}};
+  document.querySelectorAll('[data-mz]').forEach(b=>b.onclick=()=>{const k=b.dataset.mz;k=='fit'?mapFitDots():mapFit(BOX[k])});
+  document.querySelectorAll('[data-mzi]').forEach(b=>b.onclick=()=>{const r=sv.getBoundingClientRect();zoomAt(+b.dataset.mzi>0?1.8:1/1.8,r.left+r.width/2,r.top+r.height/2)});
+}
 // from a quiz answer or group straight to the graph
 function grOpen(id){if(!grData().n.has(id))return;
   if(grTrail[grTrail.length-1]!=id)grTrail=[...grTrail.filter(x=>x!=id),id].slice(-5);
@@ -2799,6 +2921,7 @@ document.addEventListener('click',e=>{
       if(grTrail[grTrail.length-1]!=id){grTrail=[...grTrail.filter(x=>x!=id),id].slice(-5)}grCenter=id;grPage=0;grSave();
       grMode='graph';try{KV.setItem('vinylGraphMode','graph')}catch(e){}
       view='ex';exTab='graph';qOrder=[];sheetGone();try{history.replaceState(navState(),'')}catch(e){}navKeyLast=navKey();render();window.scrollTo(0,0)})}
+  else if(d.mlay){mapLayer=d.mlay;mapSel=null;mapView=null;mapSave();render()}
   else if(d.gmode){grMode=d.gmode;try{KV.setItem('vinylGraphMode',grMode)}catch(e){}render()}
   else if(d.qgo){grOpen(d.qgo)}
   else if(d.gn){$('#gq').value='';$('#gres').innerHTML='';grGo(d.gn)}
