@@ -449,7 +449,7 @@ label.ck input{width:20px;height:20px}
 })();
 </script>
 <script id="crate-main" type="text/x-crate">
-const APP_VERSION=75,APP_DATE='26 Nov 2026';
+const APP_VERSION=76,APP_DATE='26 Nov 2026';
 const COVER_CACHE='vinyl-covers-2'; // must match COVERS in sw.js
 const DEFAULT_LOCS=[
  {id:'kallax',name:'Kallax shelf',mode:'grid',cols:3,rows:4,cap:0,formats:['lp']},
@@ -2203,15 +2203,20 @@ let mapLayer='from',mapView=null,mapWorld=null,mapPts=[],mapSel=null;
 try{const m=JSON.parse(KV.getItem('vinylMap')||'{}');if(m.l)mapLayer=m.l;if(m.v)mapView=m.v}catch(e){}
 const mapSave=()=>{try{KV.setItem('vinylMap',JSON.stringify({l:mapLayer,v:mapView}))}catch(e){}};
 const MW=1000;  // the world is 1000 units wide, Web Mercator
-const mProj=(lat,lon)=>{const la=Math.max(-80,Math.min(84,lat))*Math.PI/180;return [(lon+180)/360*MW,(1-Math.log(Math.tan(Math.PI/4+la/2))/Math.PI)/2*MW]};
+const mProj=(lat,lon)=>{const la=Math.max(-82,Math.min(84,lat))*Math.PI/180;return [(lon+180)/360*MW,(1-Math.log(Math.tan(Math.PI/4+la/2))/Math.PI)/2*MW]};
 async function mapLoad(){
   if(mapWorld)return mapWorld;
   const w=await (await fetch('world.json')).json(),Q=w.q,arcs=w.a.split(';').map(a=>{const n=a.split(',').map(Number),out=[];let x=0,y=0;
-    for(let i=0;i<n.length;i+=2){x+=n[i];y+=n[i+1];out.push(mProj(y/Q,x/Q))}return out});
-  const pt=p=>p[0].toFixed(1)+' '+p[1].toFixed(1);
+    for(let i=0;i<n.length;i+=2){x+=n[i];y+=n[i+1];out.push([x/Q,y/Q])}return out});  // [longitude, latitude]
+  // shapes that cross the date line (Russia's far east, Fiji) jump from +180° to −180°: carry on past 180° instead,
+  // or the jump draws a line across the whole map and confuses land and sea
+  const unwrap=pts=>{const o=[];let off=0,prev=null;for(const [lo,la] of pts){if(prev!==null){const d=lo+off-prev;if(d>180)off-=360;else if(d<-180)off+=360}const L=lo+off;o.push([L,la]);prev=L}return o};
+  const polar=pts=>pts.every(p=>p[1]<-55);  // Antarctica stays off the map
+  const pt=([lo,la])=>{const p=mProj(la,lo);return p[0].toFixed(1)+' '+p[1].toFixed(1)};
   // borders and coasts: every arc once; land: rings made of arcs (a negative number is an arc read backwards)
-  const lines=arcs.map(a=>'M'+a.map(pt).join('L')).join('');
-  const land=w.land.map(r=>{let pts=[];r.forEach((i,j)=>{let a=i<0?arcs[~i].slice().reverse():arcs[i];if(j)a=a.slice(1);pts=pts.concat(a)});return 'M'+pts.map(pt).join('L')+'Z'}).join('');
+  const lines=arcs.filter(a=>!polar(a)).map(a=>'M'+unwrap(a).map(pt).join('L')).join('');
+  const land=w.land.map(r=>{let pts=[];r.forEach((i,j)=>{let a=i<0?arcs[~i].slice().reverse():arcs[i];if(j)a=a.slice(1);pts=pts.concat(a)});
+    return polar(pts)?'':'M'+unwrap(pts).map(pt).join('L')+'Z'}).join('');
   return mapWorld={lines,land};
 }
 // where each artist comes from: its own place, or the nearest place above it that has coordinates
@@ -2235,7 +2240,8 @@ function mapHTML(){
 function mapStatus(){const miss=plcAreas().filter(a=>!(a in plc.mb)).length+Object.entries(plc.wd).filter(([q,o])=>!('ll' in o)&&o.n!==q).length,
     cities=gigCities().filter(k=>!(k in (plc.city||{}))).length,need=mapLayer=='from'?miss:cities;
   if(!Object.keys(arts).length)return '<p class="mute">The map fills in as <b>Data → Lookups → Artist connections</b> finds where your artists come from.</p>';
-  return need?`<p class="mute">${need} ${mapLayer=='from'?'places':'concert cities'} not on the map yet.</p><button class="btn" id="mplc">${plcState.run?'Placing…':'Place them now'}</button>`:''}
+  return need?(plcState.run?`<p class="mute">Placing ${need} ${mapLayer=='from'?'places':'concert cities'} on the map… This takes a minute or so; the dots appear by themselves.</p>`
+    :`<p class="mute">${need} ${mapLayer=='from'?'places':'concert cities'} not on the map yet.</p><button class="btn" id="mplc">Place them now</button>`):''}
 const BOX={world:[[-60,-170],[75,180]],eu:[[35,-11],[64,32]],na:[[24,-128],[52,-65]]};
 function mapFit(bb){const w=$('#mapw');if(!w)return;const [a,b]=[mProj(bb[1][0],bb[0][1]),mProj(bb[0][0],bb[1][1])],vw=Math.max(.4,b[0]-a[0]),vh=Math.max(.4,b[1]-a[1]),ar=w.clientHeight/w.clientWidth;
   const W=Math.max(vw,vh/ar)*1.1;mapView={cx:(a[0]+b[0])/2,cy:(a[1]+b[1])/2,w:W};mapApply()}
@@ -2267,6 +2273,8 @@ function mapInfo(p){const el=$('#minfo');if(!el)return;
   else el.innerHTML=`<b>${esc(p.name)}</b><p class="mute" style="margin:4px 0 0">${plur(p.n,'concert night')} here</p><div class="mlist">${p.items.slice(0,10).map(nt=>`<div class="mnight"><span>${esc(nt.v)} · ${esc(gigDate(nt.d))}</span>${nt.acts.map(a=>a.k?`<button data-qgo="a:${esc(a.k)}">${esc(a.a)}</button>`:`<i>${esc(a.a)}</i>`).join(', ')}</div>`).join('')}</div>`}
 async function mapMount(){
   mapPts=mapLayer=='from'?mapFrom():mapSeen();mapInfo(mapSel&&mapPts.find(p=>p.id==mapSel)||null);
+  // places looked up before the map have no coordinates yet: fetch them now, and redraw when they arrive
+  if(plcPending()&&!plcState.run&&navigator.onLine!==false){plcRun().then(()=>{if(view=='ex'&&exTab=='graph'&&grMode=='map'){mapPts=mapLayer=='from'?mapFrom():mapSeen();mapInfo(null);mapDots()}});mapInfo(null)}
   const wd=await mapLoad().catch(()=>null),sv=$('#msvg');if(!sv)return;
   if(!wd){$('#mapw').insertAdjacentHTML('beforeend','<p class="mute mfail">The map outline could not be loaded. It needs to be online once.</p>')}
   else{sv.querySelector('.mland').setAttribute('d',wd.land);sv.querySelector('.mline').setAttribute('d',wd.lines)}
