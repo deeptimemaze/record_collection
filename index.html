@@ -126,7 +126,10 @@ input[type=checkbox]{accent-color:var(--y)}
 .qprog{display:flex;gap:4px;margin:0 0 12px}.qprog i{flex:1;height:4px;background:var(--line2)}.qprog i.ok{background:var(--y)}.qprog i.no{background:var(--red)}
 .qq{display:block;margin:0 0 12px;font:700 16px/1.4 var(--mono)}
 .qans{display:flex;align-items:center;gap:12px;width:100%;min-height:48px;margin:0 0 8px;padding:10px 12px;border:2px solid var(--line2);background:var(--card);color:var(--ink);font:700 13px/1.3 var(--mono);text-align:left}
-.qans span{color:var(--mute);width:14px}.qans.ok{background:var(--y);border-color:var(--on-bd);color:#000}.qans.ok span{color:#000}
+.qans span{color:var(--mute);width:14px}
+.cqc{display:block;width:min(100%,300px);aspect-ratio:1;margin:4px auto 0;border:2px solid var(--line2);image-rendering:pixelated;background:var(--thumb)}
+.cqsteps{display:flex;justify-content:center;gap:6px;margin:10px 0 0}.cqsteps i{width:30px;height:4px;background:var(--line2)}.cqsteps i.on{background:var(--ink)}
+.qans .cqt{flex:1;width:auto;color:inherit}.cqt b{display:block;font-weight:700}.cqt em{display:block;font-style:normal;font-weight:500;color:var(--mute);margin-top:2px}.qans.ok .cqt em{color:#3a4a00}.qans.ok{background:var(--y);border-color:var(--on-bd);color:#000}.qans.ok span{color:#000}
 .qans.no{border-color:var(--red);color:var(--red)}.qans.dim{opacity:.4}
 .qex{margin:4px 0 0;padding:10px 12px;border:1px solid var(--line2);color:var(--ink);font-size:13px;line-height:1.5}
 .qlink{padding:0;background:none;border:0;color:var(--hl-t);font:inherit;font-weight:700;text-decoration:underline dotted;text-underline-offset:3px}
@@ -454,7 +457,7 @@ label.ck input{width:20px;height:20px}
 })();
 </script>
 <script id="crate-main" type="text/x-crate">
-const APP_VERSION=81,APP_DATE='26 Nov 2026';
+const APP_VERSION=82,APP_DATE='26 Nov 2026';
 const COVER_CACHE='vinyl-covers-2'; // must match COVERS in sw.js
 const DEFAULT_LOCS=[
  {id:'kallax',name:'Kallax shelf',mode:'grid',cols:3,rows:4,cap:0,formats:['lp']},
@@ -2194,10 +2197,14 @@ function qzDraw(){
   if(qz.mode=='home'){
     b.innerHTML=`<div class="qzc"><b>Three of a kind</b><p class="mute">Nine names, three groups: members of a band, artists from one place, on one label or in one genre. All from your collection.</p><button class="btn pri" id="qgrid">Play</button></div>
     <div class="qzc"><b>Five questions</b><p class="mute">Which band, where from, which label, which year, which one doesn't belong.</p><button class="btn" id="qmc">Play</button></div>
+    <div class="qzc"><b>Cover quiz</b><p class="mute">Five of your covers: name the album from a blurry glimpse. Guess early for more points.${qzStat.cov?` Best ${qzStat.cov} of 20.`:''}</p>
+      <div class="qzbar"><button class="btn" data-cq="pix">Pixelated</button><button class="btn" data-cq="zoom">Zoomed in</button></div></div>
     <p class="mute">${qzStat.grids?`${plur(qzStat.grids,'grid')} solved. `:''}${qzStat.games?`Best score ${qzStat.best} of 5.`:''}${Object.keys(arts).length<artGroups().size?` Questions about members and places get richer as <b>Data → Fetch artist connections</b> fills in.`:''}</p>`;
     $('#qgrid').onclick=()=>{const g=qzGrid();if(!g){toast('Not enough connections yet for a grid. Fetch artist connections in Data first.',true);return}qz={mode:'grid',...g};qzDraw()};
+    document.querySelectorAll('[data-cq]').forEach(e=>e.onclick=()=>cqStart(e.dataset.cq));
     $('#qmc').onclick=()=>{const m=qzQuestions();if(!m){toast('Not enough connections yet for questions. Fetch artist connections in Data first.',true);return}qz={mode:'mc',...m};qzDraw()};
     return}
+  if(qz.mode=='cov'){cqDraw();return}
   const back=`<button class="qback" id="qhome">‹ Quiz</button>`;
   if(qz.mode=='grid'){const {n}=grData(),done=qz.solved.length==3||qz.miss>=3;
     const sol=(done?qz.groups:qz.solved).map(g=>{const i=qz.groups.indexOf(g)+1,got=qz.solved.includes(g);
@@ -2288,6 +2295,66 @@ function graphBurst(ox,oy,go){
     if(e>=T2){finish();return}
     requestAnimationFrame(step)}
   requestAnimationFrame(step);
+}
+/* Cover quiz: five albums with a saved cover. Pixelated starts at 8×8 big pixels and sharpens to 16, 32, 64, then the
+   cover; Zoomed in starts on a fifth of the cover and widens to 35%, 60%, then the whole. Sharper, Zoom out or a wrong
+   guess take a step; points go 4, 3, 2, 1. Wrong answers are other albums from the same genre and era */
+const CQ_PIX=[8,16,32,64],CQ_ZOOM=[.2,.35,.6,1];
+// an album with a saved cover, once per album
+function cqPool(){const seen=new Set(),out=[];recs.forEach(r=>{const c=cov[ridOf(r)];if(!c||!c.u||isVarious(artKey(artName(r.artist))))return;const k=smKey(r);if(seen.has(k))return;seen.add(k);out.push(r)});return out}
+function cqWrong(r){const y=+(origY(r)||r.year)||0,k=smKey(r),a=artKey(artName(r.artist)),seen=new Set([k]),pick=[];
+  const albums=[];const s2=new Set();recs.forEach(x=>{const kk=smKey(x);if(s2.has(kk)||isVarious(artKey(artName(x.artist))))return;s2.add(kk);albums.push(x)});
+  const yr=x=>+(origY(x)||x.year)||0,tiers=[x=>gkey(x)==gkey(r)&&y&&Math.abs(yr(x)-y)<=8,x=>gkey(x)==gkey(r),()=>true];
+  for(const t of tiers){shuf(albums.filter(x=>!seen.has(smKey(x))&&artKey(artName(x.artist))!=a&&t(x))).forEach(x=>{if(pick.length<3&&!seen.has(smKey(x))){seen.add(smKey(x));pick.push(x)}});if(pick.length>=3)break}
+  return pick}
+// the cover as an image the canvas may read; the 500 px one first. Nearly flat covers (all black, all white) are no fun at 8×8
+async function cqImage(r){const u=cov[ridOf(r)].u;
+  for(const x of [u.replace(/\/front-250$/,'/front-500'),u]){try{const res=await fetch(x,{mode:'cors'});if(res.ok){const im=await createImageBitmap(await res.blob());
+    const t=document.createElement('canvas');t.width=t.height=16;const tx=t.getContext('2d');tx.drawImage(im,0,0,16,16);const d=tx.getImageData(0,0,16,16).data;let m=0,v=0;
+    for(let i=0;i<d.length;i+=4)m+=(d[i]+d[i+1]+d[i+2])/3;m/=256;for(let i=0;i<d.length;i+=4){const l=(d[i]+d[i+1]+d[i+2])/3-m;v+=l*l}
+    return Math.sqrt(v/256)<14?null:im}}catch(e){}}return null}
+async function cqStart(mode){
+  const pool=shuf(cqPool());if(pool.length<5){toast('The cover quiz needs at least five albums with a saved cover. Turn covers on (Data → Lookups) and browse your records for a while.',true);return}
+  // play starts with the first cover; the rest load while you look at it
+  const game={mode:'cov',kind:mode,qs:[],i:0,score:0,loading:true,more:true};qz=game;qzDraw();
+  for(const r of pool){if(game.qs.length>=5||qz!==game)break;const im=await cqImage(r);if(!im)continue;
+    const w=cqWrong(r);if(w.length<3)continue;game.qs.push({r,im,opts:shuf([r,...w]),step:0,done:false,pick:null,ox:Math.random(),oy:Math.random()});
+    if(game.loading){game.loading=false;if(qz===game)qzDraw()}else if(qz===game&&game.waiting){game.waiting=false;qzDraw()}}
+  game.more=false;if(qz!==game)return;
+  if(!game.qs.length){qz={mode:'home'};qzDraw();toast("Couldn't load any covers right now. Check that you're online, or browse more records with covers on.",true);return}
+  if(game.waiting){game.waiting=false;qzDraw()}
+}
+function cqPaint(q){const c=$('#cqc');if(!c)return;const d=devicePixelRatio||1,W=c.clientWidth||256;c.width=c.height=Math.round(W*d);const x=c.getContext('2d'),im=q.im;
+  if(q.done){x.imageSmoothingEnabled=true;x.drawImage(im,0,0,c.width,c.height);return}
+  if(qz.kind=='pix'){const n=CQ_PIX[q.step],t=document.createElement('canvas');t.width=t.height=n;t.getContext('2d').drawImage(im,0,0,n,n);x.imageSmoothingEnabled=false;x.drawImage(t,0,0,c.width,c.height)}
+  else{const f=CQ_ZOOM[q.step],sw=im.width*f,sh=im.height*f,ox=(im.width-sw)*q.ox,oy=(im.height-sh)*q.oy;x.imageSmoothingEnabled=true;x.drawImage(im,ox,oy,sw,sh,0,0,c.width,c.height)}}
+function cqDraw(){const b=$('#qz');if(!b)return;const back=`<button class="qback" id="qhome">‹ Quiz</button>`;
+  if(qz.loading){b.innerHTML=`${back}<b class="qtt">Cover quiz</b><p class="mute" style="margin:8px 0 0">Picking five of your covers…</p>`;$('#qhome').onclick=()=>{qz={mode:'home'};qzDraw()};return}
+  if(qz.i>=qz.qs.length&&qz.more){qz.waiting=true;b.innerHTML=`${back}<p class="mute" style="margin:8px 0 0">Loading the next cover…</p>`;$('#qhome').onclick=()=>{qz={mode:'home'};qzDraw()};return}
+  if(qz.i>=qz.qs.length){const max=qz.qs.length*4;qzStat.cov=Math.max(qzStat.cov||0,qz.score);qzSave();
+    b.innerHTML=`${back}<b class="qtt" style="font-size:22px">${qz.score} of ${max} points</b><p class="mute">${qz.score>=(qzStat.cov||0)?'Your best so far.':`Your best is ${qzStat.cov}.`}</p><button class="btn pri" id="cqagain">Five new covers</button>`;
+    $('#cqagain').onclick=()=>cqStart(qz.kind);$('#qhome').onclick=()=>{qz={mode:'home'};qzDraw()};return}
+  const q=qz.qs[qz.i],pts=4-q.step,lvl=qz.kind=='pix'?`${CQ_PIX[q.step]}×${CQ_PIX[q.step]}`:`${Math.round(CQ_ZOOM[q.step]*100)}% of the cover`,ok=q.r;
+  b.innerHTML=`${back}<p class="mute" style="margin:0 0 6px;display:flex;justify-content:space-between"><span>Cover ${qz.i+1} of ${qz.more?5:qz.qs.length}</span><span>Score ${qz.score}</span></p>
+    <div class="qprog">${[...Array(qz.more?5:qz.qs.length)].map((_,i)=>{const x=qz.qs[i];return `<i class="${x&&(i<qz.i||x.done)?(x.pick===x.r?'ok':'no'):''}"></i>`}).join('')}</div>
+    <canvas id="cqc" class="cqc" role="img" aria-label="${q.done?'The cover':'A '+(qz.kind=='pix'?'pixelated':'zoomed-in')+' cover'}"></canvas>
+    <div class="cqsteps">${[0,1,2,3].map(i=>`<i class="${i<=q.step||q.done?'on':''}"></i>`).join('')}</div>
+    <p class="mute" style="text-align:center;margin:4px 0 8px">${q.done?'The whole cover':`${lvl} · worth ${plur(pts,'point')}`}</p>
+    ${q.done?'':`<button class="btn" id="cqmore"${q.step>=3?' disabled':''}>${qz.kind=='pix'?'Sharper':'Zoom out'}</button>`}
+    ${q.opts.map((o,i)=>`<button class="qans cqa${q.done?(o===ok?' ok':o===q.pick?' no':' dim'):(q.wrong&&q.wrong.includes(o)?' no':'')}" data-cqi="${i}"${q.done?' disabled':''}><span>${'ABCD'[i]}</span><span class="cqt"><b>${esc(o.title)}</b><em>${esc(artName(o.artist))}</em></span></button>`).join('')}
+    ${q.done?`<div class="qex">${q.pick===ok?`Right, +${q.got}. `:'Not this time. '}<b>${esc(ok.title)}</b> by ${esc(artName(ok.artist))}${origY(ok)||ok.year?`, ${esc(String(origY(ok)||ok.year))}`:''}.</div>
+      <div class="qzbar"><button class="btn" id="cqcard">Open the card</button><button class="btn" id="cqnx">${ok.nx?'✓ In play next':'Play next'}</button></div>
+      <button class="btn pri" id="cqnext">${qz.i<qz.qs.length-1||qz.more?'Next cover':'See the score'}</button>`:''}`;
+  cqPaint(q);
+  $('#qhome').onclick=()=>{qz={mode:'home'};qzDraw()};
+  if($('#cqmore'))$('#cqmore').onclick=()=>{if(q.step<3){q.step++;cqDraw()}};
+  b.querySelectorAll('[data-cqi]').forEach(e=>e.onclick=()=>{if(q.done)return;const o=q.opts[+e.dataset.cqi];
+    if(o===ok){q.done=true;q.pick=o;q.got=4-q.step;qz.score+=q.got}
+    else{q.wrong=[...(q.wrong||[]),o];if(q.step<3)q.step++;else{q.done=true;q.pick=o;q.got=0}}
+    cqDraw()});
+  if($('#cqcard'))$('#cqcard').onclick=()=>openRecSheet(ok.id);
+  if($('#cqnx'))$('#cqnx').onclick=()=>{ok.nx=ok.nx?0:Date.now();save();cqDraw()};
+  if($('#cqnext'))$('#cqnext').onclick=()=>{qz.i++;cqDraw()};
 }
 function artistsHTML(){
   return `<div class="seg gmode" role="tablist">${['graph','stars','map','quiz'].map(k=>`<button class="${grMode==k?'on':''}" data-gmode="${k}" role="tab" aria-selected="${grMode==k}">${k[0].toUpperCase()+k.slice(1)}</button>`).join('')}</div>`+
