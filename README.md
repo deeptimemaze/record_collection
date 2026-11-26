@@ -114,8 +114,8 @@ It then opens full screen like an app and works offline.
 | `index.html` | The whole app: layout, styles and logic in one file |
 | `manifest.webmanifest` | Name, colours and icons for installing on a home screen |
 | `sw.js` | Caches the app so it opens offline |
-| `icon-cyber-192.png`, `icon-cyber-512.png` | App icons |
-| `icon-cyber.svg` | Source drawing for the app icons |
+| `icon-crate-192.png`, `icon-crate-512.png` | App icons |
+| `icon-crate.svg` | Source drawing for the app icons |
 | `world.json` | The outline of the world's countries for the map (Natural Earth, public domain, simplified) |
 | `tools/setlistfm_export.py` | Exports your attended concerts from setlist.fm to a CSV for **Data → Collection → Concerts (CSV)** |
 
