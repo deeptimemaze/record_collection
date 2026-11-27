@@ -90,7 +90,7 @@ input[type=checkbox]{accent-color:var(--y)}
 .seg.gmode{margin:12px 0 0;border-width:1px}
 .seg.mlay{margin:10px 0 0;border-width:1px}.seg.mlay button{min-height:32px;border-left-width:1px;font-size:10px}
 .mzc{margin:8px 0 0;gap:6px}.mzc .chip{min-height:30px;padding:4px 10px}
-.mapw{position:relative;margin:8px -14px 0;height:58vh;min-height:300px;background:var(--card);border-top:1px solid var(--line2);border-bottom:1px solid var(--line2);overflow:hidden}
+.mapw{position:relative;margin:8px -14px 0;height:58vh;min-height:260px;background:var(--card);border-top:1px solid var(--line2);border-bottom:1px solid var(--line2);overflow:hidden}
 #msvg,#stc{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
 .seg.gmode button{letter-spacing:.08em}
 #msvg .mland{fill:var(--line)}#msvg .mline{fill:none;stroke:var(--line2);stroke-width:.8;vector-effect:non-scaling-stroke;stroke-linejoin:round}
@@ -158,6 +158,21 @@ input[type=checkbox]{accent-color:var(--y)}
 .qans.no{border-color:var(--red);color:var(--red)}.qans.dim{opacity:.4}
 .qex{margin:4px 0 0;padding:10px 12px;border:1px solid var(--line2);color:var(--ink);font-size:13px;line-height:1.5}
 .qlink{padding:0;background:none;border:0;color:var(--hl-t);font:inherit;font-weight:700;text-decoration:underline dotted;text-underline-offset:3px}
+.gqrow{display:flex;gap:8px;margin-top:14px}.gqrow input{flex:1;min-width:0;margin:0}
+.gwan{flex:none;width:48px;height:auto;display:flex;align-items:center;justify-content:center}.gwan svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8}.gwan.on{background:var(--y);color:#000;border-color:var(--on-bd)}
+.gcrumb{white-space:nowrap;overflow-x:auto;scrollbar-width:none;margin:8px 0 0;min-height:18px}.gcrumb::-webkit-scrollbar{display:none}
+.gbox{position:relative;display:flex;flex-direction:column;margin-top:4px;min-height:260px}
+.gbox #gsvg{flex:1 1 0;min-height:0;height:auto;margin:0}
+.gkeyb{position:absolute;top:0;right:0;width:36px;height:36px;background:var(--bg);font-size:14px}.gkeyb.on{background:var(--ink);color:var(--bg)}
+.gbox .gkey{position:absolute;top:42px;right:0;left:20%;margin:0;padding:10px 12px;background:var(--bg);border:1px solid var(--line2);z-index:2;max-height:70%;overflow:auto}
+.gbox .gkey[hidden]{display:none}.gkh{margin:6px 0 0;font-size:11px;flex-basis:100%}
+.vinfo{flex:none;max-height:31%;overflow:auto;overscroll-behavior:contain;padding-top:8px}
+.vinfo .btn,.vov .btn{min-height:38px;margin:8px 0 0;padding:9px 12px;width:auto;font-size:11px;letter-spacing:.1em}
+.vinfo .btn,.vov .btn{position:sticky;bottom:0;box-shadow:0 6px 0 var(--bg);background:var(--bg)}
+.vov{position:absolute;left:8px;right:56px;bottom:8px;max-height:45%;overflow:auto;overscroll-behavior:contain;padding:8px 10px;background:var(--bg);border:1px solid var(--line2);border-top:2px solid var(--hl)}
+.vinfo>b,.vov>b{cursor:pointer;position:relative;padding-right:18px}.vinfo>b:after,.vov>b:after{content:'–';position:absolute;right:0;top:0;color:var(--mute)}
+.vinfo.min>:not(b),.vov.min>:not(b){display:none}.vinfo.min>b:after,.vov.min>b:after{content:'+'}
+.mapw .mcard{z-index:3}
 .gkey{display:flex;flex-wrap:wrap;gap:6px 14px;margin:14px 0 0;color:var(--mute);font:500 11px/1.4 var(--mono)}
 .gkey span{display:flex;align-items:center;gap:6px}.gkey svg{flex:none}
 .seg button.on{background:var(--y);color:#000;box-shadow:var(--glow)}
@@ -482,7 +497,7 @@ label.ck input{width:20px;height:20px}
 })();
 </script>
 <script id="crate-main" type="text/x-crate">
-const APP_VERSION=86,APP_DATE='27 Nov 2026';
+const APP_VERSION=87,APP_DATE='27 Nov 2026';
 const COVER_CACHE='vinyl-covers-2'; // must match COVERS in sw.js
 const DEFAULT_LOCS=[
  {id:'kallax',name:'Kallax shelf',mode:'grid',cols:3,rows:4,cap:0,formats:['lp']},
@@ -2086,19 +2101,21 @@ function grInfo(){
     return `${esc(n.get(e.src).name)} ${esc(cut(f))} → ${esc(n.get(e.dst).name)} ${esc(cut(t))}${e.rs.length>1?` and ${e.rs.length-1} more`:''}`});
   const ar0=o.t=='a'&&arts[grCenter.slice(2)],own=new Set(Object.values(arts).map(a=>a.m).filter(Boolean)),dig=ar0&&ar0.sim?ar0.sim.filter(([m])=>!own.has(m)).slice(0,6).map(x=>x[1]):[];
   $('#ginfo').innerHTML=`<b>${esc(o.name)}</b><p class="mute" style="margin:4px 0 0">${esc(grDesc(grCenter))}${all>GPAGE?` · showing ${grPage*GPAGE+1}–${Math.min(all,(grPage+1)*GPAGE)} of ${all}, ${(grPage+1)*GPAGE>=all?'tap +more to start over':'tap +more for the next'}`:''}</p>${cr.length?`<p class="mute gcred">${cr.join('<br>')}</p>`:''}${sm.length?`<p class="mute gcred gsm">${sm.join('<br>')}</p>`:''}${dig.length?`<p class="mute gcred gsim">Similar, not in your collection: ${esc(dig.join(', '))}</p>`:''}${btn?`<button class="btn" data-gshow="${esc(grCenter)}">${btn}</button>`:''}`;
-  $('#gcrumb').innerHTML=grTrail.map((id,i)=>i==grTrail.length-1?`<b>${esc(n.get(id).name)}</b>`:`<button data-gtr="${i}">${esc(n.get(id).name)}</button>`).join(' › ');
+  {const gc=$('#gcrumb');gc.innerHTML=grTrail.map((id,i)=>i==grTrail.length-1?`<b>${esc(n.get(id).name)}</b>`:`<button data-gtr="${i}">${esc(n.get(id).name)}</button>`).join(' › ');gc.scrollLeft=gc.scrollWidth}
 }
 // make a node the centre; the trail remembers the last few steps
 /* Wander: the graph moves on by itself every few seconds, to a neighbour it hasn't just visited (artists more often than
    labels or genres). Tapping anything, or leaving the graph, stops it */
 let wanderT=0;
-function wanderStop(){clearInterval(wanderT);wanderT=0;const b=$('#gwan');if(b){b.classList.remove('on');b.textContent='Wander ›'}}
+const WAN_IC='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17c3-6 6 2 9-4s6 2 9-5"/><circle cx="3" cy="17" r="1.6"/><circle cx="21" cy="8" r="1.6"/></svg>';
+const wanSet=on=>{const b=$('#gwan');if(!b)return;b.classList.toggle('on',on);b.setAttribute('aria-pressed',on);b.setAttribute('aria-label',on?'Stop wandering':'Wander');b.title=on?'Stop wandering':'Wander'};
+function wanderStop(){clearInterval(wanderT);wanderT=0;wanSet(false)}
 function wanderStep(){if(view!='ex'||exTab!='graph'||grMode!='graph'||!$('#gsvg')||sheetOpen){wanderStop();return}
   const {n}=grData(),recent=new Set(grTrail.slice(-5)),all=grNbrs(grCenter).filter(x=>n.has(x)),pool=all.filter(x=>!recent.has(x));
   const c=pool.length?pool:all;if(!c.length)return;
   const w=x=>{const t=n.get(x).t;return t=='a'?6:'bkqeywd'.includes(t)?2:t=='p'?2:1};
   grGo(wpick(c,w),false,true)}
-function wanderToggle(){if(wanderT){wanderStop();return}wanderT=setInterval(wanderStep,4200);const b=$('#gwan');if(b){b.classList.add('on');b.textContent='Stop wandering'}wanderStep()}
+function wanderToggle(){if(wanderT){wanderStop();return}wanderT=setInterval(wanderStep,4200);wanSet(true);wanderStep()}
 function grGo(id,samePage,byWander){if(!byWander&&wanderT)wanderStop();
   const {n}=grData();if(!n.has(id))return;
   if(!samePage)grPage=0;
@@ -2114,14 +2131,14 @@ function grGo(id,samePage,byWander){if(!byWander&&wanderT)wanderStop();
   grAnim=requestAnimationFrame(step);
 }
 function graphHTML(){
-  return `<input type="search" id="gq" placeholder="Find an artist, label or genre" aria-label="Find an artist, label or genre" autocomplete="off" autocapitalize="off" enterkeyhint="search" style="margin-top:14px">
+  return `<div class="gqrow"><input type="search" id="gq" placeholder="Find an artist, label or genre" aria-label="Find an artist, label or genre" autocomplete="off" autocapitalize="off" enterkeyhint="search">
+    <button class="fx gwan${wanderT?' on':''}" id="gwan" data-gwan="1" aria-pressed="${!!wanderT}" aria-label="${wanderT?'Stop wandering':'Wander'}" title="${wanderT?'Stop wandering':'Wander'}">${WAN_IC}</button></div>
   <div class="chips" id="gres" style="margin:8px 0 0"></div>
-  <div class="chips" style="margin:8px 0 0"><button class="chip${wanderT?' on':''}" id="gwan" data-gwan="1">${wanderT?'Stop wandering':'Wander ›'}</button></div>
   <div class="gcrumb" id="gcrumb"></div>
-  <svg id="gsvg" viewBox="0 0 ${GW} ${GH}" role="group" aria-label="Graph of artists, labels and genres"></svg>
-  <div class="ginfo" id="ginfo"></div>
-  <div class="gkey"><span><svg width="14" height="14"><circle cx="7" cy="7" r="6" fill="var(--hl)"/></svg>Artist</span><span><svg width="14" height="14"><rect x="1" y="1" width="12" height="12" fill="var(--thumb)" stroke="var(--mute)" stroke-width="1.5"/></svg>Label</span><span><svg width="16" height="16"><polygon points="14,8 11,13.2 5,13.2 2,8 5,2.8 11,2.8" fill="none" stroke="var(--ink)" stroke-width="1.5"/></svg>Genre</span><span><svg width="14" height="14"><circle cx="7" cy="7" r="5" fill="none" stroke="var(--hl)" stroke-width="2"/></svg>Member or group, no records here</span><span><svg width="14" height="14"><rect x="3" y="3" width="8" height="8" transform="rotate(45 7 7)" fill="none" stroke="var(--ink)" stroke-width="2"/></svg>Place</span><span><svg width="14" height="14"><circle cx="7" cy="7" r="5" fill="none" stroke="var(--s2)" stroke-width="2"/></svg>Producer or remixer</span><span><svg width="18" height="14"><path d="M2 3h14v2.5a1.5 1.5 0 0 0 0 3v2.5h-14v-2.5a1.5 1.5 0 0 0 0-3z" fill="none" stroke="var(--ink)" stroke-width="1.5"/></svg>Special event</span><span><svg width="18" height="14"><path d="M2 3h14v2.5a1.5 1.5 0 0 0 0 3v2.5h-14v-2.5a1.5 1.5 0 0 0 0-3z" fill="none" stroke="var(--hl)" stroke-width="1.5"/></svg>Your concert</span><span><svg width="22" height="14"><line x1="2" y1="7" x2="15" y2="7" stroke="var(--az)" stroke-width="1.8"/><polygon points="20,7 14,4 14,10" fill="var(--az)"/></svg>Sampled into</span><span><svg width="22" height="14"><line x1="2" y1="7" x2="15" y2="7" stroke="var(--s3)" stroke-width="1.6" stroke-dasharray="4 2"/><polygon points="20,7 14,4 14,10" fill="var(--s3)"/></svg>Influenced</span><span><svg width="16" height="16"><polygon points="8,1 9.8,6 15,6 10.8,9.2 12.4,14.5 8,11.3 3.6,14.5 5.2,9.2 1,6 6.2,6" fill="none" stroke="var(--ink)" stroke-width="1.3"/></svg>Award</span><span><svg width="14" height="14"><circle cx="7" cy="7" r="5" fill="none" stroke="var(--mute)" stroke-width="1.5" stroke-dasharray="2 2"/></svg>Decade started</span><span><svg width="22" height="14"><line x1="2" y1="7" x2="20" y2="7" stroke="var(--hl)" stroke-width="1.4" stroke-dasharray="1 3"/></svg>Similar</span></div>
-  <p class="mute" style="margin:10px 0 0;font-size:12px">${(()=>{const g=artGroups();let d=0;g.forEach((o,k)=>{if(arts[k])d++});return d<g.size?`Band members, groups and places come from <b>Data → Artist connections</b>: ${d} of ${g.size} artists looked up so far.`:'Band members, groups and places come from MusicBrainz.'})()}</p>`;
+  <div class="vfit gbox" id="gbox"><svg id="gsvg" viewBox="0 0 ${GW} ${GH}" role="group" aria-label="Graph of artists, labels and genres"></svg>
+    <button class="fx gkeyb" id="gkeyb" aria-expanded="false" aria-controls="gkeyc" aria-label="Key" title="Key">◇</button>
+    <div class="gkey" id="gkeyc" hidden><span><svg width="14" height="14"><circle cx="7" cy="7" r="6" fill="var(--hl)"/></svg>Artist</span><span><svg width="14" height="14"><rect x="1" y="1" width="12" height="12" fill="var(--thumb)" stroke="var(--mute)" stroke-width="1.5"/></svg>Label</span><span><svg width="16" height="16"><polygon points="14,8 11,13.2 5,13.2 2,8 5,2.8 11,2.8" fill="none" stroke="var(--ink)" stroke-width="1.5"/></svg>Genre</span><span><svg width="14" height="14"><circle cx="7" cy="7" r="5" fill="none" stroke="var(--hl)" stroke-width="2"/></svg>Member or group, no records here</span><span><svg width="14" height="14"><rect x="3" y="3" width="8" height="8" transform="rotate(45 7 7)" fill="none" stroke="var(--ink)" stroke-width="2"/></svg>Place</span><span><svg width="14" height="14"><circle cx="7" cy="7" r="5" fill="none" stroke="var(--s2)" stroke-width="2"/></svg>Producer or remixer</span><span><svg width="18" height="14"><path d="M2 3h14v2.5a1.5 1.5 0 0 0 0 3v2.5h-14v-2.5a1.5 1.5 0 0 0 0-3z" fill="none" stroke="var(--ink)" stroke-width="1.5"/></svg>Special event</span><span><svg width="18" height="14"><path d="M2 3h14v2.5a1.5 1.5 0 0 0 0 3v2.5h-14v-2.5a1.5 1.5 0 0 0 0-3z" fill="none" stroke="var(--hl)" stroke-width="1.5"/></svg>Your concert</span><span><svg width="22" height="14"><line x1="2" y1="7" x2="15" y2="7" stroke="var(--az)" stroke-width="1.8"/><polygon points="20,7 14,4 14,10" fill="var(--az)"/></svg>Sampled into</span><span><svg width="22" height="14"><line x1="2" y1="7" x2="15" y2="7" stroke="var(--s3)" stroke-width="1.6" stroke-dasharray="4 2"/><polygon points="20,7 14,4 14,10" fill="var(--s3)"/></svg>Influenced</span><span><svg width="16" height="16"><polygon points="8,1 9.8,6 15,6 10.8,9.2 12.4,14.5 8,11.3 3.6,14.5 5.2,9.2 1,6 6.2,6" fill="none" stroke="var(--ink)" stroke-width="1.3"/></svg>Award</span><span><svg width="14" height="14"><circle cx="7" cy="7" r="5" fill="none" stroke="var(--mute)" stroke-width="1.5" stroke-dasharray="2 2"/></svg>Decade started</span><span><svg width="22" height="14"><line x1="2" y1="7" x2="20" y2="7" stroke="var(--hl)" stroke-width="1.4" stroke-dasharray="1 3"/></svg>Similar</span><p class="mute gkh">${(()=>{const g=artGroups();let d=0;g.forEach((o,k)=>{if(arts[k])d++});return d<g.size?`Band members, groups and places come from <b>Data → Artist connections</b>: ${d} of ${g.size} artists looked up so far.`:'Band members, groups and places come from MusicBrainz.'})()}</p></div>
+    <div class="ginfo vinfo" id="ginfo"></div></div>`;
 }
 function grMount(){
   const {n}=grData();if(!n.size){$('#ginfo').innerHTML='<p class="mute">No artists yet. Import your CSV in the Data tab.</p>';return}
@@ -2392,7 +2409,17 @@ function artistsHTML(){
   return `<div class="seg gmode" role="tablist">${['graph','stars','map','quiz'].map(k=>`<button class="${grMode==k?'on':''}" data-gmode="${k}" role="tab" aria-selected="${grMode==k}">${k[0].toUpperCase()+k.slice(1)}</button>`).join('')}</div>`+
     (grMode=='quiz'?'<div id="qz"></div>':grMode=='map'?mapHTML():grMode=='stars'?starsHTML():graphHTML());
 }
-function artistsMount(){if(wanderT&&grMode!='graph')wanderStop();if(grMode=='quiz')qzDraw();else if(grMode=='map')mapMount();else if(grMode=='stars')stMount();else grMount()}
+/* Graph, Stars and Map fill the screen down to the tab bar, so the page itself never scrolls; their info panel sits
+   inside the box (under the graph, over the map and the sky). Tapping a panel's title folds it to one line */
+let vMin=KV.getItem('vinylInfoMin')=='1';
+function vFit(){const pb=parseFloat(getComputedStyle(document.body).paddingBottom)||0;
+  document.querySelectorAll('.vfit').forEach(el=>{const top=el.getBoundingClientRect().top+scrollY;el.style.height=Math.max(260,Math.floor(innerHeight-top-pb-4))+'px'})}
+function vWire(){document.querySelectorAll('.vinfo,.vov').forEach(el=>{el.classList.toggle('min',vMin);
+    el.onclick=e=>{if(e.target.closest('b')?.parentElement===el){vMin=!vMin;KV.setItem('vinylInfoMin',vMin?'1':'0');document.querySelectorAll('.vinfo,.vov').forEach(x=>x.classList.toggle('min',vMin))}}});
+  const kb=$('#gkeyb'),kc=$('#gkeyc');if(kb&&kc){const ks=h=>{kc.hidden=h;kb.setAttribute('aria-expanded',!h);kb.classList.toggle('on',!h)};kb.onclick=e=>{e.stopPropagation();ks(!kc.hidden)};$('#gbox').addEventListener('pointerdown',e=>{if(!kc.hidden&&!e.target.closest('#gkeyc,#gkeyb'))ks(true)});}
+  const gr=$('#gres');if(gr&&window.ResizeObserver){const ro=new ResizeObserver(()=>vFit());ro.observe(gr)}}
+addEventListener('resize',()=>{if(!$('.vfit'))return;vFit();if($('#stc'))stQueue();if($('#msvg'))mapApply()});
+function artistsMount(){vFit();vWire();if(wanderT&&grMode!='graph')wanderStop();if(grMode=='quiz')qzDraw();else if(grMode=='map')mapMount();else if(grMode=='stars')stMount();else grMount()}
 
 /* Explore → Artists → Stars: the whole collection at once. Every artist is a star, sized by its records, grouped in a
    cluster per genre (the clusters packed in a spiral, biggest in the middle). Tap a star to light up its connections:
@@ -2414,9 +2441,9 @@ function stLinks(k){const {n,adj}=grData(),id='a:'+k,out=new Set();if(!adj.has(i
   adj.get(id).forEach((e,x)=>{if(x.startsWith('a:'))out.add(x);else if('bkqeywp'.includes(n.get(x).t)){let c=0;adj.get(x).forEach((e2,y)=>{if(y!=id&&y.startsWith('a:')&&c++<12)out.add(y)})}});
   return [...out].slice(0,80).map(x=>x.slice(2))}
 function starsHTML(){return `<div class="chips mzc"><button class="chip" data-stfit="1">Whole sky</button></div>
-  <div class="mapw" id="stw"><canvas id="stc" aria-label="Every artist in your collection as a star, grouped by genre"></canvas>
-    <div class="mzb"><button class="fx" data-stz="1" aria-label="Zoom in">+</button><button class="fx" data-stz="-1" aria-label="Zoom out">−</button></div></div>
-  <div class="ginfo" id="stinfo"></div>`}
+  <div class="mapw vfit" id="stw"><canvas id="stc" aria-label="Every artist in your collection as a star, grouped by genre"></canvas>
+    <div class="mzb"><button class="fx" data-stz="1" aria-label="Zoom in">+</button><button class="fx" data-stz="-1" aria-label="Zoom out">−</button></div>
+    <div class="ginfo vov" id="stinfo"></div></div>`}
 function stFit(){const L=stLayout(),w=$('#stw');if(!w||!L.clusters.length)return;const xs=L.clusters.flatMap(c=>[c.x-c.R,c.x+c.R]),ys=L.clusters.flatMap(c=>[c.y-c.R,c.y+c.R]);
   const ar=w.clientHeight/w.clientWidth,bw=Math.max(...xs)-Math.min(...xs),bh=Math.max(...ys)-Math.min(...ys);
   stView={cx:(Math.max(...xs)+Math.min(...xs))/2,cy:(Math.max(...ys)+Math.min(...ys))/2,w:Math.max(bw,bh/ar)*1.08};stDraw()}
@@ -2495,9 +2522,9 @@ function mapSeen(){const by=new Map(),own=new Map();artGroups().forEach(o=>own.s
 function mapHTML(){
   return `<div class="seg mlay" role="tablist">${[['from',"Where they're from"],['seen','Where you saw them']].map(([k,t])=>`<button class="${mapLayer==k?'on':''}" data-mlay="${k}" role="tab" aria-selected="${mapLayer==k}">${t}</button>`).join('')}</div>
   <div class="chips mzc">${[['world','World'],['eu','Europe'],['na','N. America'],['fit','All dots']].map(([k,t])=>`<button class="chip" data-mz="${k}">${t}</button>`).join('')}</div>
-  <div class="mapw" id="mapw"><svg id="msvg" role="img" aria-label="Map"><path class="mland"/><path class="mline"/><g id="mdots"></g></svg>
-    <div class="mzb"><button class="fx" data-mzi="1" aria-label="Zoom in">+</button><button class="fx" data-mzi="-1" aria-label="Zoom out">−</button></div></div>
-  <div class="ginfo" id="minfo"></div>`;
+  <div class="mapw vfit" id="mapw"><svg id="msvg" role="img" aria-label="Map"><path class="mland"/><path class="mline"/><g id="mdots"></g></svg>
+    <div class="mzb"><button class="fx" data-mzi="1" aria-label="Zoom in">+</button><button class="fx" data-mzi="-1" aria-label="Zoom out">−</button></div>
+    <div class="ginfo vov" id="minfo"></div></div>`;
 }
 function mapStatus(){const miss=plcAreas().filter(a=>!(a in plc.mb)).length+Object.entries(plc.wd).filter(([q,o])=>!('ll' in o)&&o.n!==q).length,
     cities=gigCities().filter(k=>!(k in (plc.city||{}))).length,need=mapLayer=='from'?miss:cities;
