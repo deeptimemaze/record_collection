@@ -350,14 +350,16 @@ label.ck input{width:20px;height:20px}
 .dsw{display:flex;gap:12px;align-items:flex-start;margin-top:16px}.dsw div{flex:1}.dsw b{display:block;font:700 13px/1.3 var(--mono)}.dsw span{display:block;margin-top:3px;color:var(--mute);font-size:13px;line-height:1.5}
 .tog{flex:none;position:relative;width:46px;height:26px;padding:0;background:transparent;border:2px solid var(--y)}.tog::after{content:"";position:absolute;top:3px;left:23px;width:16px;height:16px;background:var(--y)}
 .tog.off{border-color:var(--line2)}.tog.off::after{left:3px;background:var(--line2)}
-.lkr{border-top:1px solid var(--line);padding:2px 0 10px}.lkr:first-of-type{margin-top:12px}
-.lkh{display:flex;justify-content:space-between;align-items:baseline;gap:10px;width:100%;padding:10px 0 0;background:none;border:0;color:var(--ink);text-align:left}
+.lktop{display:flex;align-items:center;gap:12px;margin-top:10px}.lktop #lksum{flex:1;margin:0;font:500 12px/1.4 var(--mono)}.lktop .btn{width:auto;margin:0;min-height:42px;padding:10px 14px;font-size:11px;letter-spacing:.12em;box-shadow:3px 3px 0 var(--p)}
+.lkhr{display:flex;align-items:center;gap:12px}.lkhr .lkh{flex:1;padding-bottom:8px}.lkhr .tog{margin-top:8px}
+.lkr{border-top:1px solid var(--line);padding:0 0 8px}.lkcv{margin-top:12px}
+.lkh{display:flex;justify-content:space-between;align-items:baseline;gap:10px;width:100%;padding:8px 0 0;background:none;border:0;color:var(--ink);text-align:left}
 .lkh b{font:700 13px/1.3 var(--mono)}.lkh span{color:var(--mute);font:500 11px/1.3 var(--mono);white-space:nowrap}
 .lkh::after{content:"+";margin-left:6px;color:var(--mute);font:700 13px/1 var(--mono)}.lkr.open .lkh::after{content:"−"}
 .lkb{height:5px;margin-top:7px;background:var(--line)}.lkb i{display:block;height:100%;background:var(--y);transition:width .4s}
 .lkr.run .lkb i{background:repeating-linear-gradient(135deg,var(--y) 0 4px,transparent 4px 8px);background-size:11.3px 11.3px;animation:lkmv 1s linear infinite}
 @keyframes lkmv{to{background-position:11.3px 0}}
-.lkd{margin:4px 0 0;color:var(--mute);font-size:11px}
+.lkd{margin:0 0 4px;color:var(--mute);font-size:11px}
 .lkx{display:none;padding-top:6px}.lkr.open .lkx{display:block}.lkx .btn{margin-bottom:0}
 .more.locs{margin:26px 0 0;border-top:2px solid var(--bd);padding-top:12px}.more.locs summary{font:700 12px/1 var(--mono);text-transform:uppercase;letter-spacing:.16em;color:var(--hl-t)}
 .dzone{margin-top:26px;padding:4px 12px 12px;border:1px solid var(--red)}.dzone .dh{margin-top:12px;color:var(--red)}.dzone .dh::after{background:var(--red)}
@@ -497,7 +499,7 @@ label.ck input{width:20px;height:20px}
 })();
 </script>
 <script id="crate-main" type="text/x-crate">
-const APP_VERSION=87,APP_DATE='27 Nov 2026';
+const APP_VERSION=88,APP_DATE='27 Nov 2026';
 const COVER_CACHE='vinyl-covers-2'; // must match COVERS in sw.js
 const DEFAULT_LOCS=[
  {id:'kallax',name:'Kallax shelf',mode:'grid',cols:3,rows:4,cap:0,formats:['lp']},
@@ -2648,12 +2650,12 @@ function lkStats(){
   ].map(x=>({...x,left:Math.max(0,x.total-x.done)}));
 }
 function lkSummary(){const L2=lkStats(),tot=L2.reduce((t,x)=>t+x.total,0),dn=L2.reduce((t,x)=>t+Math.min(x.done,x.total),0),h=L2.reduce((t,x)=>t+x.left*x.sec,0)/3600;
-  return `${tot?Math.floor(dn/tot*100):100}% done overall${h>0.02?`, about ${h<1.5?Math.max(1,Math.round(h*60))+' minutes':Math.round(h*10)/10+' hours'} left`:''}. ${lkAll?'Updating: keep the app open; it picks up where it stopped.':'Update everything runs them in this order, and picks up where it stopped.'}`}
+  return `${lkAll?'Updating · ':''}${tot?Math.floor(dn/tot*100):100}% done${h>0.02?` · about ${h<1.5?Math.max(1,Math.round(h*60))+' min':Math.round(h*10)/10+' h'} left`:''}`}
 // bars and counts follow the running lookup without redrawing the page
 let lkT=0;function lkRefresh(){if(view!='data'||dTab!='lk'||!$('#lksum'))return;const now=Date.now();if(now-lkT<800)return;lkT=now;
   lkStats().forEach(x=>{const n=$('#lkn-'+x.id),b=$('#lkb-'+x.id),r=$('#lk-'+x.id);if(n)n.textContent=`${x.done.toLocaleString('en')} / ${x.total.toLocaleString('en')} ${x.unit}`;
     if(b)b.style.width=(x.total?Math.max(1.5,x.done/x.total*100):0)+'%';if(r)r.classList.toggle('run',!!(x.st&&x.st.run))});
-  $('#lksum').textContent=lkSummary();const a=$('#lkall');if(a)a.textContent=lkAll?'Pause updating':'Update everything'}
+  $('#lksum').textContent=lkSummary();const a=$('#lkall');if(a)a.textContent=lkAll?'Pause':'Update all'}
 // Update everything: each lookup in turn, stopping when one is paused or can't reach its service
 async function runAll(){
   if(lkAll){lkAll=false;lkStats().forEach(x=>{if(x.st&&x.st.run)x.run()});lkT=0;lkRefresh();return}
@@ -2702,13 +2704,13 @@ function dataView(msg=''){
       <p class="mute" style="margin-top:16px">Storage locations are added and edited on the Storage tab.</p>`;
     }else if(dTab=='lk'){
       const L2=lkStats(),left=L2.reduce((t,x)=>t+x.left*x.sec,0)/3600;
-      h+=sec('Lookups')+`<p class="mute" id="lksum">${lkSummary()}</p>
-      <button class="btn pri" id="lkall">${lkAll?'Pause updating':'Update everything'}</button>
-      <div class="dsw"><div><b>Album covers</b><span>Looked up as records scroll into view, and saved on this phone. Covers come from MusicBrainz and the Cover Art Archive.</span></div><button class="tog${covOn()?'':' off'}" id="cvt" role="switch" aria-checked="${covOn()}" aria-label="Album covers"></button></div>
-      <div class="chips" style="margin:6px 0 0"><button class="chip" id="cvd">Test a cover lookup</button></div><p class="mute" id="cvmsg"></p>`+
+      // one line for the overall state, one row per lookup; what each does and its own button open on tap
+      h+=sec('Lookups')+`<div class="lktop"><p class="mute" id="lksum">${lkSummary()}</p><button class="btn pri" id="lkall" title="Runs every lookup below in this order, and picks up where it stopped">${lkAll?'Pause':'Update all'}</button></div>
+      <div class="lkr lkcv${lkOpen.has('cv')?' open':''}" id="lk-cv"><div class="lkhr"><button class="lkh" data-lko="cv" aria-expanded="${lkOpen.has('cv')}"><b>Album covers</b><span>as you browse</span></button><button class="tog${covOn()?'':' off'}" id="cvt" role="switch" aria-checked="${covOn()}" aria-label="Album covers"></button></div>
+        <div class="lkx"><p class="mute">Looked up as records scroll into view, and saved on this phone. Covers come from MusicBrainz and the Cover Art Archive.</p><div class="chips" style="margin:6px 0 0"><button class="chip" id="cvd">Test a cover lookup</button></div><p class="mute" id="cvmsg"></p></div></div>`+
       L2.map(x=>`<div class="lkr${lkOpen.has(x.id)?' open':''}${x.st&&x.st.run?' run':''}" id="lk-${x.id}"><button class="lkh" data-lko="${x.id}" aria-expanded="${lkOpen.has(x.id)}"><b>${x.name}</b><span id="lkn-${x.id}">${x.done.toLocaleString('en')} / ${x.total.toLocaleString('en')} ${x.unit}</span></button>
-        <div class="lkb"><i id="lkb-${x.id}" style="width:${x.total?Math.max(1.5,x.done/x.total*100):0}%"></i></div>${x.dep?`<p class="lkd">${x.dep}</p>`:''}
-        <div class="lkx"><p class="mute">${x.what}</p>${more(x.more)}<p class="mute" id="${x.prog}">${x.text()}</p>${x.btn?`<button class="btn" id="${x.btn}">${x.st&&x.st.run?'Pause':x.label}</button>`:''}</div></div>`).join('');
+        <div class="lkb"><i id="lkb-${x.id}" style="width:${x.total?Math.max(1.5,x.done/x.total*100):0}%"></i></div>
+        <div class="lkx">${x.dep?`<p class="lkd">${x.dep}</p>`:''}<p class="mute">${x.what}</p>${more(x.more)}<p class="mute" id="${x.prog}">${x.text()}</p>${x.btn?`<button class="btn" id="${x.btn}">${x.st&&x.st.run?'Pause':x.label}</button>`:''}</div></div>`).join('');
     }else{
       const u=getUndo();
       h+=sec('Phone storage')+`<div id="stor"><p class="mute">Measuring…</p></div>`+
@@ -3241,7 +3243,10 @@ document.addEventListener('click',e=>{
   else if(d.share){shareSheet(d.share)}
   else if(d.fltopen){filterPage()}
   else if(d.dtab){dTab=d.dtab;try{KV.setItem('vinylDataTab',dTab)}catch(e){}dataView();window.scrollTo(0,0)}
-  else if(d.lko){const k=d.lko,r=$('#lk-'+k);lkOpen.has(k)?lkOpen.delete(k):lkOpen.add(k);if(r){r.classList.toggle('open');t.setAttribute('aria-expanded',lkOpen.has(k))}}
+  else if(d.lko){const k=d.lko,r=$('#lk-'+k);
+    // one row open at a time, so the tab stays about one screen long
+    if(!lkOpen.has(k))[...lkOpen].forEach(o=>{lkOpen.delete(o);const x=$('#lk-'+o);if(x){x.classList.remove('open');x.querySelector('.lkh')?.setAttribute('aria-expanded',false)}});
+    lkOpen.has(k)?lkOpen.delete(k):lkOpen.add(k);if(r){r.classList.toggle('open');t.setAttribute('aria-expanded',lkOpen.has(k))}}
   else if(d.gart){const id='a:'+d.gart;if(!grData().n.has(id))return;const b=t.getBoundingClientRect();t.style.visibility='hidden';  // the ball becomes the explosion
     graphBurst(b.left+b.width/2,b.top+b.height/2,()=>{
       if(grTrail[grTrail.length-1]!=id){grTrail=[...grTrail.filter(x=>x!=id),id].slice(-5)}grCenter=id;grPage=0;grSave();
