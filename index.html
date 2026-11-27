@@ -11,6 +11,8 @@
 <meta name="apple-mobile-web-app-title" content="Crate">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-crate-192.png">
+<script>/* light or dark chosen in the app (tap the Japanese page title); nothing saved means follow the phone */
+try{const t=localStorage.getItem('crateTheme');if(t=='light'||t=='dark')document.documentElement.dataset.theme=t}catch(e){}</script>
 <link rel="apple-touch-icon" href="icon-crate-192.png">
 <style>
 /* cyberpunk brutalist: near-black, monospace, square, 2px rules, one acid accent (lime) and one signal colour (magenta).
@@ -22,11 +24,15 @@
   --ink:#ececec;--mute:#7d7d7d;--line:#1f1f1f;--line2:#3b3b3b;--bd:#ececec;--red:#ff2e88;
   --hl:var(--y);--hl-t:var(--y);--on-bd:var(--y);--grid:rgba(255,255,255,.035);--glow:0 0 14px rgba(198,255,0,.55);
   --ico-search:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d8d8d8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M20 20l-4-4'/%3E%3C/svg%3E");--ico-chev:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d8d8d8' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")}
-@media(prefers-color-scheme:light){:root{color-scheme:light;--p:#e0006e;--az:#0079b8;--az-glow:none;--s1:#4f7a00;--s2:#c23d0a;--s3:#6a2fd0;--on-s:#fff;
+@media(prefers-color-scheme:light){:root:not([data-theme=dark]){color-scheme:light;--p:#e0006e;--az:#0079b8;--az-glow:none;--s1:#4f7a00;--s2:#c23d0a;--s3:#6a2fd0;--on-s:#fff;
   --bg:#eeeee8;--head:#eeeee8;--card:#fafaf6;--chip:#fafaf6;--field:#fff;--thumb:#dfdfd8;
   --ink:#0a0a0a;--mute:#5a5a5a;--line:#d6d6ce;--line2:#a3a39b;--bd:#0a0a0a;--red:#d1005a;
   --hl:var(--p);--hl-t:var(--ink);--on-bd:#0a0a0a;--grid:rgba(0,0,0,.05);--glow:none;
-  --ico-search:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23444444' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M20 20l-4-4'/%3E%3C/svg%3E");--ico-chev:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23444444' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")}}
+  --ico-search:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23444444' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M20 20l-4-4'/%3E%3C/svg%3E");--ico-chev:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23444444' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")}}:root[data-theme=light]{color-scheme:light;--p:#e0006e;--az:#0079b8;--az-glow:none;--s1:#4f7a00;--s2:#c23d0a;--s3:#6a2fd0;--on-s:#fff;
+  --bg:#eeeee8;--head:#eeeee8;--card:#fafaf6;--chip:#fafaf6;--field:#fff;--thumb:#dfdfd8;
+  --ink:#0a0a0a;--mute:#5a5a5a;--line:#d6d6ce;--line2:#a3a39b;--bd:#0a0a0a;--red:#d1005a;
+  --hl:var(--p);--hl-t:var(--ink);--on-bd:#0a0a0a;--grid:rgba(0,0,0,.05);--glow:none;
+  --ico-search:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23444444' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M20 20l-4-4'/%3E%3C/svg%3E");--ico-chev:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23444444' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")}
 
 /* base */
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
@@ -45,7 +51,7 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none;bor
 h1{display:flex;align-items:center;gap:12px;margin:0 -14px;padding:calc(18px + env(safe-area-inset-top)) 16px 14px;background:var(--head);color:var(--ink);border-bottom:1px solid var(--line2);
   font:700 21px/1.1 var(--mono);text-transform:uppercase;letter-spacing:.14em}
 h1::before{content:"";flex:none;width:11px;height:11px;background:var(--y);box-shadow:var(--glow)}
-h1 .ja{font:700 22px/1.1 "Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic","Noto Sans JP",var(--mono);letter-spacing:.12em}
+h1 .ja{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;font:700 22px/1.1 "Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic","Noto Sans JP",var(--mono);letter-spacing:.12em}
 h1 .en{margin-left:auto;font-size:10px;font-weight:500;letter-spacing:.24em;color:var(--hl-t);opacity:.85}
 .stick{position:sticky;top:0;z-index:3;margin:0 -14px 12px;padding:12px 16px 14px;background:var(--head);border-bottom:2px solid var(--bd)}
 .stick .chips{margin:12px 0 0}
@@ -330,7 +336,7 @@ label.ck input{width:20px;height:20px}
 #dlg>div{width:100%;max-width:420px;padding:18px 16px 8px;background:var(--bg);border:2px solid var(--bd);border-top-color:var(--y);box-shadow:var(--glow)}
 #dlg p{margin:0 0 8px;font-size:14px;line-height:1.5}
 #dlg.dng>div{border-top-color:var(--red)}
-@media(prefers-color-scheme:light){#sheet>div,#dlg>div{border-top-color:var(--bd);box-shadow:none}#dlg.dng>div{border-top-color:var(--red)}h1::before{outline:1.5px solid var(--bd)}.bt i{background:var(--ink)}}
+@media(prefers-color-scheme:light){:root:not([data-theme=dark]) #sheet>div,:root:not([data-theme=dark]) #dlg>div{border-top-color:var(--bd);box-shadow:none}:root:not([data-theme=dark]) #dlg.dng>div{border-top-color:var(--red)}:root:not([data-theme=dark]) h1::before{outline:1.5px solid var(--bd)}:root:not([data-theme=dark]) .bt i{background:var(--ink)}}:root[data-theme=light] #sheet>div,:root[data-theme=light] #dlg>div{border-top-color:var(--bd);box-shadow:none}:root[data-theme=light] #dlg.dng>div{border-top-color:var(--red)}:root[data-theme=light] h1::before{outline:1.5px solid var(--bd)}:root[data-theme=light] .bt i{background:var(--ink)}
 .toast{position:fixed;left:16px;right:16px;bottom:84px;z-index:99;padding:12px 16px;background:var(--ink);color:var(--bg);font-weight:600;text-align:center}
 .toast.err{background:var(--red);color:#000}
 .toast.st{padding:9px 14px}
@@ -506,7 +512,7 @@ label.ck input{width:20px;height:20px}
 })();
 </script>
 <script id="crate-main" type="text/x-crate">
-const APP_VERSION=90,APP_DATE='27 Nov 2026';
+const APP_VERSION=91,APP_DATE='27 Nov 2026';
 const COVER_CACHE='vinyl-covers-2'; // must match COVERS in sw.js
 const DEFAULT_LOCS=[
  {id:'kallax',name:'Kallax shelf',mode:'grid',cols:3,rows:4,cap:0,formats:['lp']},
@@ -1162,6 +1168,19 @@ function selNote(id){
 // page headings in Japanese, with the English name as a small tag on the right; the bottom tabs stay in English
 const JA={Records:'レコード',Storage:'収納',Selected:'選択',Explore:'探索',Data:'データ'};
 const setH=en=>{$('#h').innerHTML=`<span class="ja" lang="ja">${JA[en]||esc(en)}</span><span class="en">// ${esc(en.toUpperCase())}</span>`};
+
+/* the hidden switch: tap the Japanese page title to flip light and dark; hold it to follow the phone again */
+function themeSet(t){const r=document.documentElement;if(t)r.dataset.theme=t;else delete r.dataset.theme;
+  try{t?localStorage.setItem('crateTheme',t):localStorage.removeItem('crateTheme')}catch(e){}
+  const c=getComputedStyle(r).getPropertyValue('--bg').trim()||'#050505';document.querySelectorAll('meta[name=theme-color]').forEach(m=>m.content=c);
+  render()}
+const themeNow=()=>document.documentElement.dataset.theme||(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark');
+{let hold=0,held=false;const h=$('#h');
+  h.addEventListener('pointerdown',e=>{if(!e.target.closest('.ja'))return;held=false;clearTimeout(hold);hold=setTimeout(()=>{held=true;themeSet(null);toast('Following the phone’s light or dark mode')},650)});
+  const stop=()=>clearTimeout(hold);h.addEventListener('pointerup',stop);h.addEventListener('pointercancel',stop);h.addEventListener('pointerleave',stop);
+  h.addEventListener('click',e=>{if(!e.target.closest('.ja'))return;if(held){held=false;return}themeSet(themeNow()=='light'?'dark':'light')});
+  h.addEventListener('contextmenu',e=>{if(e.target.closest('.ja'))e.preventDefault()})}
+{const t=document.documentElement.dataset.theme;if(t){const c=getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();document.querySelectorAll('meta[name=theme-color]').forEach(m=>m.content=c)}}
 /* the phone's back button steps back through pages (the bottom tabs, Explore's tabs, Graph or Quiz) instead of closing the app.
    Each page change adds a step; at the first page, one back press asks, and a second one within a few seconds closes the app */
 let navKeyLast=null,navRestoring=false,exitArmed=false;
