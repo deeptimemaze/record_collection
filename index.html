@@ -136,7 +136,20 @@ input[type=checkbox]{accent-color:var(--y)}
 .qans{display:flex;align-items:center;gap:12px;width:100%;min-height:48px;margin:0 0 8px;padding:10px 12px;border:2px solid var(--line2);background:var(--card);color:var(--ink);font:700 13px/1.3 var(--mono);text-align:left}
 .qans span{color:var(--mute);width:14px}
 .cqc{display:block;width:min(100%,300px);aspect-ratio:1;margin:4px auto 0;border:2px solid var(--line2);image-rendering:pixelated;background:var(--thumb)}
-.cqsteps{display:flex;justify-content:center;gap:6px;margin:10px 0 0}.cqsteps i{width:30px;height:4px;background:var(--line2)}.cqsteps i.on{background:var(--ink)}
+.cqw{position:relative;width:min(100%,300px);margin:4px auto 0;-webkit-touch-callout:none;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+.cqw .cqc{width:100%;margin:0}
+.cqo{position:absolute;left:6px;right:6px;bottom:6px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:5px;transition:opacity .15s}
+.cqw.peek .cqo{opacity:0;pointer-events:none}
+.cqa{display:flex;min-width:0;gap:6px;align-items:flex-start;min-height:48px;padding:7px 8px;background:rgba(0,0,0,.64);border:1px solid rgba(255,255,255,.28);color:#fff;font:700 12px/1.25 var(--mono);text-align:left;transition:opacity .2s}
+.cqa>span:first-child{color:#c6ff00;flex:none}
+.cqa .cqt{min-width:0;flex:1}.cqa .cqt b{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-weight:700}
+.cqa .cqt em{display:block;font-style:normal;font-weight:500;opacity:.75;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cqa.no{border:2px solid var(--p);opacity:.6}.cqa.no b{text-decoration:line-through}
+.cqa.ok{background:#c6ff00;border-color:#c6ff00;color:#000}.cqa.ok>span:first-child{color:#000}
+.cqw.done .cqa:not(.ok){opacity:.3}.cqa[disabled]{cursor:default}
+.cqres{text-align:center;margin:6px 0 8px;color:var(--mute);font-size:12px}
+.cqnext{margin-top:8px;width:100%}
+.cqsteps{display:flex;justify-content:center;gap:6px;margin:8px 0 0}.cqsteps i{width:30px;height:4px;background:var(--line2)}.cqsteps i.on{background:var(--ink)}
 .qans .cqt{flex:1;width:auto;color:inherit}.cqt b{display:block;font-weight:700}.cqt em{display:block;font-style:normal;font-weight:500;color:var(--mute);margin-top:2px}.qans.ok .cqt em{color:#3a4a00}.qans.ok{background:var(--y);border-color:var(--on-bd);color:#000}.qans.ok span{color:#000}
 .qans.no{border-color:var(--red);color:var(--red)}.qans.dim{opacity:.4}
 .qex{margin:4px 0 0;padding:10px 12px;border:1px solid var(--line2);color:var(--ink);font-size:13px;line-height:1.5}
@@ -465,7 +478,7 @@ label.ck input{width:20px;height:20px}
 })();
 </script>
 <script id="crate-main" type="text/x-crate">
-const APP_VERSION=83,APP_DATE='27 Nov 2026';
+const APP_VERSION=84,APP_DATE='27 Nov 2026';
 const COVER_CACHE='vinyl-covers-2'; // must match COVERS in sw.js
 const DEFAULT_LOCS=[
  {id:'kallax',name:'Kallax shelf',mode:'grid',cols:3,rows:4,cap:0,formats:['lp']},
@@ -2351,15 +2364,18 @@ function cqDraw(){const b=$('#qz');if(!b)return;const back=`<button class="qback
   const q=qz.qs[qz.i],pts=4-q.step,lvl=qz.kind=='pix'?`${CQ_PIX[q.step]}×${CQ_PIX[q.step]}`:`${Math.round(CQ_ZOOM[q.step]*100)}% of the cover`,ok=q.r;
   b.innerHTML=`${back}<p class="mute" style="margin:0 0 6px;display:flex;justify-content:space-between"><span>Cover ${qz.i+1} of ${qz.more?5:qz.qs.length}</span><span>Score ${qz.score}</span></p>
     <div class="qprog">${[...Array(qz.more?5:qz.qs.length)].map((_,i)=>{const x=qz.qs[i];return `<i class="${x&&(i<qz.i||x.done)?(x.pick===x.r?'ok':'no'):''}"></i>`}).join('')}</div>
-    <canvas id="cqc" class="cqc" role="img" aria-label="${q.done?'The cover':'A '+(qz.kind=='pix'?'pixelated':'zoomed-in')+' cover'}"></canvas>
+    <div class="cqw${q.done?' done':''}" id="cqw"><canvas id="cqc" class="cqc" role="img" aria-label="${q.done?'The cover':'A '+(qz.kind=='pix'?'pixelated':'zoomed-in')+' cover'}"></canvas>
+      <div class="cqo">${q.opts.map((o,i)=>`<button class="cqa${q.done?(o===ok?' ok':o===q.pick?' no':''):(q.wrong&&q.wrong.includes(o)?' no':'')}" data-cqi="${i}"${q.done||(q.wrong&&q.wrong.includes(o))?' disabled':''}><span>${'ABCD'[i]}</span><span class="cqt"><b>${esc(o.title)}</b><em>${esc(artName(o.artist))}${q.done&&o===ok&&(origY(ok)||ok.year)?' · '+esc(String(origY(ok)||ok.year)):''}</em></span></button>`).join('')}</div></div>
     <div class="cqsteps">${[0,1,2,3].map(i=>`<i class="${i<=q.step||q.done?'on':''}"></i>`).join('')}</div>
-    <p class="mute" style="text-align:center;margin:4px 0 8px">${q.done?'The whole cover':`${lvl} · worth ${plur(pts,'point')}`}</p>
-    ${q.done?'':`<button class="btn" id="cqmore"${q.step>=3?' disabled':''}>${qz.kind=='pix'?'Sharper':'Zoom out'}</button>`}
-    ${q.opts.map((o,i)=>`<button class="qans cqa${q.done?(o===ok?' ok':o===q.pick?' no':' dim'):(q.wrong&&q.wrong.includes(o)?' no':'')}" data-cqi="${i}"${q.done?' disabled':''}><span>${'ABCD'[i]}</span><span class="cqt"><b>${esc(o.title)}</b><em>${esc(artName(o.artist))}</em></span></button>`).join('')}
-    ${q.done?`<div class="qex">${q.pick===ok?`Right, +${q.got}. `:'Not this time. '}<b>${esc(ok.title)}</b> by ${esc(artName(ok.artist))}${origY(ok)||ok.year?`, ${esc(String(origY(ok)||ok.year))}`:''}.</div>
+    ${q.done?`<p class="cqres">${q.pick===ok?`Right, +${q.got}.`:'Not this time.'} Hold the cover to see it whole.</p>
       <div class="qzbar"><button class="btn" id="cqcard">Open the card</button><button class="btn" id="cqnx">${ok.nx?'✓ In play next':'Play next'}</button></div>
-      <button class="btn pri" id="cqnext">${qz.i<qz.qs.length-1||qz.more?'Next cover':'See the score'}</button>`:''}`;
+      <button class="btn pri cqnext" id="cqnext">${qz.i<qz.qs.length-1||qz.more?'Next cover':'See the score'}</button>`
+    :`<p class="cqres">${lvl} · worth ${plur(pts,'point')} · hold to peek</p>
+      <button class="btn" id="cqmore"${q.step>=3?' disabled':''}>${qz.kind=='pix'?'Sharper':'Zoom out'}</button>`}`;
   cqPaint(q);
+  {const w=$('#cqw'),off=()=>w.classList.remove('peek');
+    w.onpointerdown=e=>{if(e.target.closest('.cqa')&&!q.done)return;w.classList.add('peek')};
+    w.onpointerup=w.onpointercancel=w.onpointerleave=off;w.oncontextmenu=e=>e.preventDefault()}
   $('#qhome').onclick=()=>{qz={mode:'home'};qzDraw()};
   if($('#cqmore'))$('#cqmore').onclick=()=>{if(q.step<3){q.step++;cqDraw()}};
   b.querySelectorAll('[data-cqi]').forEach(e=>e.onclick=()=>{if(q.done)return;const o=q.opts[+e.dataset.cqi];
