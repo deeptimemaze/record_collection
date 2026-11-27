@@ -158,9 +158,16 @@ input[type=checkbox]{accent-color:var(--y)}
 .qans.no{border-color:var(--red);color:var(--red)}.qans.dim{opacity:.4}
 .qex{margin:4px 0 0;padding:10px 12px;border:1px solid var(--line2);color:var(--ink);font-size:13px;line-height:1.5}
 .qlink{padding:0;background:none;border:0;color:var(--hl-t);font:inherit;font-weight:700;text-decoration:underline dotted;text-underline-offset:3px}
-.gqrow{display:flex;gap:8px;margin-top:14px}.gqrow input{flex:1;min-width:0;margin:0}
-.gwan{flex:none;width:48px;height:auto;display:flex;align-items:center;justify-content:center}.gwan svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8}.gwan.on{background:var(--y);color:#000;border-color:var(--on-bd)}
-.gcrumb{white-space:nowrap;overflow-x:auto;scrollbar-width:none;margin:8px 0 0;min-height:18px}.gcrumb::-webkit-scrollbar{display:none}
+.gbar{display:flex;align-items:stretch;margin-top:8px;border:1px solid var(--line2);min-height:38px}
+.gloc{flex:1;min-width:0;display:flex;align-items:baseline;gap:8px;padding:0 10px;margin:auto 0;white-space:nowrap;overflow:hidden;font:500 12px/1.3 var(--mono)}
+.gloc b{overflow:hidden;text-overflow:ellipsis;flex:0 1 auto;min-width:0}.gloc button{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;padding:0;background:none;border:0;color:var(--mute);font:inherit}
+.gbar #gq{display:none;flex:1;min-width:0;margin:0;border:0;min-height:36px;background:transparent}.gbar.srch #gq{display:block}.gbar.srch .gloc{display:none}
+.gbi{flex:none;width:40px;padding:0;border:0;border-left:1px solid var(--line2);background:none;color:var(--ink);display:flex;align-items:center;justify-content:center}.gbi svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:square}
+.gbi.on{background:var(--y);color:#000}
+.icseg button{display:flex;align-items:center;justify-content:center;gap:6px;color:var(--ink);min-height:34px;padding:4px 2px}.icseg button svg{flex:none;width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:square}
+.icseg button.on{flex:2.6;color:#000}.icseg button span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.seg.gmode.icseg button{min-height:30px;font-size:10px;letter-spacing:.12em}.seg.gmode.icseg button svg{width:16px;height:16px}.seg.gmode.icseg button.on{color:var(--bg)}
+.seg.icseg{margin-top:12px}.seg.gmode.icseg{margin-top:8px}.gbar{margin-top:8px}
 .gbox{position:relative;display:flex;flex-direction:column;margin-top:4px;min-height:260px}
 .gbox #gsvg{flex:1 1 0;min-height:0;height:auto;margin:0}
 .gkeyb{position:absolute;top:0;right:0;width:36px;height:36px;background:var(--bg);font-size:14px}.gkeyb.on{background:var(--ink);color:var(--bg)}
@@ -499,7 +506,7 @@ label.ck input{width:20px;height:20px}
 })();
 </script>
 <script id="crate-main" type="text/x-crate">
-const APP_VERSION=89,APP_DATE='27 Nov 2026';
+const APP_VERSION=90,APP_DATE='27 Nov 2026';
 const COVER_CACHE='vinyl-covers-2'; // must match COVERS in sw.js
 const DEFAULT_LOCS=[
  {id:'kallax',name:'Kallax shelf',mode:'grid',cols:3,rows:4,cap:0,formats:['lp']},
@@ -1661,8 +1668,8 @@ function heardHTML(){
 function streak(byDay,T){let n=0,t=+T;if(!byDay.has(dStr(new Date(t))))t-=864e5;while(byDay.has(dStr(new Date(t)))){n++;t-=864e5}return n}
 function exploreView(){
   setH('Explore');
-  const tab=(k,t)=>`<button class="${exTab==k?'on':''}" data-ex="${k}" role="tab" aria-selected="${exTab==k}">${t}</button>`;
-  $('#app').innerHTML=`<div class="seg" role="tablist">${tab('pick','Pick')}${tab('heard','Listened')}${tab('stats','Stats')}${tab('timeline','Timeline')}${tab('live','Live')}${tab('graph','Artists')}</div>`+(exTab=='graph'?artistsHTML():exTab=='heard'?heardHTML():exTab=='stats'?statsHTML():exTab=='timeline'?timelineHTML():exTab=='live'?liveHTML():pickHTML());
+  const tab=(k,t)=>`<button class="${exTab==k?'on':''}" data-ex="${k}" role="tab" aria-selected="${exTab==k}" aria-label="${t}" title="${t}">${EXI[k]}${exTab==k?`<span>${t}</span>`:''}</button>`;
+  $('#app').innerHTML=`<div class="seg icseg" role="tablist">${tab('pick','Pick')}${tab('heard','Listened')}${tab('stats','Stats')}${tab('timeline','Timeline')}${tab('live','Live')}${tab('graph','Artists')}</div>`+(exTab=='graph'?artistsHTML():exTab=='heard'?heardHTML():exTab=='stats'?statsHTML():exTab=='timeline'?timelineHTML():exTab=='live'?liveHTML():pickHTML());
   if($('#pc'))$('#pc').onchange=e=>{pf.cat=e.target.value;pickId=null;render()};
   if($('#pg'))$('#pg').onchange=e=>{pf.gen=e.target.value;pickId=null;render()};
   if($('#tc'))$('#tc').onchange=e=>{tf.cat=e.target.value;lim=100;render()};
@@ -2103,7 +2110,7 @@ function grInfo(){
     return `${esc(n.get(e.src).name)} ${esc(cut(f))} → ${esc(n.get(e.dst).name)} ${esc(cut(t))}${e.rs.length>1?` and ${e.rs.length-1} more`:''}`});
   const ar0=o.t=='a'&&arts[grCenter.slice(2)],own=new Set(Object.values(arts).map(a=>a.m).filter(Boolean)),dig=ar0&&ar0.sim?ar0.sim.filter(([m])=>!own.has(m)).slice(0,6).map(x=>x[1]):[];
   $('#ginfo').innerHTML=`<b>${esc(o.name)}</b><p class="mute" style="margin:4px 0 0">${esc(grDesc(grCenter))}${all>GPAGE?` · showing ${grPage*GPAGE+1}–${Math.min(all,(grPage+1)*GPAGE)} of ${all}, ${(grPage+1)*GPAGE>=all?'tap +more to start over':'tap +more for the next'}`:''}</p>${cr.length?`<p class="mute gcred">${cr.join('<br>')}</p>`:''}${sm.length?`<p class="mute gcred gsm">${sm.join('<br>')}</p>`:''}${dig.length?`<p class="mute gcred gsim">Similar, not in your collection: ${esc(dig.join(', '))}</p>`:''}${btn?`<button class="btn" data-gshow="${esc(grCenter)}">${btn}</button>`:''}`;
-  {const gc=$('#gcrumb');gc.innerHTML=grTrail.map((id,i)=>i==grTrail.length-1?`<b>${esc(n.get(id).name)}</b>`:`<button data-gtr="${i}">${esc(n.get(id).name)}</button>`).join(' › ');gc.scrollLeft=gc.scrollWidth}
+  {const L=grTrail.length,pv=L>1?grTrail[L-2]:null;$('#gcrumb').innerHTML=`<b>${esc(o.name)}</b>${pv?`<button data-gtr="${L-2}" aria-label="Back to ${esc(n.get(pv).name)}">‹ ${esc(n.get(pv).name)}</button>`:''}`}
 }
 // make a node the centre; the trail remembers the last few steps
 /* Wander: the graph moves on by itself every few seconds, to a neighbour it hasn't just visited (artists more often than
@@ -2133,10 +2140,12 @@ function grGo(id,samePage,byWander){if(!byWander&&wanderT)wanderStop();
   grAnim=requestAnimationFrame(step);
 }
 function graphHTML(){
-  return `<div class="gqrow"><input type="search" id="gq" placeholder="Find an artist, label or genre" aria-label="Find an artist, label or genre" autocomplete="off" autocapitalize="off" enterkeyhint="search">
-    <button class="fx gwan${wanderT?' on':''}" id="gwan" data-gwan="1" aria-pressed="${!!wanderT}" aria-label="${wanderT?'Stop wandering':'Wander'}" title="${wanderT?'Stop wandering':'Wander'}">${WAN_IC}</button></div>
-  <div class="chips" id="gres" style="margin:8px 0 0"></div>
-  <div class="gcrumb" id="gcrumb"></div>
+  // one bar: where you are (and one step back) until you tap the magnifier, then the search field
+  return `<div class="gbar" id="gbar"><div class="gloc" id="gcrumb"></div>
+    <input type="search" id="gq" placeholder="Find an artist, label or genre" aria-label="Find an artist, label or genre" autocomplete="off" autocapitalize="off" enterkeyhint="search">
+    <button class="gbi" id="gsrb" aria-label="Search" title="Search">${SR_IC}</button>
+    <button class="gbi gwan${wanderT?' on':''}" id="gwan" data-gwan="1" aria-pressed="${!!wanderT}" aria-label="${wanderT?'Stop wandering':'Wander'}" title="${wanderT?'Stop wandering':'Wander'}">${WAN_IC}</button></div>
+  <div class="chips" id="gres" style="margin:6px 0 0"></div>
   <div class="vfit gbox" id="gbox"><svg id="gsvg" viewBox="0 0 ${GW} ${GH}" role="group" aria-label="Graph of artists, labels and genres"></svg>
     <button class="fx gkeyb" id="gkeyb" aria-expanded="false" aria-controls="gkeyc" aria-label="Key" title="Key">◇</button>
     <div class="gkey" id="gkeyc" hidden><span><svg width="14" height="14"><circle cx="7" cy="7" r="6" fill="var(--hl)"/></svg>Artist</span><span><svg width="14" height="14"><rect x="1" y="1" width="12" height="12" fill="var(--thumb)" stroke="var(--mute)" stroke-width="1.5"/></svg>Label</span><span><svg width="16" height="16"><polygon points="14,8 11,13.2 5,13.2 2,8 5,2.8 11,2.8" fill="none" stroke="var(--ink)" stroke-width="1.5"/></svg>Genre</span><span><svg width="14" height="14"><circle cx="7" cy="7" r="5" fill="none" stroke="var(--hl)" stroke-width="2"/></svg>Member or group, no records here</span><span><svg width="14" height="14"><rect x="3" y="3" width="8" height="8" transform="rotate(45 7 7)" fill="none" stroke="var(--ink)" stroke-width="2"/></svg>Place</span><span><svg width="14" height="14"><circle cx="7" cy="7" r="5" fill="none" stroke="var(--s2)" stroke-width="2"/></svg>Producer or remixer</span><span><svg width="18" height="14"><path d="M2 3h14v2.5a1.5 1.5 0 0 0 0 3v2.5h-14v-2.5a1.5 1.5 0 0 0 0-3z" fill="none" stroke="var(--ink)" stroke-width="1.5"/></svg>Special event</span><span><svg width="18" height="14"><path d="M2 3h14v2.5a1.5 1.5 0 0 0 0 3v2.5h-14v-2.5a1.5 1.5 0 0 0 0-3z" fill="none" stroke="var(--hl)" stroke-width="1.5"/></svg>Your concert</span><span><svg width="22" height="14"><line x1="2" y1="7" x2="15" y2="7" stroke="var(--az)" stroke-width="1.8"/><polygon points="20,7 14,4 14,10" fill="var(--az)"/></svg>Sampled into</span><span><svg width="22" height="14"><line x1="2" y1="7" x2="15" y2="7" stroke="var(--s3)" stroke-width="1.6" stroke-dasharray="4 2"/><polygon points="20,7 14,4 14,10" fill="var(--s3)"/></svg>Influenced</span><span><svg width="16" height="16"><polygon points="8,1 9.8,6 15,6 10.8,9.2 12.4,14.5 8,11.3 3.6,14.5 5.2,9.2 1,6 6.2,6" fill="none" stroke="var(--ink)" stroke-width="1.3"/></svg>Award</span><span><svg width="14" height="14"><circle cx="7" cy="7" r="5" fill="none" stroke="var(--mute)" stroke-width="1.5" stroke-dasharray="2 2"/></svg>Decade started</span><span><svg width="22" height="14"><line x1="2" y1="7" x2="20" y2="7" stroke="var(--hl)" stroke-width="1.4" stroke-dasharray="1 3"/></svg>Similar</span><p class="mute gkh">${(()=>{const g=artGroups();let d=0;g.forEach((o,k)=>{if(arts[k])d++});return d<g.size?`Band members, groups and places come from <b>Data → Artist connections</b>: ${d} of ${g.size} artists looked up so far.`:'Band members, groups and places come from MusicBrainz.'})()}</p></div>
@@ -2151,8 +2160,12 @@ function grMount(){
   q.oninput=()=>{const w=fold(q.value).trim();if(!w){res.innerHTML='';return}
     const hits=[...n.values()].filter(o=>fold(o.name).includes(w)).sort((a,b)=>(fold(b.name).startsWith(w)-fold(a.name).startsWith(w))||b.c-a.c).slice(0,8);
     res.innerHTML=hits.length?hits.map(o=>`<button class="chip" data-gn="${esc(o.id)}">${esc(o.name)}<span class="fn">${o.t=='a'?o.c:o.t=='l'?'label':'genre'}</span></button>`).join(''):'<p class="mute" style="margin:0">Nothing found.</p>'};
-  q.onkeydown=e=>{if(e.key=='Enter')e.target.blur()};
+  q.onkeydown=e=>{if(e.key=='Enter')e.target.blur();if(e.key=='Escape'){q.value='';res.innerHTML='';gSearch(false)}};
+  q.onblur=()=>setTimeout(()=>{if(!q.value.trim()&&!res.innerHTML)gSearch(false)},200);
+  $('#gsrb').onclick=()=>{if($('#gbar').classList.contains('srch')){q.value='';res.innerHTML='';gSearch(false)}else gSearch(true)};
 }
+function gSearch(on){const b=$('#gbar'),q=$('#gq'),sb=$('#gsrb');if(!b)return;b.classList.toggle('srch',on);
+  if(sb){sb.innerHTML=on?X_IC:SR_IC;sb.setAttribute('aria-label',on?'Close search':'Search')}if(on)q.focus()}
 /* Explore → Artists → Quiz: two games built fresh from the graph each time.
    Three of a kind: nine names, three groups of three (members of a band, from a place, on a label, a genre).
    Five questions: which band, where from, which label, which year, which one doesn't belong. */
@@ -2407,8 +2420,11 @@ function cqDraw(){const b=$('#qz');if(!b)return;const back=`<button class="qback
   if($('#cqnx'))$('#cqnx').onclick=()=>{ok.nx=ok.nx?0:Date.now();save();cqDraw()};
   if($('#cqnext'))$('#cqnext').onclick=()=>{qz.i++;cqDraw()};
 }
+// icons for the Explore tabs and the Artists modes; only the open one shows its name
+const EXI={"pick": "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect x=\"4\" y=\"4\" width=\"16\" height=\"16\"/><circle cx=\"9\" cy=\"9\" r=\"1\"/><circle cx=\"15\" cy=\"15\" r=\"1\"/><circle cx=\"15\" cy=\"9\" r=\"1\"/><circle cx=\"9\" cy=\"15\" r=\"1\"/></svg>", "heard": "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M4 15v-3a8 8 0 0 1 16 0v3\"/><rect x=\"3\" y=\"14\" width=\"4\" height=\"6\"/><rect x=\"17\" y=\"14\" width=\"4\" height=\"6\"/></svg>", "stats": "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M5 20V12M10 20V5M15 20V9M20 20v-6\"/></svg>", "timeline": "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M2 12h20\"/><circle cx=\"6\" cy=\"12\" r=\"2\"/><circle cx=\"13\" cy=\"12\" r=\"2\"/><circle cx=\"19\" cy=\"12\" r=\"2\"/></svg>", "live": "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M3 7h18v3a2 2 0 0 0 0 4v3H3v-3a2 2 0 0 0 0-4z\"/><path d=\"M14 8v8\" stroke-dasharray=\"2 2\"/></svg>", "graph": "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"6\" cy=\"6\" r=\"2.5\"/><circle cx=\"18\" cy=\"9\" r=\"2.5\"/><circle cx=\"9\" cy=\"18\" r=\"2.5\"/><path d=\"M8 7l8 2M7 8l2 8M16 11l-5 5\"/></svg>"},GMI={"graph": "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"3\"/><circle cx=\"4\" cy=\"5\" r=\"1.8\"/><circle cx=\"20\" cy=\"5\" r=\"1.8\"/><circle cx=\"12\" cy=\"21\" r=\"1.8\"/><path d=\"M10 10L5 6M14 10l5-4M12 15v4\"/></svg>", "stars": "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z\"/><circle cx=\"19\" cy=\"19\" r=\"1\"/><circle cx=\"5\" cy=\"19\" r=\"1\"/></svg>", "map": "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M12 21s-7-6.5-7-11a7 7 0 0 1 14 0c0 4.5-7 11-7 11z\"/><circle cx=\"12\" cy=\"10\" r=\"2.5\"/></svg>", "quiz": "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\"/><path d=\"M9 9a3 3 0 1 1 4 2.8c-.7.3-1 .9-1 1.7V15\"/><circle cx=\"12\" cy=\"18.5\" r=\".6\"/></svg>"};
+const SR_IC=`<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="6"/><path d="M15 15l6 6"/></svg>`,X_IC=`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>`;
 function artistsHTML(){
-  return `<div class="seg gmode" role="tablist">${['graph','stars','map','quiz'].map(k=>`<button class="${grMode==k?'on':''}" data-gmode="${k}" role="tab" aria-selected="${grMode==k}">${k[0].toUpperCase()+k.slice(1)}</button>`).join('')}</div>`+
+  return `<div class="seg gmode icseg" role="tablist">${['graph','stars','map','quiz'].map(k=>{const t=k[0].toUpperCase()+k.slice(1);return `<button class="${grMode==k?'on':''}" data-gmode="${k}" role="tab" aria-selected="${grMode==k}" aria-label="${t}" title="${t}">${GMI[k]}${grMode==k?`<span>${t}</span>`:''}</button>`}).join('')}</div>`+
     (grMode=='quiz'?'<div id="qz"></div>':grMode=='map'?mapHTML():grMode=='stars'?starsHTML():graphHTML());
 }
 /* Graph, Stars and Map fill the screen down to the tab bar, so the page itself never scrolls; their info panel sits
@@ -3257,7 +3273,7 @@ document.addEventListener('click',e=>{
   else if(d.gwan){wanderToggle()}
   else if(d.gmode){grMode=d.gmode;try{KV.setItem('vinylGraphMode',grMode)}catch(e){}render()}
   else if(d.qgo){grOpen(d.qgo)}
-  else if(d.gn){$('#gq').value='';$('#gres').innerHTML='';grGo(d.gn)}
+  else if(d.gn){$('#gq').value='';$('#gres').innerHTML='';gSearch(false);grGo(d.gn)}
   else if(d.gtr!=null){const i=+d.gtr,id=grTrail[i];grTrail=grTrail.slice(0,i);grGo(id)}
   else if(d.gshow){const o=grData().n.get(d.gshow);if(o){fClear();q='';if(o.t=='a')q=o.name;else if(o.t=='k')q=o.name;else if(o.t=='l'){ff.lab.add(d.gshow.slice(2));labName[d.gshow.slice(2)]=o.name}else ff.gen.add(d.gshow.slice(2));
     view='rec';qOrder=[];lim=100;render();window.scrollTo(0,0)}}
