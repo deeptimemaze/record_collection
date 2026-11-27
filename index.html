@@ -107,6 +107,14 @@ input[type=checkbox]{accent-color:var(--y)}
 .mnight button{display:inline;width:auto;padding:0;border:0;color:var(--hl-t);text-decoration:underline dotted;font:inherit}.mnight i{font-style:normal}.seg.gmode button{min-height:34px;border-left-width:1px;font-size:11px;letter-spacing:.14em}
 .seg.gmode button.on{background:var(--ink);color:var(--bg);box-shadow:none}
 #qz{margin-top:14px}
+.qcards{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:10px;min-height:300px}
+.qcard{display:flex;flex-direction:column;align-items:flex-start;min-width:0;padding:14px;background:var(--ink);color:var(--bg);border:0;text-align:left;font-family:var(--sans,system-ui),system-ui,sans-serif;transition:transform .1s}
+.qcard:active{transform:scale(.97)}
+.qcard svg{width:32px;height:32px;fill:none;stroke:currentColor;stroke-width:2;flex:none}.qcard svg .f{fill:currentColor;stroke:none}.qcard svg rect.f{stroke:none}
+.qcard>b{margin-top:12px;font:700 19px/1.15 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;letter-spacing:-.01em}
+.qcard .qd{margin-top:5px;font:400 13px/1.35 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;opacity:.65}
+.qcard .qf{display:flex;justify-content:space-between;align-items:flex-end;width:100%;margin-top:auto;padding-top:8px;font:600 11px/1 var(--mono);opacity:.7}
+.qcard .qgo{font:700 22px/1 system-ui,sans-serif;opacity:1}
 .qzc{margin:0 0 12px;padding:14px;border:2px solid var(--line2);background:var(--card)}.qzc b{display:block;font:700 14px/1.3 var(--mono);text-transform:uppercase;letter-spacing:.08em}
 .qzc .mute{margin:6px 0 0}.qzc .btn{margin-bottom:0}
 .qback{padding:4px 0;background:none;border:0;color:var(--mute);font:600 11px/1 var(--mono);text-transform:uppercase;letter-spacing:.12em}
@@ -457,7 +465,7 @@ label.ck input{width:20px;height:20px}
 })();
 </script>
 <script id="crate-main" type="text/x-crate">
-const APP_VERSION=82,APP_DATE='26 Nov 2026';
+const APP_VERSION=83,APP_DATE='27 Nov 2026';
 const COVER_CACHE='vinyl-covers-2'; // must match COVERS in sw.js
 const DEFAULT_LOCS=[
  {id:'kallax',name:'Kallax shelf',mode:'grid',cols:3,rows:4,cap:0,formats:['lp']},
@@ -2114,6 +2122,7 @@ function grMount(){
    Five questions: which band, where from, which label, which year, which one doesn't belong. */
 let grMode='graph';try{grMode=KV.getItem('vinylGraphMode')=='quiz'?'quiz':'graph'}catch(e){}
 let qzStat={best:0,games:0,grids:0};try{Object.assign(qzStat,JSON.parse(KV.getItem('vinylQuiz')||'{}'))}catch(e){}
+if(qzStat.cov&&!qzStat.covPix){qzStat.covPix=qzStat.cov;delete qzStat.cov}
 const qzSave=()=>{try{KV.setItem('vinylQuiz',JSON.stringify(qzStat))}catch(e){}};
 let qz={mode:'home'};
 const shuf=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
@@ -2195,13 +2204,18 @@ const qzName=(id,plain)=>plain?id:grData().n.get(id).name;
 function qzDraw(){
   const b=$('#qz');if(!b)return;
   if(qz.mode=='home'){
-    b.innerHTML=`<div class="qzc"><b>Three of a kind</b><p class="mute">Nine names, three groups: members of a band, artists from one place, on one label or in one genre. All from your collection.</p><button class="btn pri" id="qgrid">Play</button></div>
-    <div class="qzc"><b>Five questions</b><p class="mute">Which band, where from, which label, which year, which one doesn't belong.</p><button class="btn" id="qmc">Play</button></div>
-    <div class="qzc"><b>Cover quiz</b><p class="mute">Five of your covers: name the album from a blurry glimpse. Guess early for more points.${qzStat.cov?` Best ${qzStat.cov} of 20.`:''}</p>
-      <div class="qzbar"><button class="btn" data-cq="pix">Pixelated</button><button class="btn" data-cq="zoom">Zoomed in</button></div></div>
-    <p class="mute">${qzStat.grids?`${plur(qzStat.grids,'grid')} solved. `:''}${qzStat.games?`Best score ${qzStat.best} of 5.`:''}${Object.keys(arts).length<artGroups().size?` Questions about members and places get richer as <b>Data → Fetch artist connections</b> fills in.`:''}</p>`;
+    // four cards, one tap each; light on dark and dark on light; sized to fill the screen above the bottom bar
+    const ic={grid:`<svg viewBox="0 0 30 30" aria-hidden="true">${[0,1,2].flatMap(r=>[0,1,2].map(c=>`<rect x="${2+c*9.5}" y="${2+r*9.5}" width="7" height="7"${r==1?' class="f"':''}/>`)).join('')}</svg>`,
+      mc:'<svg viewBox="0 0 30 30" aria-hidden="true"><rect x="2" y="3" width="26" height="24"/><path d="M11 11a4 4 0 1 1 5 4c-1 .5-1 1.2-1 2.5"/><circle cx="15" cy="22" r="1.3" class="f"/></svg>',
+      pix:`<svg viewBox="0 0 30 30" aria-hidden="true"><rect x="2" y="2" width="26" height="26"/>${[0,1,2,3].flatMap(r=>[0,1,2,3].map(c=>((r*3+c)%3)?`<rect x="${4.5+c*5.5}" y="${4.5+r*5.5}" width="5" height="5" class="f" opacity="${(.3+((r+c)%3)*.3).toFixed(1)}"/>`:'')).join('')}</svg>`,
+      zoom:'<svg viewBox="0 0 30 30" aria-hidden="true"><rect x="2" y="2" width="26" height="26"/><circle cx="13" cy="13" r="6"/><path d="M17.5 17.5l6 6"/></svg>'};
+    const card=(id,i,t,d,f)=>`<button class="qcard" id="${id}">${ic[i]}<b>${t}</b><span class="qd">${d}</span><span class="qf"><span>${f}</span><span class="qgo">›</span></span></button>`;
+    b.innerHTML=`<div class="qcards">${card('qgrid','grid','Three of a kind','Three groups of three.',qzStat.grids?`${qzStat.grids} solved`:'New')}${card('qmc','mc','Five questions','Bands, places, labels.',qzStat.games?`Best ${qzStat.best}/5`:'New')}${card('qpix','pix','Pixelated covers','Sharpens as you go.',qzStat.covPix?`Best ${qzStat.covPix}/20`:'New')}${card('qzoom','zoom','Zoomed covers','Widens as you go.',qzStat.covZoom?`Best ${qzStat.covZoom}/20`:'New')}</div>`;
+    // down to the page's own bottom padding (the room kept for the tab bar), so nothing scrolls
+    const fit=()=>{const g=b.querySelector('.qcards');if(!g)return;const top=g.getBoundingClientRect().top+scrollY,pb=parseFloat(getComputedStyle(document.body).paddingBottom)||0;
+      g.style.height=Math.max(300,innerHeight-top-pb)+'px'};fit();
+    $('#qpix').onclick=()=>cqStart('pix');$('#qzoom').onclick=()=>cqStart('zoom');
     $('#qgrid').onclick=()=>{const g=qzGrid();if(!g){toast('Not enough connections yet for a grid. Fetch artist connections in Data first.',true);return}qz={mode:'grid',...g};qzDraw()};
-    document.querySelectorAll('[data-cq]').forEach(e=>e.onclick=()=>cqStart(e.dataset.cq));
     $('#qmc').onclick=()=>{const m=qzQuestions();if(!m){toast('Not enough connections yet for questions. Fetch artist connections in Data first.',true);return}qz={mode:'mc',...m};qzDraw()};
     return}
   if(qz.mode=='cov'){cqDraw();return}
@@ -2331,8 +2345,8 @@ function cqPaint(q){const c=$('#cqc');if(!c)return;const d=devicePixelRatio||1,W
 function cqDraw(){const b=$('#qz');if(!b)return;const back=`<button class="qback" id="qhome">‹ Quiz</button>`;
   if(qz.loading){b.innerHTML=`${back}<b class="qtt">Cover quiz</b><p class="mute" style="margin:8px 0 0">Picking five of your covers…</p>`;$('#qhome').onclick=()=>{qz={mode:'home'};qzDraw()};return}
   if(qz.i>=qz.qs.length&&qz.more){qz.waiting=true;b.innerHTML=`${back}<p class="mute" style="margin:8px 0 0">Loading the next cover…</p>`;$('#qhome').onclick=()=>{qz={mode:'home'};qzDraw()};return}
-  if(qz.i>=qz.qs.length){const max=qz.qs.length*4;qzStat.cov=Math.max(qzStat.cov||0,qz.score);qzSave();
-    b.innerHTML=`${back}<b class="qtt" style="font-size:22px">${qz.score} of ${max} points</b><p class="mute">${qz.score>=(qzStat.cov||0)?'Your best so far.':`Your best is ${qzStat.cov}.`}</p><button class="btn pri" id="cqagain">Five new covers</button>`;
+  if(qz.i>=qz.qs.length){const max=qz.qs.length*4,bk=qz.kind=='pix'?'covPix':'covZoom',was=qzStat[bk]||0;qzStat[bk]=Math.max(was,qz.score);qzSave();
+    b.innerHTML=`${back}<b class="qtt" style="font-size:22px">${qz.score} of ${max} points</b><p class="mute">${qz.score>=was?'Your best so far.':`Your best is ${was}.`}</p><button class="btn pri" id="cqagain">Five new covers</button>`;
     $('#cqagain').onclick=()=>cqStart(qz.kind);$('#qhome').onclick=()=>{qz={mode:'home'};qzDraw()};return}
   const q=qz.qs[qz.i],pts=4-q.step,lvl=qz.kind=='pix'?`${CQ_PIX[q.step]}×${CQ_PIX[q.step]}`:`${Math.round(CQ_ZOOM[q.step]*100)}% of the cover`,ok=q.r;
   b.innerHTML=`${back}<p class="mute" style="margin:0 0 6px;display:flex;justify-content:space-between"><span>Cover ${qz.i+1} of ${qz.more?5:qz.qs.length}</span><span>Score ${qz.score}</span></p>
