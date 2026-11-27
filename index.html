@@ -499,7 +499,7 @@ label.ck input{width:20px;height:20px}
 })();
 </script>
 <script id="crate-main" type="text/x-crate">
-const APP_VERSION=88,APP_DATE='27 Nov 2026';
+const APP_VERSION=89,APP_DATE='27 Nov 2026';
 const COVER_CACHE='vinyl-covers-2'; // must match COVERS in sw.js
 const DEFAULT_LOCS=[
  {id:'kallax',name:'Kallax shelf',mode:'grid',cols:3,rows:4,cap:0,formats:['lp']},
@@ -2442,8 +2442,7 @@ function stLayout(){const key=grKey();if(stCache&&stCache.key==key)return stCach
 function stLinks(k){const {n,adj}=grData(),id='a:'+k,out=new Set();if(!adj.has(id))return [];
   adj.get(id).forEach((e,x)=>{if(x.startsWith('a:'))out.add(x);else if('bkqeywp'.includes(n.get(x).t)){let c=0;adj.get(x).forEach((e2,y)=>{if(y!=id&&y.startsWith('a:')&&c++<12)out.add(y)})}});
   return [...out].slice(0,80).map(x=>x.slice(2))}
-function starsHTML(){return `<div class="chips mzc"><button class="chip" data-stfit="1">Whole sky</button></div>
-  <div class="mapw vfit" id="stw"><canvas id="stc" aria-label="Every artist in your collection as a star, grouped by genre"></canvas>
+function starsHTML(){return `<div class="mapw vfit" id="stw"><canvas id="stc" aria-label="Every artist in your collection as a star, grouped by genre"></canvas>
     <div class="mzb"><button class="fx" data-stz="1" aria-label="Zoom in">+</button><button class="fx" data-stz="-1" aria-label="Zoom out">−</button></div>
     <div class="ginfo vov" id="stinfo"></div></div>`}
 function stFit(){const L=stLayout(),w=$('#stw');if(!w||!L.clusters.length)return;const xs=L.clusters.flatMap(c=>[c.x-c.R,c.x+c.R]),ys=L.clusters.flatMap(c=>[c.y-c.R,c.y+c.R]);
@@ -2490,7 +2489,7 @@ function stMount(){stInfo();if(!stView)stFit();else stDraw();
    inside the app (Natural Earth, simplified; world.json). Places get their coordinates from Wikidata with the place lookup,
    concert cities by name. Pinch or scroll to zoom, drag to pan; dots that are close together merge until you zoom in */
 let mapLayer='from',mapView=null,mapWorld=null,mapPts=[],mapSel=null,mapCl=[],mapTapC=()=>{};
-try{const m=JSON.parse(KV.getItem('vinylMap')||'{}');if(m.l)mapLayer=m.l;if(m.v)mapView=m.v}catch(e){}
+try{const m=JSON.parse(KV.getItem('vinylMap')||'{}');if(m.v&&m.l!='seen')mapView=m.v}catch(e){}
 const mapSave=()=>{try{KV.setItem('vinylMap',JSON.stringify({l:mapLayer,v:mapView}))}catch(e){}};
 const MW=1000;  // the world is 1000 units wide, Web Mercator
 const mProj=(lat,lon)=>{const la=Math.max(-82,Math.min(84,lat))*Math.PI/180;return [(lon+180)/360*MW,(1-Math.log(Math.tan(Math.PI/4+la/2))/Math.PI)/2*MW]};
@@ -2522,9 +2521,8 @@ function mapSeen(){const by=new Map(),own=new Map();artGroups().forEach(o=>own.s
     const c=by.get(k),nk=g.v+'|'+g.d;if(!c.nights.has(nk))c.nights.set(nk,{v:g.v,d:g.d,acts:[]});c.nights.get(nk).acts.push({a:g.a,k:own.get(akey(g.a))})});
   return [...by.values()].map(c=>({...c,n:c.nights.size,items:[...c.nights.values()].sort((a,b)=>a.d<b.d?1:-1)}))}
 function mapHTML(){
-  return `<div class="seg mlay" role="tablist">${[['from',"Where they're from"],['seen','Where you saw them']].map(([k,t])=>`<button class="${mapLayer==k?'on':''}" data-mlay="${k}" role="tab" aria-selected="${mapLayer==k}">${t}</button>`).join('')}</div>
-  <div class="chips mzc">${[['world','World'],['eu','Europe'],['na','N. America'],['fit','All dots']].map(([k,t])=>`<button class="chip" data-mz="${k}">${t}</button>`).join('')}</div>
-  <div class="mapw vfit" id="mapw"><svg id="msvg" role="img" aria-label="Map"><path class="mland"/><path class="mline"/><g id="mdots"></g></svg>
+  // only where your artists come from; pan, pinch and the +/− buttons do the rest
+  return `<div class="mapw vfit" id="mapw"><svg id="msvg" role="img" aria-label="Map"><path class="mland"/><path class="mline"/><g id="mdots"></g></svg>
     <div class="mzb"><button class="fx" data-mzi="1" aria-label="Zoom in">+</button><button class="fx" data-mzi="-1" aria-label="Zoom out">−</button></div>
     <div class="ginfo vov" id="minfo"></div></div>`;
 }
