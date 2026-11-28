@@ -532,7 +532,7 @@ label.ck input{width:20px;height:20px}
 })();
 </script>
 <script id="crate-main" type="text/x-crate">
-const APP_VERSION=104,APP_DATE='28 Nov 2026';
+const APP_VERSION=105,APP_DATE='28 Nov 2026';
 const COVER_CACHE='vinyl-covers-2'; // must match COVERS in sw.js
 const DEFAULT_LOCS=[
  {id:'kallax',name:'Kallax shelf',mode:'grid',cols:3,rows:4,cap:0,formats:['lp']},
@@ -1377,7 +1377,16 @@ let td={f:{},n:{}};try{Object.assign(td,JSON.parse(KV.getItem('vinylTidal')||'{}
 const saveTd=()=>{try{KV.setItem('vinylTidal',JSON.stringify(td))}catch(e){}};
 const tdState={run:false,stop:false,done:0,total:0,found:0,msg:''},tdRG={};
 const tdDone=rid=>!!td.f[rid]||(td.n[rid]&&Date.now()-td.n[rid]<60*864e5);
-function tdTodo(){const seen=new Set(),out=[];recs.forEach(r=>{const rid=ridOf(r);if(seen.has(rid))return;seen.add(rid);if(!tdDone(rid))out.push(r)});return out}
+// likely hits first: MusicBrainz's Tidal links are mostly on albums, so albums go before singles and compilations; then
+// releases already matched on MusicBrainz (fewer requests), records you've selected, played or queued, artists you have
+// many records by, and newer releases before very old pressings. Records with the same score keep the collection's order
+function tdScore(r,per){const t=fmtToks(r.fmt),k=artKey(artName(r.artist));let v=0;
+  if(((r.cat=='lp'&&!is12(r))||r.cat=='cd')&&!t.some(x=>/^(Single|EP|Maxi-Single|Mini-Album)$/.test(x)))v+=4;if(isVarious(k)||t.includes('Compilation'))v-=3;
+  if(mbRel[ridOf(r)])v+=2;if(r.fav||r.played||r.nx)v+=2;if((per.get(k)||0)>=3)v+=1;
+  const y=effY(r);if(y>=1990)v+=1;else if(y&&y<1970)v-=1;return v}
+function tdTodo(){const seen=new Set(),out=[],per=new Map();recs.forEach(r=>{const k=artKey(artName(r.artist));per.set(k,(per.get(k)||0)+1)});
+  recs.forEach(r=>{const rid=ridOf(r);if(seen.has(rid))return;seen.add(rid);if(!tdDone(rid))out.push(r)});
+  const sc=new Map(out.map((r,i)=>[r,[tdScore(r,per),i]]));return out.sort((a,b)=>sc.get(b)[0]-sc.get(a)[0]||sc.get(a)[1]-sc.get(b)[1])}
 const tdPick=rels=>{for(const x of rels)for(const l of (x.relations||[])){const m=((l.url||{}).resource||'').match(/tidal\.com\/(?:browse\/)?album\/(\d+)/);if(m)return m[1]}return ''};
 async function findTidal(r){
   const rid=ridOf(r);let g=null;
@@ -1395,7 +1404,7 @@ const tdRun=jobRunner({st:tdState,todo:tdTodo,text:tdText,prog:'tdprog',btn:'tdb
   netMsg:'Could not reach MusicBrainz. Resume when you are online.',busyMsg:'MusicBrainz is busy. Resume in a few minutes.',
   apply:(r,t)=>{const rid=ridOf(r);if(t){td.f[rid]=t;delete td.n[rid];return true}td.n[rid]=Date.now();return false},
   after:()=>{}});
-const tidalURL=r=>{const t=td.f[ridOf(r)];return t?`https://tidal.com/album/${t}`:`https://tidal.com/search?q=${encodeURIComponent(artName(r.artist)+' '+r.title)}`};
+const tidalURL=r=>`https://tidal.com/album/${td.f[ridOf(r)]}`;
 const TD_IC='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l3 3-3 3-3-3zM12 6l3 3-3 3-3-3zM18 6l3 3-3 3-3-3zM12 12l3 3-3 3-3-3z"/></svg>';
 
 /* original release year: MusicBrainz release group, first release date */
@@ -3220,7 +3229,7 @@ function shareSheet(id){
   showSheet();
 }
 // the big album art on the record sheet, with the share button in its top-right corner
-const shareArtHTML=r=>bigArtHTML(r).replace(/<\/span>$/,`<button class="shb" data-share="${esc(r.id)}" aria-label="Share this record"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="5.5" r="2.6"/><circle cx="18" cy="18.5" r="2.6"/><path d="M8.3 10.8l7.4-4M8.3 13.2l7.4 4"/></svg></button><a class="shb tdl" href="${tidalURL(r)}" target="_blank" rel="noopener" aria-label="${td.f[ridOf(r)]?'Open in Tidal':'Search on Tidal'}" title="${td.f[ridOf(r)]?'Open in Tidal':'Search on Tidal'}">${TD_IC}</a></span>`);
+const shareArtHTML=r=>bigArtHTML(r).replace(/<\/span>$/,`<button class="shb" data-share="${esc(r.id)}" aria-label="Share this record"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="5.5" r="2.6"/><circle cx="18" cy="18.5" r="2.6"/><path d="M8.3 10.8l7.4-4M8.3 13.2l7.4 4"/></svg></button>${td.f[ridOf(r)]?`<a class="shb tdl" href="${tidalURL(r)}" target="_blank" rel="noopener" aria-label="Open in Tidal" title="Open in Tidal">${TD_IC}</a>`:''}</span>`);
 // a full card's starting state: where it is (or would go), and its genre and comment
 const recState=r=>({lid:placed(r)?r.loc:defaultLoc(r)?.id,sec:placed(r)?r.section:null,cm:r.comment||'',gn:r.genre||''});
 // a full card's markup; '' when there is no storage location yet
