@@ -146,12 +146,12 @@ input[type=checkbox]{accent-color:var(--y)}
 .cqw .cqc{width:100%;margin:0}
 .cqo{position:absolute;left:6px;right:6px;bottom:6px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:5px;transition:opacity .15s}
 .cqw.peek .cqo{opacity:0;pointer-events:none}
-.cqa{display:flex;min-width:0;gap:6px;align-items:flex-start;min-height:48px;padding:7px 8px;background:rgba(0,0,0,.64);border:1px solid rgba(255,255,255,.28);color:#fff;font:700 12px/1.25 var(--mono);text-align:left;transition:opacity .2s}
+.cqa{display:flex;min-width:0;gap:6px;align-items:flex-start;min-height:48px;padding:7px 8px;background:rgba(0,0,0,.8);border:1px solid rgba(255,255,255,.32);color:#fff;font:700 12px/1.25 var(--mono);text-align:left;transition:opacity .2s}
 .cqa>span:first-child{color:#c6ff00;flex:none}
 .cqa .cqt{min-width:0;flex:1}.cqa .cqt b{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-weight:700}
-.cqa .cqt em{display:block;font-style:normal;font-weight:500;opacity:.75;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cqa .cqt em{display:block;font-style:normal;font-weight:600;color:#e2e2e2;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cqa.no{border:2px solid var(--p);opacity:.6}.cqa.no b{text-decoration:line-through}
-.cqa.ok{background:#c6ff00;border-color:#c6ff00;color:#000}.cqa.ok>span:first-child{color:#000}
+.cqa.ok{background:#c6ff00;border-color:#c6ff00;color:#000}.cqa.ok>span:first-child{color:#000}.cqa.ok .cqt em{color:#2a3600}
 .cqw.done .cqa:not(.ok){opacity:.3}.cqa[disabled]{cursor:default}
 .cqrow{display:flex;gap:10px;margin:12px 0 0;align-items:stretch}.cqrow .btn{margin:0;width:auto}.cqrow .pri{flex:1;padding:12px 8px}
 .cqrow .cqib{flex:none;width:52px;padding:0;display:flex;align-items:center;justify-content:center}.cqib svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:square}
@@ -512,7 +512,7 @@ label.ck input{width:20px;height:20px}
 })();
 </script>
 <script id="crate-main" type="text/x-crate">
-const APP_VERSION=91,APP_DATE='27 Nov 2026';
+const APP_VERSION=92,APP_DATE='27 Nov 2026';
 const COVER_CACHE='vinyl-covers-2'; // must match COVERS in sw.js
 const DEFAULT_LOCS=[
  {id:'kallax',name:'Kallax shelf',mode:'grid',cols:3,rows:4,cap:0,formats:['lp']},
