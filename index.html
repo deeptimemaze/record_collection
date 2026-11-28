@@ -532,7 +532,7 @@ label.ck input{width:20px;height:20px}
 })();
 </script>
 <script id="crate-main" type="text/x-crate">
-const APP_VERSION=107,APP_DATE='28 Nov 2026';
+const APP_VERSION=108,APP_DATE='28 Nov 2026';
 const COVER_CACHE='vinyl-covers-2'; // must match COVERS in sw.js
 const DEFAULT_LOCS=[
  {id:'kallax',name:'Kallax shelf',mode:'grid',cols:3,rows:4,cap:0,formats:['lp']},
@@ -789,6 +789,11 @@ const when=t=>{const d=new Date(t);return `${d.getDate()} ${MON[d.getMonth()]} a
 
 // the Selected column: A, B or C (1, 2 or 3 in older exports); Yes (and the like) from older exports is selection A
 const favOf=v=>/^[123]$/.test(v=String(v||'').trim())?+v:/^[abc]$/i.test(v)?' abc'.indexOf(v.toLowerCase()):/^(yes|y|true|x|★|●)$/i.test(v)?1:0;
+// fields an import never copies from the old record: search keys, placement and plays (handled above them)
+const IMP_OWN=new Set(['k','sk','loc','section','pos','plays','played']);
+// lookup results that belong to the release, shared by every copy of it
+const REL_LK=['dd','crd','rpmX','dg','ds','cty','tl','cr','bpmT','bpmSug','bpmD','oy'];
+const isSet=v=>!(v===''||v==null||v===0||v===false||(Array.isArray(v)&&!v.length));
 function finishImport(){
   const {pick,pair}=planImport();
   pick.forEach(r=>{const o=pair.get(r);if(!o)return;
@@ -799,9 +804,12 @@ function finishImport(){
     syncPlays(r,o.plays||[],o.played||'');
     if(!oyOK(r.oy)&&oyOK(o.oy))r.oy=o.oy;
     if(!r.nx&&o.nx)r.nx=o.nx;
-    // Discogs columns: a value in the file wins, an empty cell keeps the app's
-    [...XF.map(x=>x[0]),'rating','price','cur','rpmX','dd','bpm','bpmSug','bpmD','tl'].forEach(k=>{if((r[k]===''||r[k]==null||r[k]===0)&&o[k])r[k]=o[k]});
-    ['dg','ds','bpmT'].forEach(k=>{if(!(r[k]||[]).length&&(o[k]||[]).length)r[k]=o[k]})});
+    // a value in the file wins, an empty cell keeps the app's. This covers every lookup result too
+    // (Discogs details and credits, samples, tempos), so an import only leaves new releases to look up
+    for(const k in o){if(IMP_OWN.has(k)||!isSet(o[k])||isSet(r[k]))continue;r[k]=o[k]}});
+  // a new copy of a release you already have takes that release's lookups
+  const byRid=new Map();pick.forEach(r=>{if(r.dd&&!byRid.has(ridOf(r)))byRid.set(ridOf(r),r)});
+  pick.forEach(r=>{const s=!r.dd&&byRid.get(ridOf(r));if(s)REL_LK.forEach(k=>{if(isSet(s[k])&&!isSet(r[k]))r[k]=s[k]})});
   // no genre yet: use the Discogs collection folder when it names a genre ("Electronic (Vinyl)" → Electronic)
   pick.forEach(r=>{if(!r.genre)r.genre=folderGenre(r.folder)||((r.dg||[])[0]||'')});
   const kept=new Set(pair.values());
