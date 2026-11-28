@@ -532,7 +532,7 @@ label.ck input{width:20px;height:20px}
 })();
 </script>
 <script id="crate-main" type="text/x-crate">
-const APP_VERSION=102,APP_DATE='28 Nov 2026';
+const APP_VERSION=103,APP_DATE='28 Nov 2026';
 const COVER_CACHE='vinyl-covers-2'; // must match COVERS in sw.js
 const DEFAULT_LOCS=[
  {id:'kallax',name:'Kallax shelf',mode:'grid',cols:3,rows:4,cap:0,formats:['lp']},
@@ -2653,7 +2653,7 @@ const CB_FAM=[['Electronic',/^(Electronic|Ambient|IDM|Drum n Bass)/,['--s3',0,0,
 const CB_BOX={w:-135,e:45,s:15,n:72};
 const CB_VIEWS=[['3D',null],['Top',[0,Math.PI/2-.001]],['Front',[0,.06]],['Side',[-Math.PI/2,.06]]];
 let cbCache=null,cbSel=null,cbRaf=0,cbProjd=[],cbCol={};
-const cbV={yaw:-.55,pit:.55,ty:-.55,tp:.55,z:1,tz:1,cx:.5,cz:.5,tcx:.5,tcz:.5,turn:true,vi:0};
+const cbV={yaw:-.55,pit:.55,ty:-.55,tp:.55,z:1,tz:1,cx:.5,cz:.5,tcx:.5,tcz:.5,cy:.3,tcy:.3,turn:true,vi:0};
 function cbData(){const key=grKey()+':'+plcVer+':'+Object.keys(arts).length;if(cbCache&&cbCache.key==key)return cbCache;
   const g=artGroups(),pts=[];let tot=0;
   g.forEach(o=>{if(isVarious(o.k))return;tot++;const q=artPlace(o.k);if(!q)return;
@@ -2678,7 +2678,7 @@ function cbData(){const key=grKey()+':'+plcVer+':'+Object.keys(arts).length;if(c
     cities.push({name:l[0].pl,n:l.length,x:bx,z:bz})});
   cities.sort((a,b)=>b.n-a.n);
   return cbCache={key,pts,tot,out,cities,y0:yA,y1:yB}}
-function cbP(x,y,z,W,H){x-=cbV.cx;z-=cbV.cz;y-=.3;const c=Math.cos(cbV.yaw),s=Math.sin(cbV.yaw),X=x*c+z*s,Z=-x*s+z*c,cp=Math.cos(cbV.pit),sp=Math.sin(cbV.pit),
+function cbP(x,y,z,W,H){x-=cbV.cx;z-=cbV.cz;y-=cbV.cy;const c=Math.cos(cbV.yaw),s=Math.sin(cbV.yaw),X=x*c+z*s,Z=-x*s+z*c,cp=Math.cos(cbV.pit),sp=Math.sin(cbV.pit),
   Y=y*cp+Z*sp,Z2=Z*cp-y*sp,k=Math.min(W,H)*.6*cbV.z,f=2.2/(2.2+Z2);return [W/2+X*k*f,H*.42-Y*k*f,Z2,f]}
 const cbColOf=f=>f<8&&cbCol.fam?cbCol.fam[f]:cbCol.mute;
 function cbTone(t){if(!t)return cbCol.mute;const h=cssVar(t[0]),n=parseInt(h.slice(1),16),r=(n>>16)/255,g=((n>>8)&255)/255,b=(n&255)/255,
@@ -2717,9 +2717,9 @@ function cbPan(dx,dy){const c=$('#cbc');if(!c)return;if(cbV.turn){cbV.turn=false
   cbV.cx=cbV.tcx=cl(cbV.cx+X*co-Z*si);cbV.cz=cbV.tcz=cl(cbV.cz+X*si+Z*co)}
 function cbKick(){if(!cbRaf)cbRaf=requestAnimationFrame(cbTick)}
 function cbTick(){cbRaf=0;if(cbV.turn)cbV.ty+=.0025;const e=(a,b)=>a+(b-a)*.12;
-  cbV.yaw=e(cbV.yaw,cbV.ty);cbV.pit=e(cbV.pit,cbV.tp);cbV.z=e(cbV.z,cbV.tz);cbV.cx=e(cbV.cx,cbV.tcx);cbV.cz=e(cbV.cz,cbV.tcz);
+  cbV.yaw=e(cbV.yaw,cbV.ty);cbV.pit=e(cbV.pit,cbV.tp);cbV.z=e(cbV.z,cbV.tz);cbV.cx=e(cbV.cx,cbV.tcx);cbV.cz=e(cbV.cz,cbV.tcz);cbV.cy=e(cbV.cy,cbV.tcy);
   if(!cbDraw())return;
-  const still=!cbV.turn&&Math.abs(cbV.yaw-cbV.ty)+Math.abs(cbV.pit-cbV.tp)+Math.abs(cbV.z-cbV.tz)+Math.abs(cbV.cx-cbV.tcx)+Math.abs(cbV.cz-cbV.tcz)<1e-4;
+  const still=!cbV.turn&&Math.abs(cbV.yaw-cbV.ty)+Math.abs(cbV.pit-cbV.tp)+Math.abs(cbV.z-cbV.tz)+Math.abs(cbV.cx-cbV.tcx)+Math.abs(cbV.cz-cbV.tcz)+Math.abs(cbV.cy-cbV.tcy)<1e-4;
   if(!still&&!document.hidden)cbKick()}
 function cubeHTML(){return `<div class="mapw vfit" id="cbw"><canvas id="cbc" aria-label="Your artists in a cube: a map on the floor, the year going up"></canvas>
     <div class="mzb"><button class="fx" data-cbz="1" aria-label="Zoom in">+</button><button class="fx" data-cbz="-1" aria-label="Zoom out">−</button><button class="fx cbvw" id="cbvw" aria-label="Change the view">${CB_VIEWS[cbV.vi][0]}</button></div>
@@ -2736,7 +2736,7 @@ function cbMount(){const c=$('#cbc');if(!c)return;
   cbInfo();cbKick();
   if(plcPending()&&!plcState.run&&navigator.onLine!==false)plcRun().then(()=>{cbCache=null;cbInfo();cbKick()});
   const pts=new Map();let last=null,moved=0,two=false;
-  const vb=$('#cbvw'),setV=i=>{cbV.vi=i;vb.textContent=CB_VIEWS[i][0];const v=CB_VIEWS[i][1];cbV.turn=!v;if(!v){cbV.tcx=cbV.tcz=.5;cbV.tz=1}if(v){cbV.ty=v[0]+Math.round((cbV.yaw-v[0])/(2*Math.PI))*2*Math.PI;cbV.tp=v[1]}else cbV.tp=.55;cbKick()};
+  const vb=$('#cbvw'),setV=i=>{cbV.vi=i;vb.textContent=CB_VIEWS[i][0];const v=CB_VIEWS[i][1];cbV.turn=!v;if(!v){cbV.tcx=cbV.tcz=.5;cbV.tcy=.3;cbV.tz=1}if(v){cbV.ty=v[0]+Math.round((cbV.yaw-v[0])/(2*Math.PI))*2*Math.PI;cbV.tp=v[1]}else cbV.tp=.55;cbKick()};
   vb.onclick=()=>setV((cbV.vi+1)%CB_VIEWS.length);
   c.onpointerdown=e=>{try{c.setPointerCapture(e.pointerId)}catch(_){}if(!pts.size)two=false;pts.set(e.pointerId,[e.clientX,e.clientY]);if(pts.size>1)two=true;last=null;moved=0};
   c.onpointermove=e=>{if(!pts.has(e.pointerId))return;const pv=pts.get(e.pointerId);pts.set(e.pointerId,[e.clientX,e.clientY]);moved+=Math.abs(e.clientX-pv[0])+Math.abs(e.clientY-pv[1]);
@@ -2749,7 +2749,7 @@ function cbMount(){const c=$('#cbc');if(!c)return;
   c.onpointerup=c.onpointercancel=e=>{const tap=pts.size==1&&!two&&moved<8;pts.delete(e.pointerId);last=null;if(!tap)return;
     const r=c.getBoundingClientRect(),px=e.clientX-r.left,py=e.clientY-r.top;let best=null,bd=18;
     cbProjd.forEach(({p,q})=>{const dd=Math.hypot(q[0]-px,q[1]-py);if(dd<bd){bd=dd;best=p}});
-    cbSel=best?best.k:null;if(best){cbV.tcx=best.x;cbV.tcz=best.z;if(cbV.tz<2.2)cbV.tz=2.2}cbInfo();cbKick()};
+    cbSel=best?best.k:null;if(best){cbV.tcx=best.x;cbV.tcz=best.z;cbV.tcy=best.h;if(cbV.tz<2.2)cbV.tz=2.2}cbInfo();cbKick()};
   c.onwheel=e=>{e.preventDefault();cbV.tz=Math.max(.6,Math.min(12,cbV.tz*Math.exp(-e.deltaY/300)));cbKick()};
   document.querySelectorAll('[data-cbz]').forEach(b=>b.onclick=()=>{cbV.tz=Math.max(.6,Math.min(12,cbV.tz*(+b.dataset.cbz>0?1.8:1/1.8)));cbKick()});
 }
