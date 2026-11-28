@@ -164,6 +164,24 @@ input[type=checkbox]{accent-color:var(--y)}
 .qans.no{border-color:var(--red);color:var(--red)}.qans.dim{opacity:.4}
 .qex{margin:4px 0 0;padding:10px 12px;border:2px solid var(--line2);color:var(--ink);font-size:13px;line-height:1.5}
 .qlink{padding:0;background:none;border:0;color:var(--hl-t);font:inherit;font-weight:700;text-decoration:underline dotted;text-underline-offset:3px}
+#tv{position:fixed;inset:0;z-index:100;background:var(--bg);color:var(--ink);overflow:hidden;font-family:var(--mono);cursor:none}
+#tv>svg{position:absolute;inset:0;width:100%;height:100%}
+#tv .tve{transition:opacity .6s}#tv .tvnodes g{transition:transform 1.2s cubic-bezier(.4,0,.2,1),opacity .8s}
+#tv text{font:600 15px var(--mono);fill:var(--ink);paint-order:stroke;stroke:var(--bg);stroke-width:4px;stroke-linejoin:round}
+#tv text.tvc{font-size:20px;font-weight:700;fill:var(--hl-t)}
+#tv .tvnx{stroke:var(--hl);stroke-width:3}
+.tvmark{position:absolute;left:4%;top:6%;display:flex;align-items:center;gap:10px;font:700 13px var(--mono);letter-spacing:.18em}.tvmark i{width:11px;height:11px;background:var(--y)}
+.tvnext{position:absolute;right:4%;top:6%;font:500 12px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--mute)}
+.tvcap{position:absolute;left:4%;bottom:9%;width:24%}
+.tvcap b{display:block;font:700 26px/1.15 var(--mono);overflow-wrap:break-word}
+@media (orientation:portrait){.tvcap{width:auto;right:4%}}
+.tvcap span{display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;margin-top:8px;color:var(--mute);font:500 13px/1.5 var(--mono)}
+.tvcap .tvt{color:var(--ink);-webkit-line-clamp:3}
+.tvstrip{position:absolute;right:3%;top:16%;display:flex;flex-direction:column;gap:10px}
+.tvsq .thumb.big{width:100%;max-width:none;margin:0;border:2px solid var(--line2)}.tvsq.on .thumb.big{border-color:var(--hl)}
+.tvprog{position:absolute;left:0;bottom:0;height:3px;width:0;background:var(--hl)}
+.tvturn{display:none;position:absolute;left:0;right:0;top:45%;text-align:center;font:700 13px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--mute)}
+@media (orientation:portrait){#tv .tvturn{display:block;top:auto;bottom:22%}}
 .gbar{display:flex;align-items:stretch;margin-top:8px;border:2px solid var(--line2);min-height:38px}
 .gloc{flex:1;min-width:0;display:flex;align-items:baseline;gap:8px;padding:0 10px;margin:auto 0;white-space:nowrap;overflow:hidden;font:500 12px/1.3 var(--mono)}
 .gloc b{overflow:hidden;text-overflow:ellipsis;flex:0 1 auto;min-width:0}.gloc button{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;padding:0;background:none;border:0;color:var(--mute);font:inherit}
@@ -513,7 +531,7 @@ label.ck input{width:20px;height:20px}
 })();
 </script>
 <script id="crate-main" type="text/x-crate">
-const APP_VERSION=96,APP_DATE='27 Nov 2026';
+const APP_VERSION=97,APP_DATE='27 Nov 2026';
 const COVER_CACHE='vinyl-covers-2'; // must match COVERS in sw.js
 const DEFAULT_LOCS=[
  {id:'kallax',name:'Kallax shelf',mode:'grid',cols:3,rows:4,cap:0,formats:['lp']},
@@ -2191,6 +2209,7 @@ function graphHTML(){
   return `<div class="gbar" id="gbar"><div class="gloc" id="gcrumb"></div>
     <input type="search" id="gq" placeholder="Find an artist, label or genre" aria-label="Find an artist, label or genre" autocomplete="off" autocapitalize="off" enterkeyhint="search">
     <button class="gbi" id="gsrb" aria-label="Search" title="Search">${SR_IC}</button>
+    <button class="gbi" id="gtv" aria-label="TV mode" title="TV mode">${TV_IC}</button>
     <button class="gbi gwan${wanderT?' on':''}" id="gwan" data-gwan="1" aria-pressed="${!!wanderT}" aria-label="${wanderT?'Stop wandering':'Wander'}" title="${wanderT?'Stop wandering':'Wander'}">${WAN_IC}</button></div>
   <div class="chips" id="gres" style="margin:6px 0 0"></div>
   <div class="vfit gbox" id="gbox"><svg id="gsvg" viewBox="0 0 ${GW} ${GH}" role="group" aria-label="Graph of artists, labels and genres"></svg>
@@ -2209,8 +2228,79 @@ function grMount(){
     res.innerHTML=hits.length?hits.map(o=>`<button class="chip" data-gn="${esc(o.id)}">${esc(o.name)}<span class="fn">${o.t=='a'?o.c:o.t=='l'?'label':'genre'}</span></button>`).join(''):'<p class="mute" style="margin:0">Nothing found.</p>'};
   q.onkeydown=e=>{if(e.key=='Enter')e.target.blur();if(e.key=='Escape'){q.value='';res.innerHTML='';gSearch(false)}};
   q.onblur=()=>setTimeout(()=>{if(!q.value.trim()&&!res.innerHTML)gSearch(false)},200);
+  $('#gtv').onclick=tvOpen;
   $('#gsrb').onclick=()=>{if($('#gbar').classList.contains('srch')){q.value='';res.innerHTML='';gSearch(false)}else gSearch(true)};
 }
+
+/* TV mode: the graph full screen and sideways, wandering by itself, for casting the phone's screen to a TV.
+   Big names, the next step glowing, a timer line along the bottom, and the artist's covers down the right side.
+   A tap (or back) leaves it and opens the graph where it stopped */
+let tv=null;const TV_STEP=9000;
+const TV_IC='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="4.5" width="19" height="13"/><path d="M8 21h8M12 17.5V21"/></svg>';
+function tvShape(o,big){const r=big?16:9,t=o.t;
+  if(t=='a')return `<circle r="${r}" fill="var(--hl)"/>`;
+  if(t=='l')return `<rect x="${-r}" y="${-r}" width="${2*r}" height="${2*r}" fill="var(--thumb)" stroke="var(--mute)" stroke-width="1.5"/>`;
+  if(t=='g'){const q=r*1.15;return `<polygon points="${[0,1,2,3,4,5].map(i=>{const a=Math.PI/3*i;return (Math.cos(a)*q).toFixed(1)+','+(Math.sin(a)*q).toFixed(1)}).join(' ')}" fill="var(--bg)" stroke="var(--ink)" stroke-width="1.5"/>`}
+  if(t=='p')return `<rect x="${-r*.8}" y="${-r*.8}" width="${r*1.6}" height="${r*1.6}" transform="rotate(45)" fill="var(--bg)" stroke="var(--ink)" stroke-width="1.5"/>`;
+  if(t=='e'||t=='y')return `<rect x="${-r}" y="${-r*.6}" width="${2*r}" height="${r*1.2}" fill="var(--bg)" stroke="${t=='y'?'var(--hl)':'var(--ink)'}" stroke-width="1.5"/>`;
+  const c={k:'var(--s2)',q:'var(--az)',b:'var(--hl)',v:'var(--ink)',w:'var(--ink)',d:'var(--mute)'}[t]||'var(--mute)';
+  return `<circle r="${r-1}" fill="var(--bg)" stroke="${c}" stroke-width="1.5"/>`}
+// the records behind a node: an artist's own, otherwise one from each of its artists
+function tvRecs(id){const {n}=grData(),o=n.get(id),G=artGroups();
+  if(o.t=='a'){const g=G.get(id.slice(2));return g?g.rs.slice().sort((a,b)=>(cov[ridOf(b)]?.u?1:0)-(cov[ridOf(a)]?.u?1:0)):[]}
+  return grNbrs(id).filter(x=>n.get(x)?.t=='a').map(x=>G.get(x.slice(2))?.rs[0]).filter(Boolean)}
+function tvNext(){const {n}=grData(),recent=new Set(tv.trail.slice(-6)),all=grNbrs(tv.c).filter(x=>n.has(x)),pool=all.filter(x=>!recent.has(x)),c=pool.length?pool:all;
+  if(!c.length)return null;const {adj}=grData();
+  // dead ends (only a link back) are picked rarely, so the walk keeps going
+  const w=x=>{const t=n.get(x).t;return (t=='a'?6:'bkqeywd'.includes(t)?2:t=='p'?2:1)*((adj.get(x)?.size||0)>1?1:.15)};return wpick(c,w)}
+// sideways: caption column on the left, graph in the middle, covers on the right; upright: graph above the caption
+function tvLayout(){const el=tv.el,W=el.clientWidth,H=el.clientHeight,side=W>H,sq=side?Math.min(H*.22,W*.15):0;
+  if(!side)return {W,H,sq,cx:W/2,cy:H*.38,rx:W*.34,ry:H*.22};
+  const x0=W*.3,x1=W-sq-W*.06-30;return {W,H,sq,cx:(x0+x1)/2,cy:H*.5,rx:(x1-x0)/2-60,ry:H*.34}}
+function tvDraw(){if(!tv)return;const {n,adj}=grData(),L=tvLayout(),id=tv.c,o=n.get(id);if(!o)return;
+  const nb=grNbrs(id).filter(x=>n.has(x)).slice(0,8);if(tv.next&&!nb.includes(tv.next))nb[nb.length?nb.length-1:0]=tv.next;
+  const pos=new Map([[id,[L.cx,L.cy]]]);nb.forEach((x,i)=>{const a=-Math.PI/2+i*2*Math.PI/Math.max(nb.length,1)+(nb.length%2?0:Math.PI/nb.length);pos.set(x,[L.cx+Math.cos(a)*L.rx,L.cy+Math.sin(a)*L.ry])});
+  const sv=tv.el.querySelector('svg');sv.setAttribute('viewBox',`0 0 ${L.W} ${L.H}`);
+  const eg=sv.querySelector('.tve'),ng=sv.querySelector('.tvnodes');
+  // links fade out, nodes glide to their new places, then the new links fade in
+  eg.style.opacity=0;
+  const have=new Map([...ng.children].map(g=>[g.dataset.id,g]));
+  have.forEach((g,k)=>{if(!pos.has(k)){g.style.opacity=0;setTimeout(()=>g.remove(),900)}});
+  pos.forEach(([x,y],k)=>{let g=have.get(k);const big=k==id,on=n.get(k);
+    const lab=`<text y="${big?40:28}" text-anchor="middle" class="${big?'tvc':''}">${esc(!big&&on.name.length>20?on.name.slice(0,19)+'…':on.name)}</text>`;
+    if(!g){g=document.createElementNS('http://www.w3.org/2000/svg','g');g.dataset.id=k;g.style.opacity=0;const from=pos.get(tv.prev)||[x,y];g.style.transform=`translate(${from[0]}px,${from[1]}px)`;ng.appendChild(g);requestAnimationFrame(()=>requestAnimationFrame(()=>{g.style.opacity=1;g.style.transform=`translate(${x}px,${y}px)`}))}
+    else{g.style.opacity=1;g.style.transform=`translate(${x}px,${y}px)`}
+    g.innerHTML=tvShape(on,big)+lab});
+  clearTimeout(tv.et);tv.et=setTimeout(()=>{if(!tv)return;const a=adj.get(id);
+    eg.innerHTML=nb.map(x=>{const e=a&&a.get(x),[x1,y1]=pos.get(id),[x2,y2]=pos.get(x);return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" ${e&&GES[e.k]?GES[e.k]:'stroke="var(--line2)" stroke-width="1"'}/>`}).join('')+
+      (tv.next&&pos.has(tv.next)?(()=>{const [x1,y1]=pos.get(id),[x2,y2]=pos.get(tv.next);return `<line class="tvnx" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`})():'');
+    eg.style.opacity=1},950);
+  // caption, next step, covers
+  const rs=tvRecs(id),titles=[...new Set(rs.map(r=>r.title))].slice(0,3);
+  tv.el.querySelector('.tvcap').innerHTML=`<b>${esc(o.name)}</b><span>${esc(grDesc(id))}</span>${o.t=='a'&&titles.length?`<span class="tvt">${titles.map(esc).join(' · ')}</span>`:''}`;
+  tv.el.querySelector('.tvnext').textContent=tv.next?'Next · '+n.get(tv.next).name:'';
+  const st=tv.el.querySelector('.tvstrip');st.style.width=L.sq?L.sq+'px':'0';
+  st.innerHTML=L.sq?rs.slice(0,3).map((r,i)=>`<div class="tvsq${i?'':' on'}">${bigArtHTML(r)}</div>`).join(''):'';
+  st.querySelectorAll('.thumb[data-cv]').forEach(t=>paintCover(t.dataset.cv));covScan();
+  const pg=tv.el.querySelector('.tvprog');pg.style.transition='none';pg.style.width='0';requestAnimationFrame(()=>requestAnimationFrame(()=>{pg.style.transition=`width ${TV_STEP}ms linear`;pg.style.width='100%'}))}
+function tvStep(){if(!tv)return;const nx=tv.next||tvNext();if(!nx){tvDraw();return}
+  tv.prev=tv.c;tv.c=nx;tv.trail.push(nx);if(tv.trail.length>20)tv.trail.shift();tv.next=tvNext();tvDraw()}
+async function tvOpen(){if(tv||!grCenter)return;wanderStop();
+  const el=document.createElement('div');el.id='tv';el.innerHTML=`<svg aria-hidden="true"><g class="tve"></g><g class="tvnodes"></g></svg>
+    <div class="tvmark"><i></i>CRATE · 探索</div><div class="tvnext"></div><div class="tvstrip"></div><div class="tvcap" aria-live="polite"></div><div class="tvprog"></div>
+    <div class="tvturn">Turn the phone sideways</div>`;
+  document.body.appendChild(el);tv={el,c:grCenter,prev:null,trail:[grCenter],next:null,lock:null,t:0,et:0};tv.next=tvNext();
+  try{history.pushState({tv:1,...navState()},'')}catch(e){}
+  el.onclick=()=>history.back();
+  try{await document.documentElement.requestFullscreen({navigationUI:'hide'})}catch(e){}
+  try{await screen.orientation.lock('landscape')}catch(e){}
+  try{tv.lock=await navigator.wakeLock.request('screen')}catch(e){}
+  if(!tv)return;tvDraw();tv.t=setInterval(tvStep,TV_STEP);tv.rz=()=>tvDraw();addEventListener('resize',tv.rz)}
+function tvClose(){if(!tv)return;const t=tv;tv=null;clearInterval(t.t);clearTimeout(t.et);removeEventListener('resize',t.rz);
+  try{t.lock&&t.lock.release()}catch(e){}try{screen.orientation.unlock()}catch(e){}
+  if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});t.el.remove();
+  // the graph opens where the TV stopped
+  if(t.c&&t.c!==grCenter&&grData().n.has(t.c)){grTrail=[...grTrail,t.c].slice(-12);grCenter=t.c;grSave();if(view=='ex'&&exTab=='graph'&&grMode=='graph')render()}}
 function gSearch(on){const b=$('#gbar'),q=$('#gq'),sb=$('#gsrb');if(!b)return;b.classList.toggle('srch',on);
   if(sb){sb.innerHTML=on?X_IC:SR_IC;sb.setAttribute('aria-label',on?'Close search':'Search')}if(on)q.focus()}
 /* Explore → Artists → Quiz: two games built fresh from the graph each time.
@@ -3215,6 +3305,7 @@ function sheetGone(){listenStop();saveNow();if(!sheetOpen)return false;sheetOpen
   if(sheetDirty){sheetDirty=false;render()}return true}
 function closeSheet(){if(sheetGone())try{if(history.state&&history.state.sheet)history.back()}catch(e){}}
 window.addEventListener('popstate',e=>{
+  if(tv){tvClose();return}
   if(sheetGone())return;  // an open card or sheet: closing it is the step back
   const st=e.state||{};
   if(st.v){exitArmed=false;if(navKeyOf(st)!=navKey()){navRestoring=true;view=st.v;exTab=st.ex||exTab;grMode=st.gm||grMode;qOrder=[];lim=100;render();navRestoring=false;window.scrollTo(0,0)}return}
