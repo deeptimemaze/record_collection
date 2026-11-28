@@ -2643,9 +2643,10 @@ function stMount(){stInfo();if(!stView)stFit();else stDraw();
    to the middle year of its records (original years where known), so busy cities grow towers. Colour is the genre
    family, dot size the band's members (solo is smallest), and brightness how many of its records you have.
    Drag to turn, pinch or scroll to zoom, tap a dot to centre on it; the corner button steps through 3D, top, front and side */
-const CB_FAM=[['Electronic',/^(Electronic|Ambient|IDM|Drum n Bass)/,'#3d8bff'],['Hip hop',/^Hip Hop/,'#ff6a2b'],['New wave · pop',/^(New Wave|Pop)/,'#19c48a'],
-  ['Industrial · EBM',/^(Industrial|EBM|Metal)/,'#ff4d6d'],['Jazz · blues',/^(Jazz|Blues)/,'#e8a900'],['Classical · film',/^(Classical|Soundtrack|Spoken|Comedy|Stage)/,'#c77dff'],
-  ['Soul · R&B · world',/^(Funk|R&B|Gospel|Reggae|World|Latin|Brass)/,'#2fbf2f'],['Rock · folk',/^(Alternative|Rock|Folk|Country|Punk)/,'#8a9bff']];
+// the electronic side in blues, hip hop green, jazz and soul warm; the smaller families stay quiet
+const CB_FAM=[['Electronic',/^(Electronic|Ambient|IDM|Drum n Bass)/,'#3d8bff'],['Industrial · EBM',/^(Industrial|EBM|Metal)/,'#7b6dff'],['New wave · pop',/^(New Wave|Pop)/,'#35c3e8'],
+  ['Hip hop',/^Hip Hop/,'#2fcf6a'],['Jazz · blues',/^(Jazz|Blues)/,'#ff8a1e'],['Soul · R&B · world',/^(Funk|R&B|Gospel|Reggae|World|Latin|Brass)/,'#ff4b4b'],
+  ['Classical · film',/^(Classical|Soundtrack|Spoken|Comedy|Stage)/,'#b9a27a'],['Rock · folk',/^(Alternative|Rock|Folk|Country|Punk)/,'#9a9a9a']];
 const CB_VIEWS=[['3D',null],['Top',[0,Math.PI/2-.001]],['Front',[0,.06]],['Side',[-Math.PI/2,.06]]];
 let cbCache=null,cbSel=null,cbWorld=null,cbRaf=0,cbProjd=[],cbCol={};
 const cbV={yaw:-.55,pit:.55,ty:-.55,tp:.55,z:1,tz:1,cx:.5,cz:.5,tcx:.5,tcz:.5,turn:true,vi:0};
@@ -2699,7 +2700,8 @@ function cbDraw(){const c=$('#cbc');if(!c)return false;const W=c.clientWidth,H=c
   const pr=D.pts.map(p=>{const q=P(p.x,p.h,p.z);return {p,q}}).sort((a,b)=>b.q[2]-a.q[2]);cbProjd=pr;
   const zr=Math.sqrt(cbV.z);x.globalAlpha=.07;x.strokeStyle=cbCol.ink;pr.forEach(({p,q})=>{if(p.c>1)line(P(p.x,0,p.z),q)});x.globalAlpha=1;
   pr.forEach(({p,q})=>{const r=(p.m>1?1.9+Math.min(3,Math.log2(p.m))*1.1:p.m==1?1.7:2.1)*q[3]*zr;if(q[0]<-9||q[0]>W+9||q[1]<-9||q[1]>H+9)return;
-    x.fillStyle=cbTint(cbColOf(p.f),p.c);x.globalAlpha=cbSel&&p.k!=cbSel?.45:.95;x.beginPath();x.arc(q[0],q[1],r,0,7);x.fill()});x.globalAlpha=1;
+    const col=cbTint(cbColOf(p.f),p.c),dim=cbSel&&p.k!=cbSel?.5:1;x.fillStyle=col;x.strokeStyle=col;x.beginPath();x.arc(q[0],q[1],r,0,7);
+    x.globalAlpha=.5*dim;x.fill();x.globalAlpha=.95*dim;x.stroke()});x.globalAlpha=1;
   // the biggest towns on the floor
   x.textAlign='center';x.font=`600 10px ${cbCol.mono}`;x.fillStyle=cbCol.ink;
   const lb=[];D.cities.slice(0,cbV.z>1.8?14:7).filter(t=>t.n>1).forEach(t=>{const p=P(t.x,0,t.z),n=t.name.toUpperCase().slice(0,16),w=n.length*6.2;
@@ -2709,6 +2711,9 @@ function cbDraw(){const c=$('#cbc');if(!c)return false;const W=c.clientWidth,H=c
     x.beginPath();x.ellipse(g[0],g[1],6,2.5,0,0,7);x.stroke();x.fillStyle=cbCol.hl;x.textAlign='left';x.font=`600 11px ${cbCol.mono}`;
     x.fillText(s.name.length>24?s.name.slice(0,23)+'…':s.name,q[0]+10,q[1]-6)}
   return true}
+function cbPan(dx,dy){const c=$('#cbc');if(!c)return;if(cbV.turn){cbV.turn=false;cbV.vi=0;const b=$('#cbvw');if(b)b.textContent='3D'}
+  const k=Math.min(c.clientWidth,c.clientHeight)*.6*cbV.z,X=-dx/k,Z=dy/(k*Math.max(.35,Math.sin(cbV.pit))),co=Math.cos(cbV.yaw),si=Math.sin(cbV.yaw),cl=v=>Math.max(-.2,Math.min(1.2,v));
+  cbV.cx=cbV.tcx=cl(cbV.cx+X*co-Z*si);cbV.cz=cbV.tcz=cl(cbV.cz+X*si+Z*co)}
 function cbKick(){if(!cbRaf)cbRaf=requestAnimationFrame(cbTick)}
 function cbTick(){cbRaf=0;if(cbV.turn)cbV.ty+=.0025;const e=(a,b)=>a+(b-a)*.12;
   cbV.yaw=e(cbV.yaw,cbV.ty);cbV.pit=e(cbV.pit,cbV.tp);cbV.z=e(cbV.z,cbV.tz);cbV.cx=e(cbV.cx,cbV.tcx);cbV.cz=e(cbV.cz,cbV.tcz);
@@ -2731,18 +2736,21 @@ function cbMount(){const c=$('#cbc');if(!c)return;
   cbCol.base=document.documentElement.dataset.theme=='light'||(!document.documentElement.dataset.theme&&matchMedia('(prefers-color-scheme:light)').matches)?150:110;
   cbInfo();cbKick();if(!cbWorld)cbLoadWorld().then(cbKick).catch(()=>{});
   if(plcPending()&&!plcState.run&&navigator.onLine!==false)plcRun().then(()=>{cbCache=null;cbInfo();cbKick()});
-  const pts=new Map();let last=null,moved=0;
-  const vb=$('#cbvw'),setV=i=>{cbV.vi=i;vb.textContent=CB_VIEWS[i][0];const v=CB_VIEWS[i][1];cbV.turn=!v;if(v){cbV.ty=v[0]+Math.round((cbV.yaw-v[0])/(2*Math.PI))*2*Math.PI;cbV.tp=v[1]}else cbV.tp=.55;cbKick()};
+  const pts=new Map();let last=null,moved=0,two=false;
+  const vb=$('#cbvw'),setV=i=>{cbV.vi=i;vb.textContent=CB_VIEWS[i][0];const v=CB_VIEWS[i][1];cbV.turn=!v;if(!v){cbV.tcx=cbV.tcz=.5;cbV.tz=1}if(v){cbV.ty=v[0]+Math.round((cbV.yaw-v[0])/(2*Math.PI))*2*Math.PI;cbV.tp=v[1]}else cbV.tp=.55;cbKick()};
   vb.onclick=()=>setV((cbV.vi+1)%CB_VIEWS.length);
-  c.onpointerdown=e=>{try{c.setPointerCapture(e.pointerId)}catch(_){}pts.set(e.pointerId,[e.clientX,e.clientY]);last=null;moved=0};
+  c.onpointerdown=e=>{try{c.setPointerCapture(e.pointerId)}catch(_){}if(!pts.size)two=false;pts.set(e.pointerId,[e.clientX,e.clientY]);if(pts.size>1)two=true;last=null;moved=0};
   c.onpointermove=e=>{if(!pts.has(e.pointerId))return;const pv=pts.get(e.pointerId);pts.set(e.pointerId,[e.clientX,e.clientY]);moved+=Math.abs(e.clientX-pv[0])+Math.abs(e.clientY-pv[1]);
-    if(pts.size==1&&moved>6){if(cbV.turn||cbV.vi){cbV.turn=false;cbV.vi=0;vb.textContent='3D'}
+    if(pts.size==1&&two)return;
+    if(pts.size==1&&moved>6&&e.shiftKey){cbPan(e.clientX-pv[0],e.clientY-pv[1]);cbKick()}
+    else if(pts.size==1&&moved>6){if(cbV.turn||cbV.vi){cbV.turn=false;cbV.vi=0;vb.textContent='3D'}
       cbV.ty+=(e.clientX-pv[0])*.008;cbV.tp=Math.max(-.05,Math.min(Math.PI/2-.001,cbV.tp+(e.clientY-pv[1])*.008));cbV.yaw=cbV.ty;cbV.pit=cbV.tp;cbKick()}
-    else if(pts.size==2){const [a,b]=[...pts.values()],dd=Math.hypot(a[0]-b[0],a[1]-b[1]);if(last)cbV.tz=Math.max(.6,Math.min(12,cbV.tz*dd/last)),cbV.z=cbV.tz;last=dd;cbKick()}};
-  c.onpointerup=c.onpointercancel=e=>{const tap=pts.size==1&&moved<8;pts.delete(e.pointerId);last=null;if(!tap)return;
+    else if(pts.size==2){const [a,b]=[...pts.values()],dd=Math.hypot(a[0]-b[0],a[1]-b[1]),mid=[(a[0]+b[0])/2,(a[1]+b[1])/2];
+      if(last){cbV.tz=Math.max(.6,Math.min(12,cbV.tz*dd/last.d));cbV.z=cbV.tz;cbPan(mid[0]-last.m[0],mid[1]-last.m[1])}last={d:dd,m:mid};cbKick()}};
+  c.onpointerup=c.onpointercancel=e=>{const tap=pts.size==1&&!two&&moved<8;pts.delete(e.pointerId);last=null;if(!tap)return;
     const r=c.getBoundingClientRect(),px=e.clientX-r.left,py=e.clientY-r.top;let best=null,bd=18;
     cbProjd.forEach(({p,q})=>{const dd=Math.hypot(q[0]-px,q[1]-py);if(dd<bd){bd=dd;best=p}});
-    cbSel=best?best.k:null;if(best){cbV.tcx=best.x;cbV.tcz=best.z;if(cbV.tz<2.2)cbV.tz=2.2}else{cbV.tcx=cbV.tcz=.5;cbV.tz=1}cbInfo();cbKick()};
+    cbSel=best?best.k:null;if(best){cbV.tcx=best.x;cbV.tcz=best.z;if(cbV.tz<2.2)cbV.tz=2.2}cbInfo();cbKick()};
   c.onwheel=e=>{e.preventDefault();cbV.tz=Math.max(.6,Math.min(12,cbV.tz*Math.exp(-e.deltaY/300)));cbKick()};
   document.querySelectorAll('[data-cbz]').forEach(b=>b.onclick=()=>{cbV.tz=Math.max(.6,Math.min(12,cbV.tz*(+b.dataset.cbz>0?1.8:1/1.8)));cbKick()});
 }
