@@ -532,7 +532,7 @@ label.ck input{width:20px;height:20px}
 })();
 </script>
 <script id="crate-main" type="text/x-crate">
-const APP_VERSION=101,APP_DATE='28 Nov 2026';
+const APP_VERSION=102,APP_DATE='28 Nov 2026';
 const COVER_CACHE='vinyl-covers-2'; // must match COVERS in sw.js
 const DEFAULT_LOCS=[
  {id:'kallax',name:'Kallax shelf',mode:'grid',cols:3,rows:4,cap:0,formats:['lp']},
@@ -2643,10 +2643,14 @@ function stMount(){stInfo();if(!stView)stFit();else stDraw();
    to the middle year of its records (original years where known), so busy cities grow towers. Colour is the genre
    family and dot size how many of its records you have.
    Drag to turn, pinch or scroll to zoom, tap a dot to centre on it; the corner button steps through 3D, top, front and side */
-// the electronic side in blues, hip hop green, jazz and soul warm; the smaller families stay quiet
-const CB_FAM=[['Electronic',/^(Electronic|Ambient|IDM|Drum n Bass)/,'#3d8bff'],['Industrial · EBM',/^(Industrial|EBM|Metal)/,'#7b6dff'],['New wave · pop',/^(New Wave|Pop)/,'#35c3e8'],
-  ['Hip hop',/^Hip Hop/,'#2fcf6a'],['Jazz · blues',/^(Jazz|Blues)/,'#ff8a1e'],['Soul · R&B · world',/^(Funk|R&B|Gospel|Reggae|World|Latin|Brass)/,'#ff4b4b'],
-  ['Classical · film',/^(Classical|Soundtrack|Spoken|Comedy|Stage)/,'#b9a27a'],['Rock · folk',/^(Alternative|Rock|Folk|Country|Punk)/,'#9a9a9a']];
+// the selection colours: electronic purple, hip hop lime, jazz orange; related genres are tones drawn towards them
+// ([colour, hue turn, lightness, saturation]), so light mode follows the selection colours' darker shades
+const CB_FAM=[['Electronic',/^(Electronic|Ambient|IDM|Drum n Bass)/,['--s3',0,0,0]],['Industrial · EBM',/^(Industrial|EBM|Metal)/,['--s3',-30,-6,0]],
+  ['New wave · pop',/^(New Wave|Pop)/,['--s3',34,8,0]],['Hip hop',/^Hip Hop/,['--s1',0,0,0]],['Jazz · blues',/^(Jazz|Blues)/,['--s2',0,0,0]],
+  ['Soul · R&B · world',/^(Funk|R&B|Gospel|Reggae|World|Latin|Brass)/,['--s2',-16,2,0]],['Classical · film',/^(Classical|Soundtrack|Spoken|Comedy|Stage)/,['--s2',24,8,-45]],
+  ['Rock · folk',/^(Alternative|Rock|Folk|Country|Punk)/,null]];
+// the floor shows North America and Europe (with the Caribbean); artists from farther away are left out and counted
+const CB_BOX={w:-135,e:45,s:15,n:72};
 const CB_VIEWS=[['3D',null],['Top',[0,Math.PI/2-.001]],['Front',[0,.06]],['Side',[-Math.PI/2,.06]]];
 let cbCache=null,cbSel=null,cbRaf=0,cbProjd=[],cbCol={};
 const cbV={yaw:-.55,pit:.55,ty:-.55,tp:.55,z:1,tz:1,cx:.5,cz:.5,tcx:.5,tcz:.5,turn:true,vi:0};
@@ -2659,7 +2663,9 @@ function cbData(){const key=grKey()+':'+plcVer+':'+Object.keys(arts).length;if(c
     let f=CB_FAM.findIndex(x=>x[1].test(gen));if(f<0)f=8;
     const [lat,lon]=plc.wd[at].ll;
     pts.push({k:o.k,name:o.name,c:o.rs.length,yr:ys[ys.length>>1],y0:ys[0],y1:ys[ys.length-1],f,gen,q:at,pl:plc.wd[at].n,lat,lon})});
-  if(!pts.length)return cbCache={key,pts,tot,cities:[],y0:1960,y1:2020};
+  const far=pts.length;for(let i=pts.length-1;i>=0;i--){const p=pts[i];if(p.lon<CB_BOX.w||p.lon>CB_BOX.e||p.lat<CB_BOX.s||p.lat>CB_BOX.n)pts.splice(i,1)}
+  const out=far-pts.length;
+  if(!pts.length)return cbCache={key,pts,tot,out,cities:[],y0:1960,y1:2020};
   // the floor covers only where your artists come from: west to east and south to north each stretched to fill it, so
   // the two run at different scales and the empty oceans and poles around them are cropped away; north is away from you
   const xs=pts.map(p=>p.lon),ys=pts.map(p=>p.lat),x0=Math.min(...xs),x1=Math.max(...xs),z0=Math.min(...ys),z1=Math.max(...ys),
@@ -2671,10 +2677,14 @@ function cbData(){const key=grKey()+':'+plcVer+':'+Object.keys(arts).length;if(c
     l.forEach((p,j)=>{const an=j*2.39996,r=.0045*Math.sqrt(j);p.x=bx+Math.cos(an)*r;p.z=bz+Math.sin(an)*r;p.h=(p.yr-yA)/(yB-yA)*.8});
     cities.push({name:l[0].pl,n:l.length,x:bx,z:bz})});
   cities.sort((a,b)=>b.n-a.n);
-  return cbCache={key,pts,tot,cities,y0:yA,y1:yB}}
+  return cbCache={key,pts,tot,out,cities,y0:yA,y1:yB}}
 function cbP(x,y,z,W,H){x-=cbV.cx;z-=cbV.cz;y-=.3;const c=Math.cos(cbV.yaw),s=Math.sin(cbV.yaw),X=x*c+z*s,Z=-x*s+z*c,cp=Math.cos(cbV.pit),sp=Math.sin(cbV.pit),
   Y=y*cp+Z*sp,Z2=Z*cp-y*sp,k=Math.min(W,H)*.6*cbV.z,f=2.2/(2.2+Z2);return [W/2+X*k*f,H*.42-Y*k*f,Z2,f]}
-const cbColOf=f=>f<8?CB_FAM[f][2]:cbCol.mute;
+const cbColOf=f=>f<8&&cbCol.fam?cbCol.fam[f]:cbCol.mute;
+function cbTone(t){if(!t)return cbCol.mute;const h=cssVar(t[0]),n=parseInt(h.slice(1),16),r=(n>>16)/255,g=((n>>8)&255)/255,b=(n&255)/255,
+  mx=Math.max(r,g,b),mn=Math.min(r,g,b),l=(mx+mn)/2,d=mx-mn,sa=d?d/(1-Math.abs(2*l-1)):0;
+  let hu=!d?0:mx==r?((g-b)/d)%6:mx==g?(b-r)/d+2:(r-g)/d+4;hu=hu*60;
+  return `hsl(${Math.round((hu+t[1]+360)%360)} ${Math.round(Math.max(0,Math.min(100,sa*100+t[3])))}% ${Math.round(Math.max(10,Math.min(90,l*100+t[2])))}%)`}
 function cbDraw(){const c=$('#cbc');if(!c)return false;const W=c.clientWidth,H=c.clientHeight,d=devicePixelRatio||1;
   if(c.width!=Math.round(W*d)||c.height!=Math.round(H*d)){c.width=Math.round(W*d);c.height=Math.round(H*d)}
   const x=c.getContext('2d'),D=cbData(),P=(a,b,e)=>cbP(a,b,e,W,H),line=(a,b)=>{x.beginPath();x.moveTo(a[0],a[1]);x.lineTo(b[0],b[1]);x.stroke()};
@@ -2698,8 +2708,8 @@ function cbDraw(){const c=$('#cbc');if(!c)return false;const W=c.clientWidth,H=c
   const lb=[];D.cities.slice(0,cbV.z>1.8?14:7).filter(t=>t.n>1).forEach(t=>{const p=P(t.x,0,t.z),n=t.name.toUpperCase().slice(0,16),w=n.length*6.2;
     if(lb.some(b=>Math.abs(b[0]-p[0])<(b[2]+w)/2+4&&Math.abs(b[1]-p[1])<12))return;lb.push([p[0],p[1],w]);x.globalAlpha=.8;x.fillText(n,p[0],p[1]+13)});x.globalAlpha=1;
   const s=cbSel&&D.pts.find(p=>p.k==cbSel);
-  if(s){const q=P(s.x,s.h,s.z),g=P(s.x,0,s.z);x.strokeStyle=cbCol.hl;x.lineWidth=1.5;line(g,q);x.beginPath();x.arc(q[0],q[1],7*q[3]*zr,0,7);x.stroke();
-    x.beginPath();x.ellipse(g[0],g[1],6,2.5,0,0,7);x.stroke();x.fillStyle=cbCol.hl;x.textAlign='left';x.font=`600 11px ${cbCol.mono}`;
+  if(s){const q=P(s.x,s.h,s.z),g=P(s.x,0,s.z);x.strokeStyle=cbCol.ink;x.lineWidth=1.5;line(g,q);x.beginPath();x.arc(q[0],q[1],7*q[3]*zr,0,7);x.stroke();
+    x.beginPath();x.ellipse(g[0],g[1],6,2.5,0,0,7);x.stroke();x.fillStyle=cbCol.ink;x.textAlign='left';x.font=`600 11px ${cbCol.mono}`;
     x.fillText(s.name.length>24?s.name.slice(0,23)+'…':s.name,q[0]+10,q[1]-6)}
   return true}
 function cbPan(dx,dy){const c=$('#cbc');if(!c)return;if(cbV.turn){cbV.turn=false;cbV.vi=0;const b=$('#cbvw');if(b)b.textContent='3D'}
@@ -2717,12 +2727,12 @@ function cubeHTML(){return `<div class="mapw vfit" id="cbw"><canvas id="cbc" ari
 function cbInfo(){const el=$('#cbinfo');if(!el)return;const D=cbData();
   const s=cbSel&&D.pts.find(p=>p.k==cbSel);
   if(!s){const fam=[...new Set(D.pts.map(p=>p.f))].sort((a,b)=>a-b);
-    el.innerHTML=`<b>Map and time</b><p class="mute" style="margin:4px 0 0">${D.pts.length} of ${plur(D.tot,'artist')} placed. The floor runs west to east and south to north, cropped to where your artists are from; the year goes up. Bigger dots, more records.</p>`+
+    el.innerHTML=`<b>Map and time</b><p class="mute" style="margin:4px 0 0">${D.pts.length} of ${plur(D.tot,'artist')} placed. The floor is North America and Europe, cropped to where your artists are from; the year goes up.${D.out?` ${plur(D.out,'artist')} from farther away ${D.out==1?'is':'are'} left out.`:''} Bigger dots, more records.</p>`+
       (D.pts.length<D.tot*.6?`<p class="mute" style="margin:4px 0 0">The rest need their home town: Data → Lookups, artist connections and places.</p>`:'')+
       `<p class="cbleg">${fam.map(f=>`<span><i style="background:${cbColOf(f)}"></i>${f<8?CB_FAM[f][0]:'Other'}</span>`).join('')}</p>`;return}
     el.innerHTML=`<b>${esc(s.name)}</b><p class="mute" style="margin:4px 0 0">${esc(s.pl)} · ${s.y0==s.y1?s.y0:`${s.y0}–${s.y1}`} · ${esc(s.gen||'no genre')} · ${plur(s.c,'record')}</p><button class="btn" data-qgo="a:${esc(s.k)}">Open in the graph</button>`}
 function cbMount(){const c=$('#cbc');if(!c)return;
-  cbCol={ink:cssVar('--ink'),mute:cssVar('--mute'),line:cssVar('--line'),line2:cssVar('--line2'),hl:cssVar('--hl'),mono:cssVar('--mono')||'monospace'};
+  cbCol={fam:CB_FAM.map(f=>cbTone(f[2])),ink:cssVar('--ink'),mute:cssVar('--mute'),line:cssVar('--line'),line2:cssVar('--line2'),hl:cssVar('--hl'),mono:cssVar('--mono')||'monospace'};
   cbInfo();cbKick();
   if(plcPending()&&!plcState.run&&navigator.onLine!==false)plcRun().then(()=>{cbCache=null;cbInfo();cbKick()});
   const pts=new Map();let last=null,moved=0,two=false;
