@@ -532,7 +532,7 @@ label.ck input{width:20px;height:20px}
 })();
 </script>
 <script id="crate-main" type="text/x-crate">
-const APP_VERSION=105,APP_DATE='28 Nov 2026';
+const APP_VERSION=106,APP_DATE='28 Nov 2026';
 const COVER_CACHE='vinyl-covers-2'; // must match COVERS in sw.js
 const DEFAULT_LOCS=[
  {id:'kallax',name:'Kallax shelf',mode:'grid',cols:3,rows:4,cap:0,formats:['lp']},
@@ -1375,6 +1375,7 @@ function jobRunner(o){
    album (release group) is checked; the first Tidal album link wins. Without a link the cover button searches Tidal */
 let td={f:{},n:{}};try{Object.assign(td,JSON.parse(KV.getItem('vinylTidal')||'{}'))}catch(e){}
 const saveTd=()=>{try{KV.setItem('vinylTidal',JSON.stringify(td))}catch(e){}};
+const tdLinked=()=>{const ids=new Set(recs.map(ridOf));return Object.keys(td.f).filter(k=>ids.has(k)).length};
 const tdState={run:false,stop:false,done:0,total:0,found:0,msg:''},tdRG={};
 const tdDone=rid=>!!td.f[rid]||(td.n[rid]&&Date.now()-td.n[rid]<60*864e5);
 // likely hits first: MusicBrainz's Tidal links are mostly on albums, so albums go before singles and compilations; then
@@ -1405,6 +1406,33 @@ const tdRun=jobRunner({st:tdState,todo:tdTodo,text:tdText,prog:'tdprog',btn:'tdb
   apply:(r,t)=>{const rid=ridOf(r);if(t){td.f[rid]=t;delete td.n[rid];return true}td.n[rid]=Date.now();return false},
   after:()=>{}});
 const tidalURL=r=>`https://tidal.com/album/${td.f[ridOf(r)]}`;
+/* Tidal links from a list of albums: a CSV with a title, an artist and a Tidal album link or id, like the liked albums
+   Soundiiz exports from Tidal. Each album is matched to your records by artist and title, loosely: case, accents, "The",
+   spacing, brackets like "(Deluxe Edition)" and endings like "- 2011 Remaster" or "- EP" don't count. A match gets the Tidal button, and
+   these links replace ones the lookup found, since they're the versions you chose on Tidal */
+const tdTitle=t=>fold(t).replace(/\s*[\(\[][^\)\]]*[\)\]]/g,' ').replace(/\s+-\s+.*(remaster|edition|version|deluxe|anniversary|expanded|mono|stereo|live|mix).*$/,'')
+  .replace(/\s+-\s+(ep|single)\s*$/,'')
+  .replace(/&/g,' and ').replace(/[^a-z0-9]+/g,' ').trim().replace(/^the /,'').replace(/ /g,'');  // spacing doesn't count: "Demo Vectors" is "Demovectors" 
+function tdImport(txt,dry){const rows=parseCSV(txt);if(rows.length<2)return null;
+  const h=rows[0].map(x=>x.replace(/^\uFEFF/,'').trim().toLowerCase()),col=(...n)=>h.findIndex(x=>n.includes(x));
+  const ct=col('title','album','album title','name'),ca=col('artist','artists','album artist'),cu=col('url','link','tidal url'),ci=col('albumid','album id','tidal id','id');
+  if(ct<0||ca<0||(cu<0&&ci<0))return null;
+  const byKey=new Map(),byTitle=new Map();
+  recs.forEach(r=>{const t=tdTitle(r.title),a=akey(artName(r.artist));if(!t)return;
+    const k=a+'|'+t;if(!byKey.has(k))byKey.set(k,[]);byKey.get(k).push(r);
+    if(isVarious(artKey(artName(r.artist)))){if(!byTitle.has(t))byTitle.set(t,[]);byTitle.get(t).push(r)}});
+  const vt=new Map();rows.slice(1).forEach(x=>{if(/^various( artists)?$/i.test((x[ca]||'').trim())){const t=tdTitle(x[ct]||'');vt.set(t,(vt.get(t)||0)+1)}});
+  let albums=0,hit=0;const got=new Set();
+  rows.slice(1).forEach(x=>{const u=(cu>=0&&x[cu])||'',m=u.match(/album\/(\d+)/),id=m?m[1]:/^\d+$/.test((ci>=0&&x[ci]||'').trim())?x[ci].trim():'';
+    if(!id)return;albums++;const t=tdTitle(x[ct]||''),ar=x[ca]||'';if(!t)return;
+    // the whole artist credit, then its first name ("A, B" or "A & B"), then a compilation by title alone
+    const tries=[akey(ar),akey(ar.split(/\s*(?:,|&| feat\.? | featuring | and )\s*/i)[0])];
+    let rs=null;for(const a of tries){rs=byKey.get(a+'|'+t);if(rs)break}
+    // compilations by title alone only for longer titles that appear once in the file (there are many "Rap Attack"s)
+    if(!rs&&/^various( artists)?$/i.test(ar.trim())&&t.length>=12&&vt.get(t)==1)rs=byTitle.get(t);
+    if(!rs)return;hit++;rs.forEach(r=>{const rid=ridOf(r);got.add(rid);if(!dry){td.f[rid]=id;delete td.n[rid]}})});
+  if(!dry&&got.size)saveTd();
+  return {albums,hit,recs:got.size}}
 const TD_IC='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l3 3-3 3-3-3zM12 6l3 3-3 3-3-3zM18 6l3 3-3 3-3-3zM12 12l3 3-3 3-3-3z"/></svg>';
 
 /* original release year: MusicBrainz release group, first release date */
@@ -2971,7 +2999,9 @@ function dataView(msg=''){
       ${more(`Label, catalogue number, rating, folder, where and when you bought it, price, condition and Discogs notes are read too, along with Genre, Comment, Selected, Last played, Plays and Play next from this app's own export. A record without a genre gets one from its Discogs folder when the folder names a genre. Two copies of the same release are told apart by their Date Added.`)}
       <div class="dimp"><div><b>Concerts (CSV)</b><span id="gigmsg">${gigs.length?`${gigs.length} concerts imported. ${recs.filter(r=>gigsFor(r).length).length} of your records are by artists you've seen live.`:'Concerts you marked as attended on setlist.fm. None imported yet.'}</span></div><button class="chip" id="gimp">Choose</button></div>
       ${more(`setlist.fm doesn't let web apps fetch them, so run <b>tools/setlistfm_export.py</b> on a computer (see the README) and choose the CSV it writes. Importing again replaces the list. They show as LIVE tags, on the record sheet, in Explore → Live and in the Artists graph.`)}
-      <input type="file" id="file" accept=".csv,text/csv,text/plain" hidden><input type="file" id="gfile" accept=".csv,text/csv,text/plain" hidden>`+
+      <div class="dimp"><div><b>Tidal albums (CSV)</b><span id="tdmsg">${tdLinked()?`${plur(tdLinked(),'record')} ${tdLinked()==1?'has':'have'} a Tidal link.`:'Your albums from Tidal, with their links. None imported yet.'}</span></div><button class="chip" id="tdimp">Choose</button></div>
+      ${more(`A CSV with a title, an artist and a Tidal album link, like the liked albums Soundiiz exports from Tidal. Each album is matched to your records by artist and title; matched records get the Tidal button on their card. Importing again adds to the links you have.`)}
+      <input type="file" id="file" accept=".csv,text/csv,text/plain" hidden><input type="file" id="gfile" accept=".csv,text/csv,text/plain" hidden><input type="file" id="tdfile" accept=".csv,text/csv,text/plain" hidden>`+
       sec('Back up')+`<div class="dimp"><div><b>Full backup</b><span>Everything Crate keeps on this phone in one file: your records and everything looked up (credits, samples, artist connections, places and events, original years, tempos), concerts and settings. Restore it on a new phone or after clearing the browser. Cover images aren't included; they come back by themselves. ${bkWhen()?`Last saved ${bkWhen()}.`:'Not saved yet.'}</span></div></div>
       <button class="btn pri" id="bexp">Save full backup</button><button class="btn" id="bimp">Restore from backup</button><input type="file" id="bfile" accept=".json,application/json" hidden>
       <div class="dimp"><div><b>Spreadsheet (CSV)</b><span>Every record's location, genre, comment, selection, plays, years and tempo, for spreadsheets or to import again. It leaves out credits, samples and artist connections.</span></div></div>
@@ -3015,7 +3045,11 @@ function dataView(msg=''){
       staged=r;dataView()};
     on('exp',exportCSV);on('bexp',exportFull);on('bimp',()=>$('#bfile').click());
     if($('#bfile'))$('#bfile').onchange=async e=>{const f=e.target.files[0];if(f)restoreFull(await readText(f))};
-    on('gimp',()=>$('#gfile').click());
+    on('gimp',()=>$('#gfile').click());on('tdimp',()=>$('#tdfile').click());
+    if($('#tdfile'))$('#tdfile').onchange=async e=>{const f=e.target.files[0];if(!f)return;
+      const m=tdImport(await readText(f));
+      if(!m)return dataView('No Tidal albums found. The file needs title, artist and Tidal link columns.');
+      dataView(`Matched ${m.hit} of ${plur(m.albums,'Tidal album')} to ${plur(m.recs,'record')}. ${plur(tdLinked(),'record')} now ${tdLinked()==1?'has':'have'} a Tidal link.`)};
     if($('#gfile'))$('#gfile').onchange=async e=>{const f=e.target.files[0];if(!f)return;
       const g=stageGigs(await readText(f));
       if(!g||!g.length)return dataView('No concerts found. Choose the CSV that tools/setlistfm_export.py writes.');
