@@ -532,7 +532,7 @@ label.ck input{width:20px;height:20px}
 })();
 </script>
 <script id="crate-main" type="text/x-crate">
-const APP_VERSION=100,APP_DATE='28 Nov 2026';
+const APP_VERSION=101,APP_DATE='28 Nov 2026';
 const COVER_CACHE='vinyl-covers-2'; // must match COVERS in sw.js
 const DEFAULT_LOCS=[
  {id:'kallax',name:'Kallax shelf',mode:'grid',cols:3,rows:4,cap:0,formats:['lp']},
@@ -2648,7 +2648,7 @@ const CB_FAM=[['Electronic',/^(Electronic|Ambient|IDM|Drum n Bass)/,'#3d8bff'],[
   ['Hip hop',/^Hip Hop/,'#2fcf6a'],['Jazz · blues',/^(Jazz|Blues)/,'#ff8a1e'],['Soul · R&B · world',/^(Funk|R&B|Gospel|Reggae|World|Latin|Brass)/,'#ff4b4b'],
   ['Classical · film',/^(Classical|Soundtrack|Spoken|Comedy|Stage)/,'#b9a27a'],['Rock · folk',/^(Alternative|Rock|Folk|Country|Punk)/,'#9a9a9a']];
 const CB_VIEWS=[['3D',null],['Top',[0,Math.PI/2-.001]],['Front',[0,.06]],['Side',[-Math.PI/2,.06]]];
-let cbCache=null,cbSel=null,cbWorld=null,cbRaf=0,cbProjd=[],cbCol={};
+let cbCache=null,cbSel=null,cbRaf=0,cbProjd=[],cbCol={};
 const cbV={yaw:-.55,pit:.55,ty:-.55,tp:.55,z:1,tz:1,cx:.5,cz:.5,tcx:.5,tcz:.5,turn:true,vi:0};
 function cbData(){const key=grKey()+':'+plcVer+':'+Object.keys(arts).length;if(cbCache&&cbCache.key==key)return cbCache;
   const g=artGroups(),pts=[];let tot=0;
@@ -2657,25 +2657,21 @@ function cbData(){const key=grKey()+':'+plcVer+':'+Object.keys(arts).length;if(c
     const ys=o.rs.map(effY).filter(y=>y>1900&&y<2100).sort((a,b)=>a-b);if(!ys.length)return;
     const gc={};o.rs.forEach(r=>{const k=(r.genre||'').split(/,\s*/)[0];gc[k]=(gc[k]||0)+1});const gen=Object.entries(gc).sort((a,b)=>b[1]-a[1])[0][0];
     let f=CB_FAM.findIndex(x=>x[1].test(gen));if(f<0)f=8;
-    const [lat,lon]=plc.wd[at].ll,[mx,my]=mProj(lat,lon);
-    pts.push({k:o.k,name:o.name,c:o.rs.length,yr:ys[ys.length>>1],y0:ys[0],y1:ys[ys.length-1],f,gen,q:at,pl:plc.wd[at].n,mx,my})});
+    const [lat,lon]=plc.wd[at].ll;
+    pts.push({k:o.k,name:o.name,c:o.rs.length,yr:ys[ys.length>>1],y0:ys[0],y1:ys[ys.length-1],f,gen,q:at,pl:plc.wd[at].n,lat,lon})});
   if(!pts.length)return cbCache={key,pts,tot,cities:[],y0:1960,y1:2020};
-  // the floor: a square around every home town; north is away from you in the front view
-  const xs=pts.map(p=>p.mx),ys=pts.map(p=>p.my),x0=Math.min(...xs),x1=Math.max(...xs),z0=Math.min(...ys),z1=Math.max(...ys),
-    span=Math.max(x1-x0,z1-z0,6)*1.12,ccx=(x0+x1)/2,ccz=(z0+z1)/2,fl={ccx,ccz,span};
+  // the floor covers only where your artists come from: west to east and south to north each stretched to fill it, so
+  // the two run at different scales and the empty oceans and poles around them are cropped away; north is away from you
+  const xs=pts.map(p=>p.lon),ys=pts.map(p=>p.lat),x0=Math.min(...xs),x1=Math.max(...xs),z0=Math.min(...ys),z1=Math.max(...ys),
+    sx=Math.max(x1-x0,4),sz=Math.max(z1-z0,3),ux=v=>.04+.92*(v-(x0+x1)/2+sx/2)/sx,uz=v=>.04+.92*(v-(z0+z1)/2+sz/2)/sz;
   const yA=Math.floor(Math.min(...pts.map(p=>p.yr))/10)*10,yB=Math.max(yA+10,Math.ceil((Math.max(...pts.map(p=>p.yr))+1)/10)*10);
   // artists from one town spiral out around it, oldest in the middle, so each town is a tower, not a single stack of dots
   const by=new Map();pts.forEach(p=>{if(!by.has(p.q))by.set(p.q,[]);by.get(p.q).push(p)});
-  const cities=[];by.forEach((l,q)=>{l.sort((a,b)=>a.yr-b.yr||b.c-a.c);const bx=(l[0].mx-ccx)/span+.5,bz=.5-(l[0].my-ccz)/span;
+  const cities=[];by.forEach((l,q)=>{l.sort((a,b)=>a.yr-b.yr||b.c-a.c);const bx=ux(l[0].lon),bz=uz(l[0].lat);
     l.forEach((p,j)=>{const an=j*2.39996,r=.0045*Math.sqrt(j);p.x=bx+Math.cos(an)*r;p.z=bz+Math.sin(an)*r;p.h=(p.yr-yA)/(yB-yA)*.8});
     cities.push({name:l[0].pl,n:l.length,x:bx,z:bz})});
   cities.sort((a,b)=>b.n-a.n);
-  return cbCache={key,pts,tot,cities,y0:yA,y1:yB,fl}}
-async function cbLoadWorld(){if(cbWorld)return cbWorld;
-  const w=await (await fetch('world.json')).json(),Q=w.q,arcs=w.a.split(';').map(a=>{const n=a.split(',').map(Number),out=[];let x=0,y=0;
-    for(let i=0;i<n.length;i+=2){x+=n[i];y+=n[i+1];out.push([x/Q,y/Q])}return out});
-  return cbWorld=w.land.map(r=>{let pts=[];r.forEach((i,j)=>{let a=i<0?arcs[~i].slice().reverse():arcs[i];if(j)a=a.slice(1);pts=pts.concat(a)});
-    return pts.filter((p,i)=>p[1]>-58&&(i%2==0||i==pts.length-1)).map(([lo,la])=>mProj(la,lo))}).filter(r=>r.length>2)}
+  return cbCache={key,pts,tot,cities,y0:yA,y1:yB}}
 function cbP(x,y,z,W,H){x-=cbV.cx;z-=cbV.cz;y-=.3;const c=Math.cos(cbV.yaw),s=Math.sin(cbV.yaw),X=x*c+z*s,Z=-x*s+z*c,cp=Math.cos(cbV.pit),sp=Math.sin(cbV.pit),
   Y=y*cp+Z*sp,Z2=Z*cp-y*sp,k=Math.min(W,H)*.6*cbV.z,f=2.2/(2.2+Z2);return [W/2+X*k*f,H*.42-Y*k*f,Z2,f]}
 const cbColOf=f=>f<8?CB_FAM[f][2]:cbCol.mute;
@@ -2683,11 +2679,8 @@ function cbDraw(){const c=$('#cbc');if(!c)return false;const W=c.clientWidth,H=c
   if(c.width!=Math.round(W*d)||c.height!=Math.round(H*d)){c.width=Math.round(W*d);c.height=Math.round(H*d)}
   const x=c.getContext('2d'),D=cbData(),P=(a,b,e)=>cbP(a,b,e,W,H),line=(a,b)=>{x.beginPath();x.moveTo(a[0],a[1]);x.lineTo(b[0],b[1]);x.stroke()};
   x.setTransform(d,0,0,d,0,0);x.clearRect(0,0,W,H);x.lineWidth=1;
-  // floor grid, the land, and the cube's edges
+  // floor grid and the cube's edges
   x.strokeStyle=cbCol.line;for(let g=0;g<=1.001;g+=.25){line(P(g,0,0),P(g,0,1));line(P(0,0,g),P(1,0,g))}
-  if(cbWorld&&D.fl){x.strokeStyle=cbCol.line2;x.globalAlpha=.8;const {ccx,ccz,span}=D.fl,inn=v=>v>-.02&&v<1.02;
-    cbWorld.forEach(r=>{let prev=null;x.beginPath();r.forEach(([mx,my])=>{const u=(mx-ccx)/span+.5,v=.5-(my-ccz)/span;
-      if(inn(u)&&inn(v)){const p=P(u,0,v);if(prev)x.lineTo(p[0],p[1]);else x.moveTo(p[0],p[1]);prev=p}else prev=null});x.stroke()});x.globalAlpha=1}
   x.strokeStyle=cbCol.line2;[[0,0],[1,0],[0,1],[1,1]].forEach(([a,b])=>line(P(a,0,b),P(a,.8,b)));
   x.globalAlpha=.5;[[0,0,1,0],[0,0,0,1],[1,1,1,0],[1,1,0,1]].forEach(([a,b,e,f])=>line(P(a,.8,b),P(e,.8,f)));x.globalAlpha=1;
   // years up the corner nearest the left of the screen
@@ -2724,13 +2717,13 @@ function cubeHTML(){return `<div class="mapw vfit" id="cbw"><canvas id="cbc" ari
 function cbInfo(){const el=$('#cbinfo');if(!el)return;const D=cbData();
   const s=cbSel&&D.pts.find(p=>p.k==cbSel);
   if(!s){const fam=[...new Set(D.pts.map(p=>p.f))].sort((a,b)=>a-b);
-    el.innerHTML=`<b>Map and time</b><p class="mute" style="margin:4px 0 0">${D.pts.length} of ${plur(D.tot,'artist')} placed. The floor is a map and the year goes up. Bigger dots, more records.</p>`+
+    el.innerHTML=`<b>Map and time</b><p class="mute" style="margin:4px 0 0">${D.pts.length} of ${plur(D.tot,'artist')} placed. The floor runs west to east and south to north, cropped to where your artists are from; the year goes up. Bigger dots, more records.</p>`+
       (D.pts.length<D.tot*.6?`<p class="mute" style="margin:4px 0 0">The rest need their home town: Data → Lookups, artist connections and places.</p>`:'')+
       `<p class="cbleg">${fam.map(f=>`<span><i style="background:${cbColOf(f)}"></i>${f<8?CB_FAM[f][0]:'Other'}</span>`).join('')}</p>`;return}
     el.innerHTML=`<b>${esc(s.name)}</b><p class="mute" style="margin:4px 0 0">${esc(s.pl)} · ${s.y0==s.y1?s.y0:`${s.y0}–${s.y1}`} · ${esc(s.gen||'no genre')} · ${plur(s.c,'record')}</p><button class="btn" data-qgo="a:${esc(s.k)}">Open in the graph</button>`}
 function cbMount(){const c=$('#cbc');if(!c)return;
   cbCol={ink:cssVar('--ink'),mute:cssVar('--mute'),line:cssVar('--line'),line2:cssVar('--line2'),hl:cssVar('--hl'),mono:cssVar('--mono')||'monospace'};
-  cbInfo();cbKick();if(!cbWorld)cbLoadWorld().then(cbKick).catch(()=>{});
+  cbInfo();cbKick();
   if(plcPending()&&!plcState.run&&navigator.onLine!==false)plcRun().then(()=>{cbCache=null;cbInfo();cbKick()});
   const pts=new Map();let last=null,moved=0,two=false;
   const vb=$('#cbvw'),setV=i=>{cbV.vi=i;vb.textContent=CB_VIEWS[i][0];const v=CB_VIEWS[i][1];cbV.turn=!v;if(!v){cbV.tcx=cbV.tcz=.5;cbV.tz=1}if(v){cbV.ty=v[0]+Math.round((cbV.yaw-v[0])/(2*Math.PI))*2*Math.PI;cbV.tp=v[1]}else cbV.tp=.55;cbKick()};
