@@ -532,7 +532,7 @@ label.ck input{width:20px;height:20px}
 })();
 </script>
 <script id="crate-main" type="text/x-crate">
-const APP_VERSION=98,APP_DATE='27 Nov 2026';
+const APP_VERSION=100,APP_DATE='28 Nov 2026';
 const COVER_CACHE='vinyl-covers-2'; // must match COVERS in sw.js
 const DEFAULT_LOCS=[
  {id:'kallax',name:'Kallax shelf',mode:'grid',cols:3,rows:4,cap:0,formats:['lp']},
@@ -2641,7 +2641,7 @@ function stMount(){stInfo();if(!stView)stFit();else stDraw();
 
 /* Explore → Artists → Cube: a map on the floor and time going up. Every artist with a home town is a dot above it, raised
    to the middle year of its records (original years where known), so busy cities grow towers. Colour is the genre
-   family, dot size the band's members (solo is smallest), and brightness how many of its records you have.
+   family and dot size how many of its records you have.
    Drag to turn, pinch or scroll to zoom, tap a dot to centre on it; the corner button steps through 3D, top, front and side */
 // the electronic side in blues, hip hop green, jazz and soul warm; the smaller families stay quiet
 const CB_FAM=[['Electronic',/^(Electronic|Ambient|IDM|Drum n Bass)/,'#3d8bff'],['Industrial · EBM',/^(Industrial|EBM|Metal)/,'#7b6dff'],['New wave · pop',/^(New Wave|Pop)/,'#35c3e8'],
@@ -2652,13 +2652,13 @@ let cbCache=null,cbSel=null,cbWorld=null,cbRaf=0,cbProjd=[],cbCol={};
 const cbV={yaw:-.55,pit:.55,ty:-.55,tp:.55,z:1,tz:1,cx:.5,cz:.5,tcx:.5,tcz:.5,turn:true,vi:0};
 function cbData(){const key=grKey()+':'+plcVer+':'+Object.keys(arts).length;if(cbCache&&cbCache.key==key)return cbCache;
   const g=artGroups(),pts=[];let tot=0;
-  g.forEach(o=>{if(isVarious(o.k))return;tot++;const a=arts[o.k],q=artPlace(o.k);if(!q)return;
+  g.forEach(o=>{if(isVarious(o.k))return;tot++;const q=artPlace(o.k);if(!q)return;
     const at=plcChain(q).ch.find(x=>plc.wd[x]&&plc.wd[x].ll);if(!at)return;
     const ys=o.rs.map(effY).filter(y=>y>1900&&y<2100).sort((a,b)=>a-b);if(!ys.length)return;
     const gc={};o.rs.forEach(r=>{const k=(r.genre||'').split(/,\s*/)[0];gc[k]=(gc[k]||0)+1});const gen=Object.entries(gc).sort((a,b)=>b[1]-a[1])[0][0];
     let f=CB_FAM.findIndex(x=>x[1].test(gen));if(f<0)f=8;
-    const m=a.t=='P'?1:a.t=='G'?(a.r||[]).filter(x=>x[0]=='mem<').length||2:0,[lat,lon]=plc.wd[at].ll,[mx,my]=mProj(lat,lon);
-    pts.push({k:o.k,name:o.name,c:o.rs.length,yr:ys[ys.length>>1],y0:ys[0],y1:ys[ys.length-1],f,gen,m,q:at,pl:plc.wd[at].n,mx,my})});
+    const [lat,lon]=plc.wd[at].ll,[mx,my]=mProj(lat,lon);
+    pts.push({k:o.k,name:o.name,c:o.rs.length,yr:ys[ys.length>>1],y0:ys[0],y1:ys[ys.length-1],f,gen,q:at,pl:plc.wd[at].n,mx,my})});
   if(!pts.length)return cbCache={key,pts,tot,cities:[],y0:1960,y1:2020};
   // the floor: a square around every home town; north is away from you in the front view
   const xs=pts.map(p=>p.mx),ys=pts.map(p=>p.my),x0=Math.min(...xs),x1=Math.max(...xs),z0=Math.min(...ys),z1=Math.max(...ys),
@@ -2678,8 +2678,6 @@ async function cbLoadWorld(){if(cbWorld)return cbWorld;
     return pts.filter((p,i)=>p[1]>-58&&(i%2==0||i==pts.length-1)).map(([lo,la])=>mProj(la,lo))}).filter(r=>r.length>2)}
 function cbP(x,y,z,W,H){x-=cbV.cx;z-=cbV.cz;y-=.3;const c=Math.cos(cbV.yaw),s=Math.sin(cbV.yaw),X=x*c+z*s,Z=-x*s+z*c,cp=Math.cos(cbV.pit),sp=Math.sin(cbV.pit),
   Y=y*cp+Z*sp,Z2=Z*cp-y*sp,k=Math.min(W,H)*.6*cbV.z,f=2.2/(2.2+Z2);return [W/2+X*k*f,H*.42-Y*k*f,Z2,f]}
-const cbTint=(h,c)=>{const n=parseInt(h.slice(1),16),r=n>>16,g=(n>>8)&255,b=n&255,t=.3+.7*Math.min(1,(c-1)/6),m=cbCol.base;
-  return `rgb(${Math.round(m+(r-m)*t)},${Math.round(m+(g-m)*t)},${Math.round(m+(b-m)*t)})`};
 const cbColOf=f=>f<8?CB_FAM[f][2]:cbCol.mute;
 function cbDraw(){const c=$('#cbc');if(!c)return false;const W=c.clientWidth,H=c.clientHeight,d=devicePixelRatio||1;
   if(c.width!=Math.round(W*d)||c.height!=Math.round(H*d)){c.width=Math.round(W*d);c.height=Math.round(H*d)}
@@ -2699,8 +2697,8 @@ function cbDraw(){const c=$('#cbc');if(!c)return false;const W=c.clientWidth,H=c
   // faint stems, then the dots, farthest first
   const pr=D.pts.map(p=>{const q=P(p.x,p.h,p.z);return {p,q}}).sort((a,b)=>b.q[2]-a.q[2]);cbProjd=pr;
   const zr=Math.sqrt(cbV.z);x.globalAlpha=.07;x.strokeStyle=cbCol.ink;pr.forEach(({p,q})=>{if(p.c>1)line(P(p.x,0,p.z),q)});x.globalAlpha=1;
-  pr.forEach(({p,q})=>{const r=(p.m>1?1.9+Math.min(3,Math.log2(p.m))*1.1:p.m==1?1.7:2.1)*q[3]*zr;if(q[0]<-9||q[0]>W+9||q[1]<-9||q[1]>H+9)return;
-    const col=cbTint(cbColOf(p.f),p.c),dim=cbSel&&p.k!=cbSel?.5:1;x.fillStyle=col;x.strokeStyle=col;x.beginPath();x.arc(q[0],q[1],r,0,7);
+  pr.forEach(({p,q})=>{const r=(1.2+Math.min(9,Math.sqrt(p.c)*1.5))*q[3]*zr;if(q[0]<-9||q[0]>W+9||q[1]<-9||q[1]>H+9)return;
+    const col=cbColOf(p.f),dim=cbSel&&p.k!=cbSel?.5:1;x.fillStyle=col;x.strokeStyle=col;x.beginPath();x.arc(q[0],q[1],r,0,7);
     x.globalAlpha=.5*dim;x.fill();x.globalAlpha=.95*dim;x.stroke()});x.globalAlpha=1;
   // the biggest towns on the floor
   x.textAlign='center';x.font=`600 10px ${cbCol.mono}`;x.fillStyle=cbCol.ink;
@@ -2726,14 +2724,12 @@ function cubeHTML(){return `<div class="mapw vfit" id="cbw"><canvas id="cbc" ari
 function cbInfo(){const el=$('#cbinfo');if(!el)return;const D=cbData();
   const s=cbSel&&D.pts.find(p=>p.k==cbSel);
   if(!s){const fam=[...new Set(D.pts.map(p=>p.f))].sort((a,b)=>a-b);
-    el.innerHTML=`<b>Map and time</b><p class="mute" style="margin:4px 0 0">${D.pts.length} of ${plur(D.tot,'artist')} placed. The floor is a map and the year goes up. Bigger dots are bigger bands; brighter dots, more records.</p>`+
+    el.innerHTML=`<b>Map and time</b><p class="mute" style="margin:4px 0 0">${D.pts.length} of ${plur(D.tot,'artist')} placed. The floor is a map and the year goes up. Bigger dots, more records.</p>`+
       (D.pts.length<D.tot*.6?`<p class="mute" style="margin:4px 0 0">The rest need their home town: Data → Lookups, artist connections and places.</p>`:'')+
       `<p class="cbleg">${fam.map(f=>`<span><i style="background:${cbColOf(f)}"></i>${f<8?CB_FAM[f][0]:'Other'}</span>`).join('')}</p>`;return}
-  const mem=s.m==1?'solo':s.m>1?plur(s.m,'member')+' over the years':'';
-  el.innerHTML=`<b>${esc(s.name)}</b><p class="mute" style="margin:4px 0 0">${esc(s.pl)} · ${s.y0==s.y1?s.y0:`${s.y0}–${s.y1}`} · ${esc(s.gen||'no genre')}${mem?' · '+mem:''} · ${plur(s.c,'record')}</p><button class="btn" data-qgo="a:${esc(s.k)}">Open in the graph</button>`}
+    el.innerHTML=`<b>${esc(s.name)}</b><p class="mute" style="margin:4px 0 0">${esc(s.pl)} · ${s.y0==s.y1?s.y0:`${s.y0}–${s.y1}`} · ${esc(s.gen||'no genre')} · ${plur(s.c,'record')}</p><button class="btn" data-qgo="a:${esc(s.k)}">Open in the graph</button>`}
 function cbMount(){const c=$('#cbc');if(!c)return;
   cbCol={ink:cssVar('--ink'),mute:cssVar('--mute'),line:cssVar('--line'),line2:cssVar('--line2'),hl:cssVar('--hl'),mono:cssVar('--mono')||'monospace'};
-  cbCol.base=document.documentElement.dataset.theme=='light'||(!document.documentElement.dataset.theme&&matchMedia('(prefers-color-scheme:light)').matches)?150:110;
   cbInfo();cbKick();if(!cbWorld)cbLoadWorld().then(cbKick).catch(()=>{});
   if(plcPending()&&!plcState.run&&navigator.onLine!==false)plcRun().then(()=>{cbCache=null;cbInfo();cbKick()});
   const pts=new Map();let last=null,moved=0,two=false;
