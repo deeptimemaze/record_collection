@@ -22,16 +22,16 @@ try{const t=localStorage.getItem('crateTheme');if(t=='light'||t=='dark')document
   --y:#c6ff00;--p:#ff2e88;--az:#00e5ff;--s1:#c6ff00;--s2:#ff6a2b;--s3:#a560ff;--on-s:#000;--az-glow:0 0 8px rgba(0,229,255,.5);
   --bg:#050505;--head:#050505;--card:#0c0c0c;--chip:#0c0c0c;--field:#000;--thumb:#151515;
   --ink:#ececec;--mute:#7d7d7d;--line:#1f1f1f;--line2:#3b3b3b;--bd:#ececec;--red:#ff2e88;
-  --hl:var(--y);--hl-t:var(--y);--on-bd:var(--y);--grid:rgba(255,255,255,.035);--glow:0 0 14px rgba(198,255,0,.55);
+  --hl:var(--y);--hl-t:var(--y);--meter:var(--y);--on-bd:var(--y);--grid:rgba(255,255,255,.035);--glow:0 0 14px rgba(198,255,0,.55);
   --ico-search:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d8d8d8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M20 20l-4-4'/%3E%3C/svg%3E");--ico-chev:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d8d8d8' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")}
 @media(prefers-color-scheme:light){:root:not([data-theme=dark]){color-scheme:light;--p:#e0006e;--az:#0079b8;--az-glow:none;--s1:#4f7a00;--s2:#c23d0a;--s3:#6a2fd0;--on-s:#fff;
   --bg:#eeeee8;--head:#eeeee8;--card:#fafaf6;--chip:#fafaf6;--field:#fff;--thumb:#dfdfd8;
   --ink:#0a0a0a;--mute:#5a5a5a;--line:#d6d6ce;--line2:#a3a39b;--bd:#0a0a0a;--red:#d1005a;
-  --hl:var(--p);--hl-t:var(--ink);--on-bd:#0a0a0a;--grid:rgba(0,0,0,.05);--glow:none;
+  --hl:var(--p);--hl-t:var(--ink);--meter:#4f7a00;--on-bd:#0a0a0a;--grid:rgba(0,0,0,.05);--glow:none;
   --ico-search:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23444444' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M20 20l-4-4'/%3E%3C/svg%3E");--ico-chev:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23444444' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")}}:root[data-theme=light]{color-scheme:light;--p:#e0006e;--az:#0079b8;--az-glow:none;--s1:#4f7a00;--s2:#c23d0a;--s3:#6a2fd0;--on-s:#fff;
   --bg:#eeeee8;--head:#eeeee8;--card:#fafaf6;--chip:#fafaf6;--field:#fff;--thumb:#dfdfd8;
   --ink:#0a0a0a;--mute:#5a5a5a;--line:#d6d6ce;--line2:#a3a39b;--bd:#0a0a0a;--red:#d1005a;
-  --hl:var(--p);--hl-t:var(--ink);--on-bd:#0a0a0a;--grid:rgba(0,0,0,.05);--glow:none;
+  --hl:var(--p);--hl-t:var(--ink);--meter:#4f7a00;--on-bd:#0a0a0a;--grid:rgba(0,0,0,.05);--glow:none;
   --ico-search:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23444444' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M20 20l-4-4'/%3E%3C/svg%3E");--ico-chev:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23444444' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")}
 
 /* base */
@@ -362,7 +362,7 @@ label.ck input{width:20px;height:20px}
 .dimp{display:flex;gap:12px;align-items:flex-start;padding:12px 0 4px;border-top:1px solid var(--line)}.dimp div{flex:1;min-width:0}.dimp b{display:block;font:700 13px/1.3 var(--mono)}
 .dimp span{display:block;margin-top:3px;color:var(--mute);font-size:13px;line-height:1.5}.dimp .chip{flex:none}
 .dsw{display:flex;gap:12px;align-items:flex-start;margin-top:16px}.dsw div{flex:1}.dsw b{display:block;font:700 13px/1.3 var(--mono)}.dsw span{display:block;margin-top:3px;color:var(--mute);font-size:13px;line-height:1.5}
-.tog{flex:none;position:relative;width:46px;height:26px;padding:0;background:transparent;border:2px solid var(--y)}.tog::after{content:"";position:absolute;top:3px;left:23px;width:16px;height:16px;background:var(--y)}
+.tog{flex:none;position:relative;width:46px;height:26px;padding:0;background:transparent;border:2px solid var(--meter)}.tog::after{content:"";position:absolute;top:3px;left:23px;width:16px;height:16px;background:var(--meter)}
 .tog.off{border-color:var(--line2)}.tog.off::after{left:3px;background:var(--line2)}
 .lktop{display:flex;align-items:center;gap:12px;margin-top:10px}.lktop #lksum{flex:1;margin:0;font:500 12px/1.4 var(--mono)}.lktop .btn{width:auto;margin:0;min-height:42px;padding:10px 14px;font-size:11px;letter-spacing:.12em;box-shadow:3px 3px 0 var(--p)}
 .lkhr{display:flex;align-items:center;gap:12px}.lkhr .lkh{flex:1;padding-bottom:8px}.lkhr .tog{margin-top:8px}
@@ -370,14 +370,14 @@ label.ck input{width:20px;height:20px}
 .lkh{display:flex;justify-content:space-between;align-items:baseline;gap:10px;width:100%;padding:8px 0 0;background:none;border:0;color:var(--ink);text-align:left}
 .lkh b{font:700 13px/1.3 var(--mono)}.lkh span{color:var(--mute);font:500 11px/1.3 var(--mono);white-space:nowrap}
 .lkh::after{content:"+";margin-left:6px;color:var(--mute);font:700 13px/1 var(--mono)}.lkr.open .lkh::after{content:"−"}
-.lkb{height:5px;margin-top:7px;background:var(--line)}.lkb i{display:block;height:100%;background:var(--y);transition:width .4s}
-.lkr.run .lkb i{background:repeating-linear-gradient(135deg,var(--y) 0 4px,transparent 4px 8px);background-size:11.3px 11.3px;animation:lkmv 1s linear infinite}
+.lkb{height:5px;margin-top:7px;background:var(--line)}.lkb i{display:block;height:100%;background:var(--meter);transition:width .4s}
+.lkr.run .lkb i{background:repeating-linear-gradient(135deg,var(--meter) 0 4px,transparent 4px 8px);background-size:11.3px 11.3px;animation:lkmv 1s linear infinite}
 @keyframes lkmv{to{background-position:11.3px 0}}
 .lkd{margin:0 0 4px;color:var(--mute);font-size:11px}
 .lkx{display:none;padding-top:6px}.lkr.open .lkx{display:block}.lkx .btn{margin-bottom:0}
 .more.locs{margin:26px 0 0;border-top:2px solid var(--bd);padding-top:12px}.more.locs summary{font:700 12px/1 var(--mono);text-transform:uppercase;letter-spacing:.16em;color:var(--hl-t)}
 .dzone{margin-top:26px;padding:4px 12px 12px;border:2px solid var(--red)}.dzone .dh{margin-top:12px;color:var(--red)}.dzone .dh::after{background:var(--red)}
-.smeter{height:10px;margin:8px 0 4px;border:1px solid var(--line2)}.smeter i{display:block;height:100%;background:var(--y)}
+.smeter{height:10px;margin:8px 0 4px;border:1px solid var(--line2)}.smeter i{display:block;height:100%;background:var(--meter)}
 .smeter.hi i{background:var(--p)}
 .smk{display:flex;justify-content:space-between;color:var(--mute);font-size:11px}
 
@@ -389,7 +389,7 @@ label.ck input{width:20px;height:20px}
 .bars{margin:6px 0 16px;padding:10px 12px;background:var(--card);border:2px solid var(--line2)}
 .br{display:grid;grid-template-columns:minmax(70px,32%) 1fr 78px;gap:10px;align-items:center;padding:5px 0;font-size:12px}
 .bl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.bt{height:10px;overflow:hidden;border:1px solid var(--line2);background:transparent}.bt i{display:block;height:100%;background:var(--y)}
+.bt{height:10px;overflow:hidden;border:1px solid var(--line2);background:transparent}.bt i{display:block;height:100%;background:var(--meter)}
 .bv{color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums;text-align:right}
 
 /* storage diagrams */
@@ -513,7 +513,7 @@ label.ck input{width:20px;height:20px}
 })();
 </script>
 <script id="crate-main" type="text/x-crate">
-const APP_VERSION=95,APP_DATE='27 Nov 2026';
+const APP_VERSION=96,APP_DATE='27 Nov 2026';
 const COVER_CACHE='vinyl-covers-2'; // must match COVERS in sw.js
 const DEFAULT_LOCS=[
  {id:'kallax',name:'Kallax shelf',mode:'grid',cols:3,rows:4,cap:0,formats:['lp']},
@@ -590,7 +590,7 @@ async function storageHTML(){
   const u=getUndo(),undoB=g('vinylUndo'),lk=['vinylCov','vinylMbRel','vinylOyNone','vinylArt','vinylPlace','vinylEvt','vinylTidal'];
   const parts=[
     ['Album covers',`${cv.n} image${cv.n==1?'':'s'}`,cv.b,'var(--az)'],
-    ['Records',`${recs.length.toLocaleString('en')} records, places, plays, tempos`,g('vinylRecs2'),'var(--y)'],
+    ['Records',`${recs.length.toLocaleString('en')} records, places, plays, tempos`,g('vinylRecs2'),'var(--meter)'],
     ['Undo copy',!u?'None at the moment':undoB?`From the ${u.what=='clear'?'clear':'import'} on ${when(u.at)}`:'Too big to keep; lost when the app closes',undoB,'var(--mute)'],
     ['Lookups','Artists, places and events, cover and MusicBrainz links, original years (credits and samples are kept with the records)',g(...lk),'var(--p)'],
     ['App files','The saved copy for offline use',app,'var(--ink)'],
