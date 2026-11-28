@@ -532,7 +532,7 @@ label.ck input{width:20px;height:20px}
 })();
 </script>
 <script id="crate-main" type="text/x-crate">
-const APP_VERSION=103,APP_DATE='28 Nov 2026';
+const APP_VERSION=104,APP_DATE='28 Nov 2026';
 const COVER_CACHE='vinyl-covers-2'; // must match COVERS in sw.js
 const DEFAULT_LOCS=[
  {id:'kallax',name:'Kallax shelf',mode:'grid',cols:3,rows:4,cap:0,formats:['lp']},
@@ -1628,10 +1628,6 @@ function statsHTML(){
     yr=by(r=>(r.da||'').slice(0,4)||''),
     decOrd=(a,b)=>(a[0]=='Unknown')-(b[0]=='Unknown')||a[0].localeCompare(b[0]);
   let h=`<div class="tiles">${tile(n,'Records')}${tile(pl,'Placed')}${tile(n-pl,'Not placed')}${tile(recs.filter(r=>r.fav).length,'Selected')}${tile(pd,'Played')}${tile(recs.filter(r=>r.nx).length,'Play next')}</div>`;
-  h+='<label>Storage</label><p class="mute" style="margin:0 0 6px">Records, and sections, shelves or drawers in use.</p>'+barsHTML(locs.map(l=>{
-    const a=recs.filter(r=>r.loc===l.id&&r.section),k=a.length,used=new Set(a.map(r=>r.section)).size,tot=nSlots(l),cap=l.cap*tot;
-    return cap?[l.name,`${k} / ${cap}`,k/cap]:[l.name,`${k} · ${used}/${tot}`,used/tot];
-  }));
   h+='<label>Format</label>'+countBars(cat);
   const vin=recs.filter(isVinyl);
   if(vin.length){const sp={};vin.forEach(r=>{const v=rpmOf(r);sp[v?rpmTxt(v):'Not known yet']=(sp[v?rpmTxt(v):'Not known yet']||0)+1});
