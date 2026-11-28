@@ -275,6 +275,7 @@ label.ck input{width:20px;height:20px}
 /* share: a quiet square in the album art's top-right corner, so it never moves with the BPM chip */
 .thumb .shb{position:absolute;top:0;right:0;z-index:2;width:44px;height:44px;display:grid;place-items:center;padding:0;
   background:rgba(5,5,5,.75);border:0;border-left:1px solid var(--line2);border-bottom:1px solid var(--line2);color:#ececec}
+.thumb .shb.tdl{top:auto;bottom:0;border-bottom:0;border-top:1px solid var(--line2)}.thumb.big .shb.tdl svg{width:24px;height:24px;fill:currentColor;stroke:none}
 .thumb.big .shb svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .thumb .shb:active{background:rgba(5,5,5,.95)}
 .shtx{margin:10px 0 0;padding:10px 12px;border:1px solid var(--line2);background:var(--card);font:500 12px/1.5 var(--mono);white-space:pre-wrap;word-break:break-word}
@@ -512,7 +513,7 @@ label.ck input{width:20px;height:20px}
 })();
 </script>
 <script id="crate-main" type="text/x-crate">
-const APP_VERSION=92,APP_DATE='27 Nov 2026';
+const APP_VERSION=93,APP_DATE='27 Nov 2026';
 const COVER_CACHE='vinyl-covers-2'; // must match COVERS in sw.js
 const DEFAULT_LOCS=[
  {id:'kallax',name:'Kallax shelf',mode:'grid',cols:3,rows:4,cap:0,formats:['lp']},
@@ -586,7 +587,7 @@ async function storageHTML(){
   const cv='caches' in window?await cacheSize(COVER_CACHE):{n:0,b:0};
   let app=0;try{for(const k of await caches.keys())if(k!==COVER_CACHE)app+=(await cacheSize(k)).b}catch(e){}
   let est=null,pers=null;try{est=await navigator.storage.estimate()}catch(e){}try{pers=await navigator.storage.persisted()}catch(e){}
-  const u=getUndo(),undoB=g('vinylUndo'),lk=['vinylCov','vinylMbRel','vinylOyNone','vinylArt','vinylPlace','vinylEvt'];
+  const u=getUndo(),undoB=g('vinylUndo'),lk=['vinylCov','vinylMbRel','vinylOyNone','vinylArt','vinylPlace','vinylEvt','vinylTidal'];
   const parts=[
     ['Album covers',`${cv.n} image${cv.n==1?'':'s'}`,cv.b,'var(--az)'],
     ['Records',`${recs.length.toLocaleString('en')} records, places, plays, tempos`,g('vinylRecs2'),'var(--y)'],
@@ -1350,6 +1351,33 @@ function jobRunner(o){
   }
   return run;
 }
+
+/* Tidal: the album on Tidal, from MusicBrainz's links. Your pressing rarely has one, so every release of the same
+   album (release group) is checked; the first Tidal album link wins. Without a link the cover button searches Tidal */
+let td={f:{},n:{}};try{Object.assign(td,JSON.parse(KV.getItem('vinylTidal')||'{}'))}catch(e){}
+const saveTd=()=>{try{KV.setItem('vinylTidal',JSON.stringify(td))}catch(e){}};
+const tdState={run:false,stop:false,done:0,total:0,found:0,msg:''},tdRG={};
+const tdDone=rid=>!!td.f[rid]||(td.n[rid]&&Date.now()-td.n[rid]<60*864e5);
+function tdTodo(){const seen=new Set(),out=[];recs.forEach(r=>{const rid=ridOf(r);if(seen.has(rid))return;seen.add(rid);if(!tdDone(rid))out.push(r)});return out}
+const tdPick=rels=>{for(const x of rels)for(const l of (x.relations||[])){const m=((l.url||{}).resource||'').match(/tidal\.com\/(?:browse\/)?album\/(\d+)/);if(m)return m[1]}return ''};
+async function findTidal(r){
+  const rid=ridOf(r);let g=null;
+  if(/^\d+$/.test(rid)){const m=await mbRelease(rid);
+    if(m){const k=await mb(`release/${m}?inc=release-groups+url-rels`);const t=tdPick([k]);if(t)return t;g=(k['release-group']||{}).id}}
+  if(!g){const q=`artist:"${artName(r.artist).replace(/"/g,' ')}" AND releasegroup:"${r.title.replace(/"/g,' ')}"`;
+    const j=await mb(`release-group/?query=${encodeURIComponent(q)}&limit=5`);const x=(j['release-groups']||[]).find(y=>(y.score||0)>=90);g=x&&x.id}
+  if(!g)return '';if(g in tdRG)return tdRG[g];
+  const j=await mb(`release?release-group=${g}&inc=url-rels&limit=100`);return tdRG[g]=tdPick(j.releases||[]);
+}
+const tdText=()=>{const ids=new Set(recs.map(ridOf)),have=[...ids].filter(k=>td.f[k]).length;
+  return `${have} of ${ids.size} releases have a Tidal link.`+(tdState.run?` Working: ${tdState.done} of ${tdState.total} looked up this run, ${tdState.found} found.`:'')+(tdState.msg?' '+tdState.msg:'')};
+const tdRun=jobRunner({st:tdState,todo:tdTodo,text:tdText,prog:'tdprog',btn:'tdb',label:'Fetch Tidal links',
+  work:findTidal,tries:3,wait:15000,every:20,saveMore:saveTd,
+  netMsg:'Could not reach MusicBrainz. Resume when you are online.',busyMsg:'MusicBrainz is busy. Resume in a few minutes.',
+  apply:(r,t)=>{const rid=ridOf(r);if(t){td.f[rid]=t;delete td.n[rid];return true}td.n[rid]=Date.now();return false},
+  after:()=>{}});
+const tidalURL=r=>{const t=td.f[ridOf(r)];return t?`https://tidal.com/album/${t}`:`https://tidal.com/search?q=${encodeURIComponent(artName(r.artist)+' '+r.title)}`};
+const TD_IC='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l3 3-3 3-3-3zM12 6l3 3-3 3-3-3zM18 6l3 3-3 3-3-3zM12 12l3 3-3 3-3-3z"/></svg>';
 
 /* original release year: MusicBrainz release group, first release date */
 let oyNone={};try{oyNone=JSON.parse(KV.getItem('vinylOyNone')||'{}')}catch(e){oyNone={}}
@@ -2679,7 +2707,10 @@ function lkStats(){
       more:`The Released year from Discogs is the year of your pressing. This looks it up on MusicBrainz at about one record every two seconds, keeps going where it left off, and sends a record's Discogs number, and sometimes its artist and title, to MusicBrainz.`},
     {id:'bp',name:'Tempo for 12" singles',done:bpDone.size,total:bp12.size,unit:'12"s',sec:8,st:bpState,run:bpmRun,prog:'bpprog',btn:'bpb',label:'Fetch tempos',text:bpText,
       what:'A suggested tempo for each track on your 12" singles and EPs.',
-      more:`Measured BPM from AcousticBrainz (through MusicBrainz) and Deezer's BPM by artist and title. Expect about half of them to be found, and some to be half or double the real tempo or from another mix, so check them on the record sheet, where you can also tap along or let it listen. It takes about 8 seconds a record, keeps going where it left off, and sends each record's Discogs number to Discogs and MusicBrainz and its artist and track titles to Deezer.`}
+      more:`Measured BPM from AcousticBrainz (through MusicBrainz) and Deezer's BPM by artist and title. Expect about half of them to be found, and some to be half or double the real tempo or from another mix, so check them on the record sheet, where you can also tap along or let it listen. It takes about 8 seconds a record, keeps going where it left off, and sends each record's Discogs number to Discogs and MusicBrainz and its artist and track titles to Deezer.`},
+    {id:'td',name:'Tidal links',done:[...allR].filter(tdDone).length,total:allR.size,unit:'releases',sec:3,st:tdState,run:tdRun,prog:'tdprog',btn:'tdb',label:'Fetch Tidal links',text:tdText,
+      what:'Which album on Tidal each record is, for the Tidal button on the cover of the record card. Without a link, the button searches Tidal for the artist and title.',
+      more:`MusicBrainz links many albums to Tidal, mostly well-known ones, so expect a third to a half to be found. About one record every three seconds; it keeps going where it left off, tries again after two months for ones not found, and sends Discogs numbers, and sometimes artist and title, to MusicBrainz.`},
   ].map(x=>({...x,left:Math.max(0,x.total-x.done)}));
 }
 function lkSummary(){const L2=lkStats(),tot=L2.reduce((t,x)=>t+x.total,0),dn=L2.reduce((t,x)=>t+Math.min(x.done,x.total),0),h=L2.reduce((t,x)=>t+x.left*x.sec,0)/3600;
@@ -2780,7 +2811,7 @@ function dataView(msg=''){
       gigs=g;saveGigs();const a=new Set(g.map(x=>akey(x.a))).size,m=recs.filter(r=>gigsFor(r).length).length;
       dataView(`Imported ${g.length} concerts by ${a} artists. ${m} of your records are by artists you've seen live.`)};
     on('gclr',async()=>{if(!await ask('Remove all imported concerts? Your records are not affected.','Remove concerts',true))return;gigs=[];saveGigs();dataView('Concerts removed.')});
-    on('oyb',oyRun);on('arb',artRun);on('plb',plcRun);on('smb',smRun);on('sib',siRun);on('dgb',dgRun);on('bpb',bpmRun);on('lkall',runAll);
+    on('oyb',oyRun);on('arb',artRun);on('plb',plcRun);on('smb',smRun);on('sib',siRun);on('dgb',dgRun);on('bpb',bpmRun);on('tdb',tdRun);on('lkall',runAll);
     on('upd',async()=>{$('#updmsg').textContent='Checking...';const m=await checkUpdate(true);if($('#updmsg'))$('#updmsg').textContent=m});
     on('cvt',()=>{try{KV.setItem('vinylCoverOff',covOn()?'1':'0')}catch(e){}dataView()});
     on('cvd',async()=>{$('#cvmsg').textContent='Testing...';const m=await covDiag();if($('#cvmsg'))$('#cvmsg').textContent=m});
@@ -2987,7 +3018,7 @@ function shareSheet(id){
   showSheet();
 }
 // the big album art on the record sheet, with the share button in its top-right corner
-const shareArtHTML=r=>bigArtHTML(r).replace(/<\/span>$/,`<button class="shb" data-share="${esc(r.id)}" aria-label="Share this record"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="5.5" r="2.6"/><circle cx="18" cy="18.5" r="2.6"/><path d="M8.3 10.8l7.4-4M8.3 13.2l7.4 4"/></svg></button></span>`);
+const shareArtHTML=r=>bigArtHTML(r).replace(/<\/span>$/,`<button class="shb" data-share="${esc(r.id)}" aria-label="Share this record"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="5.5" r="2.6"/><circle cx="18" cy="18.5" r="2.6"/><path d="M8.3 10.8l7.4-4M8.3 13.2l7.4 4"/></svg></button><a class="shb tdl" href="${tidalURL(r)}" target="_blank" rel="noopener" aria-label="${td.f[ridOf(r)]?'Open in Tidal':'Search on Tidal'}" title="${td.f[ridOf(r)]?'Open in Tidal':'Search on Tidal'}">${TD_IC}</a></span>`);
 // a full card's starting state: where it is (or would go), and its genre and comment
 const recState=r=>({lid:placed(r)?r.loc:defaultLoc(r)?.id,sec:placed(r)?r.section:null,cm:r.comment||'',gn:r.genre||''});
 // a full card's markup; '' when there is no storage location yet
